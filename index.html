@@ -53,7 +53,7 @@
     <div class="grid">
         <div class="card card-before">
             <h3 class="panel-header">1. 現在のステータス</h3>
-            <div class="gear-row" style="grid-template-columns: 1fr 1fr;">
+            <div class="gear-row" style="grid-template-columns: 1..6fr 1fr;">
                 <div><label id="cLevelLabel">👤 Lv</label><div class="stepper"><button onclick="step('cLevel', -1)">-</button><input type="number" id="cLevel" value="150" min="1" onchange="calculate()"><button onclick="step('cLevel', 1)">+</button></div></div>
                 <div><label>⚔️ 武装Lv (0~30)</label><div class="stepper"><button onclick="step('cWeapon', -1)">-</button><input type="number" id="cWeapon" value="20" min="0" max="30" onchange="calculate()"><button onclick="step('cWeapon', 1)">+</button></div></div>
             </div>
@@ -79,7 +79,7 @@
         </div>
         <div class="card card-after">
             <h3 class="panel-header">2. 目標のステータス</h3>
-            <div class="gear-row" style="grid-template-columns: 1fr 1fr;">
+            <div class="gear-row" style="grid-template-columns: 1.6fr 1fr;">
                 <div><label id="tLevelLabel">👤 Lv</label><div class="stepper"><button onclick="step('tLevel', -1)">-</button><input type="number" id="tLevel" value="150" min="1" onchange="calculate()"><button onclick="step('tLevel', 1)">+</button></div></div>
                 <div><label>⚔️ 武装Lv (0~30)</label><div class="stepper"><button onclick="step('tWeapon', -1)">-</button><input type="number" id="tWeapon" value="20" min="0" max="30" onchange="calculate()"><button onclick="step('tWeapon', 1)">+</button></div></div>
             </div>
