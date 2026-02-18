@@ -57,7 +57,7 @@
 <body>
 
 <div class="container">
-    <h1>育成シミュレーター<br><span style="font-size: 0.8rem; color: #7f8c8d;">(必要レシピ連動 完璧版)</span></h1>
+    <h1>育成シミュレーター<br><span style="font-size: 0.8rem; color: #7f8c8d;">(連動ロジック 完璧版)</span></h1>
 
     <div class="panel">
         <h3 class="panel-header">🏢 共通設定 <button class="reset-btn" onclick="resetAllData()">リセット</button></h3>
@@ -127,7 +127,7 @@
             <div style="margin-top:15px; padding-top:10px; border-top:1px dashed #ccc;">
                 <div class="gear-row">
                     <div><label>🔫 大砲 Lv <span id="prioGun" class="prio-badge" style="display:none;"></span></label><div class="stepper"><button onclick="step('tGunLv', -1)">-</button><input type="number" id="tGunLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('tGunLv', 1)">+</button></div></div>
-                    <div><label>★段階</label><div class="stepper"><button onclick="step('tGunStar', -1)">-</button><input type="text" id="tGunStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('tGunStar', 1)">+</button></div></div>
+                    <div><label>★段階</label><div class="stepper"><button onclick="step('tGunStar', -1)">-</button><input type="text" id="tGunStar" data-val="2" value="★★☆☆☆" readonly><button onclick="step('tGunStar', 1)">+</button></div></div>
                 </div>
                 <div class="gear-row">
                     <div><label>💾 データ Lv <span id="prioData" class="prio-badge" style="display:none;"></span></label><div class="stepper"><button onclick="step('tDataLv', -1)">-</button><input type="number" id="tDataLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('tDataLv', 1)">+</button></div></div>
@@ -139,7 +139,7 @@
                 </div>
                 <div class="gear-row">
                     <div><label>📡 ﾚｰﾀﾞｰ Lv <span id="prioRadar" class="prio-badge" style="display:none;"></span></label><div class="stepper"><button onclick="step('tRadarLv', -1)">-</button><input type="number" id="tRadarLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('tRadarLv', 1)">+</button></div></div>
-                    <div><label>★段階</label><div class="stepper"><button onclick="step('tRadarStar', -1)">-</button><input type="text" id="tRadarStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('tRadarStar', 1)">+</button></div></div>
+                    <div><label>★段階</label><div class="stepper"><button onclick="step('tRadarStar', -1)">-</button><input type="text" id="tRadarStar" data-val="5" value="★★★★★" readonly><button onclick="step('tRadarStar', 1)">+</button></div></div>
                 </div>
             </div>
             
@@ -262,6 +262,12 @@ function stepHQ(delta) {
 function updateHQ(isManual = false) {
     let hqVal = parseInt(document.getElementById('hqLevel').value) || 30;
     let maxHL = hqVal * 5;
+    
+    let cLevelEl = document.getElementById('cLevel');
+    let tLevelEl = document.getElementById('tLevel');
+    let oldC = parseInt(cLevelEl.value);
+    let oldT = parseInt(tLevelEl.value);
+
     ['cLevel', 'tLevel'].forEach(id => {
         let el = document.getElementById(id);
         el.setAttribute('max', maxHL);
@@ -269,10 +275,13 @@ function updateHQ(isManual = false) {
         if (isManual || parseInt(el.value) > maxHL) el.value = maxHL;
     });
     
-    // 現在のレベルが目標を上回ったら連動させる
-    let cLv = parseInt(document.getElementById('cLevel').value);
-    let tLv = parseInt(document.getElementById('tLevel').value);
-    if(cLv > tLv) document.getElementById('tLevel').value = cLv;
+    let cLv = parseInt(cLevelEl.value);
+    let tLv = parseInt(tLevelEl.value);
+    if(cLv > tLv) {
+        tLevelEl.value = cLv;
+    } else if (cLv < oldC && oldT === oldC) {
+        tLevelEl.value = cLv;
+    }
     
     calculate();
 }
@@ -283,17 +292,26 @@ function step(id, delta) {
     let val = parseInt(isStar ? el.getAttribute('data-val') : el.value) || 0;
     let min = parseInt(el.getAttribute('min')) || 0;
     let max = parseInt(el.getAttribute('max')) || 999;
+    
+    let oldVal = val; // 変更前の値を記憶
     let newVal = Math.min(Math.max(val + delta, min), max);
     
     if (isStar) { el.setAttribute('data-val', newVal); updateStarDisplay(el, newVal); }
     else { el.value = newVal; }
     
-    // ▼ 現在のステータスを上げた時、目標ステータスも自動で引き上げる(連動機能) ▼
+    // ▼ 現在ステータスを変更した時の「目標ステータス」の賢い連動ロジック ▼
     if (id.startsWith('c')) {
         let tId = 't' + id.substring(1);
         let tEl = document.getElementById(tId);
         let tVal = isStar ? parseInt(tEl.getAttribute('data-val')) : parseInt(tEl.value);
+        
+        // 1. 現在値が目標値を上回った場合は、目標も引き上げる
         if (newVal > tVal) {
+            if (isStar) { tEl.setAttribute('data-val', newVal); updateStarDisplay(tEl, newVal); }
+            else { tEl.value = newVal; }
+        } 
+        // 2. 現在値を下げた時、変更前の現在値と目標値が同じ（差がなかった）なら、一緒に下げる（間違えた時の修正対応）
+        else if (newVal < oldVal && tVal === oldVal) {
             if (isStar) { tEl.setAttribute('data-val', newVal); updateStarDisplay(tEl, newVal); }
             else { tEl.value = newVal; }
         }
@@ -320,7 +338,6 @@ let lastB_multi = 1.00, lastA_multi = 1.00, lastRatio = 1.00;
 function calculate() {
     const gears = ['Gun', 'Data', 'Armor', 'Radar'];
     
-    // 必要な図面の枚数を計算する配列（累計数）
     const urCumulative = [0, 5, 15, 30, 50, 50]; 
     const mrCumulative = [0, 0, 0, 0, 0, 10];
     let totalUrReq = 0, totalMrReq = 0;
@@ -334,7 +351,6 @@ function calculate() {
         });
     });
     
-    // 必要図面の算出
     gears.forEach(g => {
         let cLv = parseInt(document.getElementById('c'+g+'Lv').value);
         let cStar = cLv >= 40 ? parseInt(document.getElementById('c'+g+'Star').getAttribute('data-val')) : 0;
@@ -348,7 +364,6 @@ function calculate() {
         }
     });
     
-    // 結果表示の制御
     let costDiv = document.getElementById("costDisplay");
     if (totalUrReq > 0 || totalMrReq > 0) {
         document.getElementById("urCost").innerText = totalUrReq;
