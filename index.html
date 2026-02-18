@@ -36,12 +36,11 @@
 
     .gear-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 5px; align-items: end; }
     
-    /* ▼ 結果表示エリアのデザインを「倍率メイン」に最適化 ▼ */
     .result { margin-top: 20px; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid #eee; background-color: #f8f9fa;}
     .res-after { background-color: #faeaeb; border-color: #fadbd8; }
     .score { font-size: 2.2rem; font-weight: bold; margin: 5px 0; font-family: "Arial Black", Arial, sans-serif; letter-spacing: 1px;}
-    .score-b { color: #2980b9; } /* 現在の倍率を青色に */
-    .score-a { color: #c0392b; } /* 目標の倍率を赤色に */
+    .score-b { color: #2980b9; } 
+    .score-a { color: #c0392b; } 
     
     .detail-text { font-size: 0.8rem; color: #555; line-height: 1.5; text-align: center; padding: 10px; background: #fff; border-radius: 8px; margin-top: 10px; border: 1px solid #e1e8ed; box-shadow: 0 1px 3px rgba(0,0,0,0.02);}
     .res-after .detail-text { border-color: #fadbd8; } 
@@ -93,8 +92,8 @@
                 </div>
             </div>
             <div class="result res-before">
-                <div style="font-size: 0.85rem; color: #7f8c8d; font-weight: bold;">現在の 総合バフ倍率</div>
-                <div class="score score-b">x <span id="scoreBefore">1.00</span></div>
+                <div style="font-size: 0.85rem; color: #7f8c8d; font-weight: bold;">基礎ステータスの</div>
+                <div class="score score-b"><span id="scoreBefore">1.00</span> <span style="font-size: 1.2rem;">倍</span></div>
                 <div class="detail-text" id="detailBefore"></div>
             </div>
         </div>
@@ -124,8 +123,8 @@
                 </div>
             </div>
             <div class="result res-after">
-                <div style="font-size: 0.85rem; color: #c0392b; font-weight: bold;">目標の 総合バフ倍率</div>
-                <div class="score score-a">x <span id="scoreAfter">1.00</span></div>
+                <div style="font-size: 0.85rem; color: #c0392b; font-weight: bold;">基礎ステータスの</div>
+                <div class="score score-a"><span id="scoreAfter">1.00</span> <span style="font-size: 1.2rem;">倍</span></div>
                 <div class="detail-text" id="detailAfter"></div>
             </div>
         </div>
@@ -134,7 +133,7 @@
 
 <div class="diff-wrapper">
     <div class="diff" id="growthDiff">
-        戦闘力：現在の 約 <span id="growthNum" style="font-size:1.4rem; padding: 0 4px;">1.00</span> 倍！
+        今の強さの 約 <span id="growthNum" style="font-size:1.4rem; padding: 0 4px;">1.00</span> 倍に！
     </div>
 </div>
 
@@ -222,7 +221,6 @@ function getGearMultiplier(gearLevel, stars, type) {
     return { statMulti: 1.0 + baseBoost + starBoost, passiveMulti: passiveMulti };
 }
 
-// ▼ スコアではなく、倍率（multi）をアニメーションさせるために変数を変更 ▼
 let lastB_multi = 1.00, lastA_multi = 1.00, lastRatio = 1.00;
 
 function calculate() {
@@ -246,7 +244,6 @@ function calculate() {
         let wpMulti = (1.0 + (wp * 0.01)) * ([1, 1.05, 1.2, 1.4][Math.floor(wp/10)] || 1);
         let totalM = gearStat * gearPass * wpMulti;
         
-        // 赤パッシブのテキスト生成
         let activeMythics = [];
         if (m[0].passiveMulti > 1) activeMythics.push("大砲 (+10%火力)");
         if (m[1].passiveMulti > 1) activeMythics.push("ﾃﾞｰﾀ (不利ダメ5%減)");
@@ -254,21 +251,17 @@ function calculate() {
         if (m[3].passiveMulti > 1) activeMythics.push("ﾚｰﾀﾞｰ (会心被ダメ30%減)");
         let mythicText = activeMythics.length > 0 ? "<div class='mythic-box'><span style='color:#e74c3c;'><b>★5 赤パッシブ発動中：</b></span><br>・" + activeMythics.join("<br>・") + "</div>" : "";
         
-        // 内部計算用のスコア(score)も一応残しておくが、画面には出さない
         return { score: baseStat * totalM, base: Math.round(baseStat), multi: totalM, mythicText: mythicText };
     };
     
     let resB = calc('c'), resA = calc('t');
     
-    // ▼ スコアではなく、倍率（resB.multi）をアニメーションターゲットにする ▼
     animateValue(document.getElementById("scoreBefore"), lastB_multi, resB.multi, 400, true);
     animateValue(document.getElementById("scoreAfter"), lastA_multi, resA.multi, 400, true);
     
-    // 詳細エリアには基礎ステータスと赤パッシブだけをひっそりと表示
     document.getElementById("detailBefore").innerHTML = `基礎ステータス： <b>${resB.base}</b>` + resB.mythicText;
     document.getElementById("detailAfter").innerHTML = `基礎ステータス： <b>${resA.base}</b>` + resA.mythicText;
     
-    // 成長幅（目標スコア ÷ 現在スコア）
     let currentRatio = (resB.score > 0) ? (resA.score / resB.score) : 1.00;
     animateValue(document.getElementById("growthNum"), lastRatio, currentRatio, 400, true);
     
