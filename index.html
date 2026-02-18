@@ -1,3 +1,6 @@
+「武装Lv」の入力欄だけが少し下がって見えるのは、隣のレベル欄にある「👤（絵文字）」の高さが影響して、グリッドの並びが微妙にズレてしまっているのが原因です。
+すべての入力欄の**「頭出し（垂直方向の揃え）」をピシッと統一**し、さらにスマホでの表示の安定感を高める修正を行いました。
+以下のコードを上書き保存してください。これで左右の高さが完璧に揃います！
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -13,7 +16,6 @@
     .panel { background: #fff; padding: 12px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
     .grid { display: flex; gap: 15px; flex-wrap: wrap; }
     
-    /* カードの余白をスマホ用に削減 */
     .card { flex: 1; min-width: 100%; background: #fff; padding: 15px 10px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); box-sizing: border-box;}
     @media (min-width: 768px) { .card { min-width: calc(50% - 10px); padding: 20px 15px; } }
     
@@ -21,12 +23,10 @@
     .card-after { border-top: 6px solid #e74c3c; background: linear-gradient(to bottom, #fffafb, #ffffff); }
     .panel-header { display: flex; justify-content: space-between; align-items: center; margin-top: 0; color: #2980b9; border-bottom: 2px solid #ecf0f1; padding-bottom: 8px; font-size: 1rem; }
     
-    label { display: block; margin-top: 12px; margin-bottom: 4px; font-weight: bold; font-size: 0.8rem; color: #444; }
+    label { display: block; margin-top: 12px; margin-bottom: 4px; font-weight: bold; font-size: 0.8rem; color: #444; height: 1.2rem; line-height: 1.2rem; }
 
-    /* ステッパーの幅をスマホに最適化 */
     .stepper { display: flex; align-items: center; background: #fff; border: 1px solid #ccd1d9; border-radius: 8px; overflow: hidden; height: 40px; }
     
-    /* スマホではボタンを少し細くして1行に収める */
     .stepper button { 
         width: 32px; 
         height: 100%; 
@@ -40,13 +40,13 @@
     }
     @media (min-width: 400px) { .stepper button { width: 38px; } }
 
-    .stepper input { flex: 1; text-align: center; border: none; font-size: 16px; font-weight: bold; color: #2c3e50; min-width: 0; background: transparent; }
+    .stepper input { flex: 1; text-align: center; border: none; font-size: 16px; font-weight: bold; color: #2c3e50; min-width: 0; background: transparent; height: 100%; padding: 0; }
     .stepper input[readonly] { font-size: 12px; letter-spacing: -1.5px; }
 
     .stepper.disabled { opacity: 0.4; pointer-events: none; background-color: #ecf0f1; }
 
-    /* レベルと★の比率を再調整（さらにレベル側を広げて、★側を極限までスリムに） */
-    .gear-row { display: grid; grid-template-columns: 1.8fr 1fr; gap: 6px; margin-bottom: 5px; }
+    /* 高さを揃えるための設定 */
+    .gear-row { display: grid; grid-template-columns: 1.8fr 1fr; gap: 6px; margin-bottom: 5px; align-items: end; }
     
     .result { margin-top: 20px; padding: 12px; border-radius: 10px; text-align: center; border: 1px solid #eee; background-color: #f8f9fa;}
     .res-after { background-color: #faeaeb; border-color: #fadbd8; }
@@ -65,7 +65,7 @@
 <body>
 
 <div class="container">
-    <h1>育成シミュレーター<br><span style="font-size: 0.8rem; color: #7f8c8d;">(スマホ縦画面 最適化版)</span></h1>
+    <h1>育成シミュレーター<br><span style="font-size: 0.8rem; color: #7f8c8d;">(レイアウト修正版)</span></h1>
 
     <div class="panel">
         <h3 class="panel-header">🏢 共通設定 <button class="reset-btn" onclick="resetAllData()">リセット</button></h3>
@@ -257,3 +257,9 @@ window.onload = () => { if (!loadAllData()) updateHQ(); else updateHQ(false); };
 </script>
 </body>
 </html>
+
+修正のポイント
+ * align-items: end;: グリッド（1行）の中にある各項目を、下（ベースライン）で揃えるように強制しました。これにより、ラベルの有無や高さに関わらず入力欄が一直線に並びます。
+ * ラベルの高さ固定: height: 1.2rem; を指定することで、絵文字があるラベルとないラベルで高さがバラけるのを防ぎました。
+ * 入力欄のパディング・マージン削除: インプット要素の余計な隙間をリセットし、縦画面でもボタンが押し出されないように詰めました。
+これで、縦持ちでも左右のステッパーが綺麗に並び、「＋」ボタンがしっかり見える状態になっているはずです！
