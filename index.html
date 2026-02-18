@@ -6,7 +6,7 @@
 <title>ラストウォー育成シミュレーター</title>
 <style>
     /* 全体のベース設定 */
-    body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; background-color: #f0f4f8; color: #333; padding: 10px; padding-bottom: 140px; margin: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; background-color: #f0f4f8; color: #333; padding: 10px; padding-bottom: 180px; margin: 0; }
     h1 { font-size: 1.2rem; text-align: center; color: #2c3e50; margin-bottom: 15px; line-height: 1.4; }
     .container { max-width: 1000px; margin: 0 auto; }
     
@@ -57,7 +57,7 @@
 <body>
 
 <div class="container">
-    <h1>育成シミュレーター<br><span style="font-size: 0.8rem; color: #7f8c8d;">(独立操作 快適版)</span></h1>
+    <h1>育成シミュレーター<br><span style="font-size: 0.8rem; color: #7f8c8d;">(必要レシピ内訳・早見表 搭載版)</span></h1>
 
     <div class="panel">
         <h3 class="panel-header">🏢 共通設定 <button class="reset-btn" onclick="resetAllData()">リセット</button></h3>
@@ -154,10 +154,22 @@
 
 <div class="diff-wrapper">
     <div class="diff" id="growthDiff">
-        <div>今の強さの 約 <span id="growthNum" style="font-size:1.5rem; padding: 0 4px;">1.00</span> 倍に！</div>
-        <div id="costDisplay" style="font-size: 0.85rem; color: #555; margin-top: 8px; border-top: 1px dashed #fadbd8; padding-top: 8px; font-weight: normal; display: none;">
-            <span style="font-weight:bold; color:#d35400;">🆙 星上げに必要な追加図面</span><br>
-            UR(金): <b id="urCost" style="color:#f39c12; font-size:1.1rem;">0</b> 枚 　 MR(赤): <b id="mrCost" style="color:#e74c3c; font-size:1.1rem;">0</b> 枚
+        <div style="margin-bottom: 5px;">今の強さの 約 <span id="growthNum" style="font-size:1.5rem; padding: 0 4px;">1.00</span> 倍に！</div>
+        
+        <div id="costDisplay" style="font-size: 0.85rem; color: #555; margin-top: 8px; border-top: 1px dashed #fadbd8; padding-top: 10px; font-weight: normal; display: none; text-align: left;">
+            <div style="text-align: center; margin-bottom: 8px;">
+                <span style="font-weight:bold; color:#d35400;">🆙 目標までに必要な追加図面(合計)</span><br>
+                UR(金): <b id="urCost" style="color:#f39c12; font-size:1.2rem;">0</b> 枚 　 MR(赤): <b id="mrCost" style="color:#e74c3c; font-size:1.2rem;">0</b> 枚
+            </div>
+            
+            <div id="costBreakdown" style="font-size: 0.8rem; background: #fff; padding: 8px; border-radius: 6px; border: 1px solid #eee; margin-bottom: 10px;">
+                </div>
+            
+            <div style="font-size: 0.7rem; color: #777; text-align: center; line-height: 1.5;">
+                <b style="color: #555;">【1段階ごとの必要数 早見表】</b><br>
+                ★0→1: <span style="color:#f39c12; font-weight:bold;">5枚</span> / ★1→2: <span style="color:#f39c12; font-weight:bold;">10枚</span> / ★2→3: <span style="color:#f39c12; font-weight:bold;">15枚</span><br>
+                ★3→4: <span style="color:#f39c12; font-weight:bold;">20枚</span> / ★4→5: <span style="color:#e74c3c; font-weight:bold;">赤10枚</span>
+            </div>
         </div>
     </div>
 </div>
@@ -242,7 +254,7 @@ function updateStarDisplay(el, val) {
 function stepHQ(delta) {
     let el = document.getElementById('hqLevel');
     el.value = Math.min(Math.max(parseInt(el.value) + delta, 1), 35);
-    updateHQ(); // 本部変更時の強制レベル同期も外しました
+    updateHQ(); 
 }
 
 function updateHQ() {
@@ -259,7 +271,6 @@ function updateHQ() {
     calculate();
 }
 
-// ▼ お節介な連動ロジックを完全に削除したピュアな操作関数 ▼
 function step(id, delta) {
     let el = document.getElementById(id);
     let isStar = id.includes('Star');
@@ -292,10 +303,12 @@ let lastB_multi = 1.00, lastA_multi = 1.00, lastRatio = 1.00;
 
 function calculate() {
     const gears = ['Gun', 'Data', 'Armor', 'Radar'];
+    const gearNames = { 'Gun': '🔫 大砲', 'Data': '💾 データ', 'Armor': '🛡️ 装甲', 'Radar': '📡 ﾚｰﾀﾞｰ' };
     
     const urCumulative = [0, 5, 15, 30, 50, 50]; 
     const mrCumulative = [0, 0, 0, 0, 0, 10];
     let totalUrReq = 0, totalMrReq = 0;
+    let breakdownHtml = "";
 
     ['c', 't'].forEach(p => {
         gears.forEach(g => {
@@ -314,8 +327,16 @@ function calculate() {
         let tStar = tLv >= 40 ? parseInt(document.getElementById('t'+g+'Star').getAttribute('data-val')) : 0;
         
         if (tStar > cStar) {
-            totalUrReq += (urCumulative[tStar] - urCumulative[cStar]);
-            totalMrReq += (mrCumulative[tStar] - mrCumulative[cStar]);
+            let urReq = urCumulative[tStar] - urCumulative[cStar];
+            let mrReq = mrCumulative[tStar] - mrCumulative[cStar];
+            totalUrReq += urReq;
+            totalMrReq += mrReq;
+            
+            let reqText = [];
+            if (urReq > 0) reqText.push(`<span style="color:#f39c12; font-weight:bold;">UR ${urReq}枚</span>`);
+            if (mrReq > 0) reqText.push(`<span style="color:#e74c3c; font-weight:bold;">MR ${mrReq}枚</span>`);
+            
+            breakdownHtml += `<div style="margin-bottom: 3px;">${gearNames[g]} : ★${cStar} → ★${tStar} (${reqText.join(' ＋ ')})</div>`;
         }
     });
     
@@ -323,6 +344,7 @@ function calculate() {
     if (totalUrReq > 0 || totalMrReq > 0) {
         document.getElementById("urCost").innerText = totalUrReq;
         document.getElementById("mrCost").innerText = totalMrReq;
+        document.getElementById("costBreakdown").innerHTML = breakdownHtml;
         costDiv.style.display = "block";
     } else {
         costDiv.style.display = "none";
