@@ -13,36 +13,34 @@
     .panel { background: #fff; padding: 12px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
     .grid { display: flex; gap: 12px; flex-wrap: wrap; }
     
-    .card { flex: 1; min-width: 100%; background: #fff; padding: 12px 8px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); box-sizing: border-box;}
+    .card { flex: 1; min-width: 100%; background: #fff; padding: 12px 10px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); box-sizing: border-box;}
     @media (min-width: 768px) { .card { min-width: calc(50% - 10px); padding: 20px 15px; } }
     
     .card-before { border-top: 6px solid #7f8c8d; }
     .card-after { border-top: 6px solid #e74c3c; background: linear-gradient(to bottom, #fffafb, #ffffff); }
     .panel-header { display: flex; justify-content: space-between; align-items: center; margin-top: 0; color: #2980b9; border-bottom: 2px solid #ecf0f1; padding-bottom: 8px; font-size: 1rem; }
     
-    /* ラベル設定 */
     label { display: block; margin-top: 10px; margin-bottom: 4px; font-weight: 900; font-size: 0.92rem; color: #333; height: 1.2rem; line-height: 1.2rem; white-space: nowrap; overflow: hidden; }
 
-    /* ステッパー設定 */
     .stepper { display: flex; align-items: center; background: #fff; border: 1px solid #ccd1d9; border-radius: 8px; overflow: hidden; height: 38px; width: 100%; box-sizing: border-box; }
     
-    /* スマホ用にボタン幅を最適化 */
+    /* スマホ画面のサイズに合わせてボタン幅を安全に可変させる */
     .stepper button { 
-        width: 30px; 
+        width: 34px; 
         height: 100%; border: none; background: #eef2f5; font-size: 1.3rem; font-weight: bold; color: #34495e; cursor: pointer; touch-action: manipulation; flex-shrink: 0;
     }
-    @media (min-width: 360px) { .stepper button { width: 32px; } }
-    @media (min-width: 400px) { .stepper button { width: 36px; } }
+    @media (max-width: 380px) { .stepper button { width: 30px; } }
 
-    .stepper input { flex: 1; text-align: center; border: none; font-size: 16px; font-weight: bold; color: #2c3e50; min-width: 0; background: transparent; height: 100%; padding: 0; }
+    /* 入力欄が外に膨らまないようにする絶対設定 */
+    .stepper input { flex: 1; width: 100%; min-width: 0; text-align: center; border: none; font-size: 16px; font-weight: bold; color: #2c3e50; background: transparent; height: 100%; padding: 0; }
     
-    /* ▼ 星表示（サイズを拡大し、文字間隔を調整して収める） ▼ */
-    .stepper input[readonly] { font-size: 16px; letter-spacing: -2.5px; padding-left: 3px; }
+    /* 星マークの調整（サイズを保ちつつ横幅を詰める） */
+    .stepper input[readonly] { font-size: 15px; letter-spacing: -2px; padding-left: 1px; }
 
     .stepper.disabled { opacity: 0.4; pointer-events: none; background-color: #ecf0f1; }
 
-    /* ▼ レイアウト比率調整（★側を少し広くして大きな星を収容） ▼ */
-    .gear-row { display: grid; grid-template-columns: 1.3fr 1fr; gap: 6px; margin-bottom: 5px; align-items: end; }
+    /* ▼ 左右を【完全に均等割り（1:1）】にして見切れを防止 ▼ */
+    .gear-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 5px; align-items: end; }
     
     .result { margin-top: 20px; padding: 12px; border-radius: 10px; text-align: center; border: 1px solid #eee; background-color: #f8f9fa;}
     .res-after { background-color: #faeaeb; border-color: #fadbd8; }
@@ -61,7 +59,7 @@
 <body>
 
 <div class="container">
-    <h1>育成シミュレーター<br><span style="font-size: 0.8rem; color: #7f8c8d;">(★視認性アップ版)</span></h1>
+    <h1>育成シミュレーター<br><span style="font-size: 0.8rem; color: #7f8c8d;">(見切れ完全対応版)</span></h1>
 
     <div class="panel">
         <h3 class="panel-header">🏢 共通設定 <button class="reset-btn" onclick="resetAllData()">リセット</button></h3>
@@ -76,7 +74,7 @@
     <div class="grid">
         <div class="card card-before">
             <h3 class="panel-header" style="color:#7f8c8d;">1. 現在</h3>
-            <div class="gear-row" style="grid-template-columns: 1fr 1fr;">
+            <div class="gear-row">
                 <div><label id="cLevelLabel">👤 Lv</label><div class="stepper"><button onclick="step('cLevel', -1)">-</button><input type="number" id="cLevel" value="150" min="1" onchange="calculate()"><button onclick="step('cLevel', 1)">+</button></div></div>
                 <div><label>⚔️ 武装Lv</label><div class="stepper"><button onclick="step('cWeapon', -1)">-</button><input type="number" id="cWeapon" value="20" min="0" max="30" onchange="calculate()"><button onclick="step('cWeapon', 1)">+</button></div></div>
             </div>
@@ -103,7 +101,7 @@
 
         <div class="card card-after">
             <h3 class="panel-header" style="color:#c0392b;">2. 目標</h3>
-            <div class="gear-row" style="grid-template-columns: 1fr 1fr;">
+            <div class="gear-row">
                 <div><label id="tLevelLabel">👤 Lv</label><div class="stepper"><button onclick="step('tLevel', -1)">-</button><input type="number" id="tLevel" value="150" min="1" onchange="calculate()"><button onclick="step('tLevel', 1)">+</button></div></div>
                 <div><label>⚔️ 武装Lv</label><div class="stepper"><button onclick="step('tWeapon', -1)">-</button><input type="number" id="tWeapon" value="20" min="0" max="30" onchange="calculate()"><button onclick="step('tWeapon', 1)">+</button></div></div>
             </div>
