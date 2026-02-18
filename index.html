@@ -6,7 +6,7 @@
 <title>ラストウォー育成シミュレーター</title>
 <style>
     /* 全体のベース設定 */
-    body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; background-color: #f0f4f8; color: #333; padding: 10px; padding-bottom: 120px; margin: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; background-color: #f0f4f8; color: #333; padding: 10px; padding-bottom: 140px; margin: 0; }
     h1 { font-size: 1.2rem; text-align: center; color: #2c3e50; margin-bottom: 15px; line-height: 1.4; }
     .container { max-width: 1000px; margin: 0 auto; }
     
@@ -47,10 +47,9 @@
     .mythic-box { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #ccc; text-align: left; font-size: 0.75rem; line-height: 1.6; }
     
     .diff-wrapper { position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); width: calc(100% - 20px); max-width: 970px; z-index: 1000; }
-    .diff { font-size: 1.15rem; color: #e74c3c; font-weight: bold; text-align: center; padding: 14px; background: rgba(255, 250, 250, 0.95); backdrop-filter: blur(5px); border-radius: 12px; border: 2px solid #fadbd8; box-shadow: 0 5px 15px rgba(231, 76, 60, 0.15); }
+    .diff { font-size: 1.15rem; color: #e74c3c; font-weight: bold; text-align: center; padding: 10px 14px; background: rgba(255, 250, 250, 0.95); backdrop-filter: blur(5px); border-radius: 12px; border: 2px solid #fadbd8; box-shadow: 0 5px 15px rgba(231, 76, 60, 0.15); }
     .reset-btn { font-size: 0.65rem; background: #ecf0f1; color: #7f8c8d; border: none; padding: 3px 6px; border-radius: 4px; }
     
-    /* ▼ 優先度バッジのスタイル ▼ */
     .prio-badge { display: inline-block; padding: 1px 5px; border-radius: 4px; color: #fff; font-size: 0.65rem; font-weight: bold; margin-left: 3px; vertical-align: middle; line-height: 1.2; letter-spacing: 0; }
     .guide-select { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccd1d9; font-size: 0.9rem; font-weight: bold; color: #2c3e50; background: #f8f9fa; margin-top: 5px; }
 </style>
@@ -58,7 +57,7 @@
 <body>
 
 <div class="container">
-    <h1>育成シミュレーター<br><span style="font-size: 0.8rem; color: #7f8c8d;">(ガチ勢セオリー搭載版)</span></h1>
+    <h1>育成シミュレーター<br><span style="font-size: 0.8rem; color: #7f8c8d;">(必要レシピ計算 搭載版)</span></h1>
 
     <div class="panel">
         <h3 class="panel-header">🏢 共通設定 <button class="reset-btn" onclick="resetAllData()">リセット</button></h3>
@@ -155,12 +154,15 @@
 
 <div class="diff-wrapper">
     <div class="diff" id="growthDiff">
-        今の強さの 約 <span id="growthNum" style="font-size:1.4rem; padding: 0 4px;">1.00</span> 倍に！
+        <div>今の強さの 約 <span id="growthNum" style="font-size:1.5rem; padding: 0 4px;">1.00</span> 倍に！</div>
+        <div id="costDisplay" style="font-size: 0.85rem; color: #555; margin-top: 8px; border-top: 1px dashed #fadbd8; padding-top: 8px; font-weight: normal; display: none;">
+            <span style="font-weight:bold; color:#d35400;">🆙 星上げに必要な図面(レシピ)</span><br>
+            UR(金): <b id="urCost" style="color:#f39c12; font-size:1.1rem;">0</b> 枚 　 MR(赤): <b id="mrCost" style="color:#e74c3c; font-size:1.1rem;">0</b> 枚
+        </div>
     </div>
 </div>
 
 <script>
-// --- UI更新ロジック ---
 function updatePriority() {
     let role = document.getElementById('roleType').value;
     let desc = document.getElementById('roleDesc');
@@ -190,7 +192,6 @@ function updatePriority() {
     }
 }
 
-// --- 保存ロジック ---
 function saveAllData() {
     const data = { roleType: document.getElementById('roleType').value };
     document.querySelectorAll('input').forEach(input => {
@@ -279,6 +280,12 @@ let lastB_multi = 1.00, lastA_multi = 1.00, lastRatio = 1.00;
 
 function calculate() {
     const gears = ['Gun', 'Data', 'Armor', 'Radar'];
+    
+    // ▼ 必要な図面の枚数を計算する配列（累計数） ▼
+    const urCumulative = [0, 5, 15, 30, 50, 50]; 
+    const mrCumulative = [0, 0, 0, 0, 0, 10];
+    let totalUrReq = 0, totalMrReq = 0;
+
     ['c', 't'].forEach(p => {
         gears.forEach(g => {
             let lvEl = document.getElementById(p+g+'Lv');
@@ -288,6 +295,30 @@ function calculate() {
         });
     });
     
+    // 必要図面の算出
+    gears.forEach(g => {
+        let cLv = parseInt(document.getElementById('c'+g+'Lv').value);
+        let cStar = cLv >= 40 ? parseInt(document.getElementById('c'+g+'Star').getAttribute('data-val')) : 0;
+        
+        let tLv = parseInt(document.getElementById('t'+g+'Lv').value);
+        let tStar = tLv >= 40 ? parseInt(document.getElementById('t'+g+'Star').getAttribute('data-val')) : 0;
+        
+        if (tStar > cStar) {
+            totalUrReq += (urCumulative[tStar] - urCumulative[cStar]);
+            totalMrReq += (mrCumulative[tStar] - mrCumulative[cStar]);
+        }
+    });
+    
+    // 結果表示の制御
+    let costDiv = document.getElementById("costDisplay");
+    if (totalUrReq > 0 || totalMrReq > 0) {
+        document.getElementById("urCost").innerText = totalUrReq;
+        document.getElementById("mrCost").innerText = totalMrReq;
+        costDiv.style.display = "block";
+    } else {
+        costDiv.style.display = "none";
+    }
+
     const calc = (p) => {
         let lv = parseInt(document.getElementById(p+'Level').value), wp = parseInt(document.getElementById(p+'Weapon').value);
         let baseStat = (lv / 175) * 1000;
