@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>ラストウォー育成シミュレーター</title>
+<title>ラストウォー装備シミュレーター</title>
 <style>
     /* 全体のベース設定 */
     body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; background-color: #f0f4f8; color: #333; padding: 10px; padding-bottom: 180px; margin: 0; }
@@ -57,7 +57,7 @@
 <body>
 
 <div class="container">
-    <h1>育成シミュレーター<br><span style="font-size: 0.8rem; color: #7f8c8d;">(必要レシピ内訳・早見表 搭載版)</span></h1>
+    <h1>装備シミュレーター<br><span style="font-size: 0.8rem; color: #7f8c8d;"></span></h1>
 
     <div class="panel">
         <h3 class="panel-header">🏢 共通設定 <button class="reset-btn" onclick="resetAllData()">リセット</button></h3>
@@ -94,11 +94,11 @@
             </div>
             <div style="margin-top:15px; padding-top:10px; border-top:1px dashed #ccc;">
                 <div class="gear-row">
-                    <div><label>🔫 大砲 Lv</label><div class="stepper"><button onclick="step('cGunLv', -1)">-</button><input type="number" id="cGunLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('cGunLv', 1)">+</button></div></div>
+                    <div><label>🔫 レールガン Lv</label><div class="stepper"><button onclick="step('cGunLv', -1)">-</button><input type="number" id="cGunLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('cGunLv', 1)">+</button></div></div>
                     <div><label>★段階</label><div class="stepper"><button onclick="step('cGunStar', -1)">-</button><input type="text" id="cGunStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('cGunStar', 1)">+</button></div></div>
                 </div>
                 <div class="gear-row">
-                    <div><label>💾 データ Lv</label><div class="stepper"><button onclick="step('cDataLv', -1)">-</button><input type="number" id="cDataLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('cDataLv', 1)">+</button></div></div>
+                    <div><label>💾 チップ Lv</label><div class="stepper"><button onclick="step('cDataLv', -1)">-</button><input type="number" id="cDataLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('cDataLv', 1)">+</button></div></div>
                     <div><label>★段階</label><div class="stepper"><button onclick="step('cDataStar', -1)">-</button><input type="text" id="cDataStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('cDataStar', 1)">+</button></div></div>
                 </div>
                 <div class="gear-row">
@@ -106,7 +106,7 @@
                     <div><label>★段階</label><div class="stepper"><button onclick="step('cArmorStar', -1)">-</button><input type="text" id="cArmorStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('cArmorStar', 1)">+</button></div></div>
                 </div>
                 <div class="gear-row">
-                    <div><label>📡 ﾚｰﾀﾞｰ Lv</label><div class="stepper"><button onclick="step('cRadarLv', -1)">-</button><input type="number" id="cRadarLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('cRadarLv', 1)">+</button></div></div>
+                    <div><label>📡 レーダー Lv</label><div class="stepper"><button onclick="step('cRadarLv', -1)">-</button><input type="number" id="cRadarLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('cRadarLv', 1)">+</button></div></div>
                     <div><label>★段階</label><div class="stepper"><button onclick="step('cRadarStar', -1)">-</button><input type="text" id="cRadarStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('cRadarStar', 1)">+</button></div></div>
                 </div>
             </div>
@@ -126,11 +126,11 @@
             </div>
             <div style="margin-top:15px; padding-top:10px; border-top:1px dashed #ccc;">
                 <div class="gear-row">
-                    <div><label>🔫 大砲 Lv <span id="prioGun" class="prio-badge" style="display:none;"></span></label><div class="stepper"><button onclick="step('tGunLv', -1)">-</button><input type="number" id="tGunLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('tGunLv', 1)">+</button></div></div>
+                    <div><label>🔫 レールガン Lv <span id="prioGun" class="prio-badge" style="display:none;"></span></label><div class="stepper"><button onclick="step('tGunLv', -1)">-</button><input type="number" id="tGunLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('tGunLv', 1)">+</button></div></div>
                     <div><label>★段階</label><div class="stepper"><button onclick="step('tGunStar', -1)">-</button><input type="text" id="tGunStar" data-val="2" value="★★☆☆☆" readonly><button onclick="step('tGunStar', 1)">+</button></div></div>
                 </div>
                 <div class="gear-row">
-                    <div><label>💾 データ Lv <span id="prioData" class="prio-badge" style="display:none;"></span></label><div class="stepper"><button onclick="step('tDataLv', -1)">-</button><input type="number" id="tDataLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('tDataLv', 1)">+</button></div></div>
+                    <div><label>💾 チップ Lv <span id="prioData" class="prio-badge" style="display:none;"></span></label><div class="stepper"><button onclick="step('tDataLv', -1)">-</button><input type="number" id="tDataLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('tDataLv', 1)">+</button></div></div>
                     <div><label>★段階</label><div class="stepper"><button onclick="step('tDataStar', -1)">-</button><input type="text" id="tDataStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('tDataStar', 1)">+</button></div></div>
                 </div>
                 <div class="gear-row">
@@ -138,7 +138,7 @@
                     <div><label>★段階</label><div class="stepper"><button onclick="step('tArmorStar', -1)">-</button><input type="text" id="tArmorStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('tArmorStar', 1)">+</button></div></div>
                 </div>
                 <div class="gear-row">
-                    <div><label>📡 ﾚｰﾀﾞｰ Lv <span id="prioRadar" class="prio-badge" style="display:none;"></span></label><div class="stepper"><button onclick="step('tRadarLv', -1)">-</button><input type="number" id="tRadarLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('tRadarLv', 1)">+</button></div></div>
+                    <div><label>📡 レーダー Lv <span id="prioRadar" class="prio-badge" style="display:none;"></span></label><div class="stepper"><button onclick="step('tRadarLv', -1)">-</button><input type="number" id="tRadarLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('tRadarLv', 1)">+</button></div></div>
                     <div><label>★段階</label><div class="stepper"><button onclick="step('tRadarStar', -1)">-</button><input type="text" id="tRadarStar" data-val="5" value="★★★★★" readonly><button onclick="step('tRadarStar', 1)">+</button></div></div>
                 </div>
             </div>
@@ -158,7 +158,7 @@
         
         <div id="costDisplay" style="font-size: 0.85rem; color: #555; margin-top: 8px; border-top: 1px dashed #fadbd8; padding-top: 10px; font-weight: normal; display: none; text-align: left;">
             <div style="text-align: center; margin-bottom: 8px;">
-                <span style="font-weight:bold; color:#d35400;">🆙 目標までに必要な追加図面(合計)</span><br>
+                <span style="font-weight:bold; color:#d35400;">🆙 目標までに必要な装備レシピ(合計)</span><br>
                 UR(金): <b id="urCost" style="color:#f39c12; font-size:1.2rem;">0</b> 枚 　 MR(赤): <b id="mrCost" style="color:#e74c3c; font-size:1.2rem;">0</b> 枚
             </div>
             
@@ -188,14 +188,14 @@ function updatePriority() {
         bData.innerText = '優先 ②'; bData.style.display = 'inline-block'; bData.style.background = '#e67e22';
         bRadar.innerText = '③'; bRadar.style.display = 'inline-block'; bRadar.style.background = '#95a5a6';
         bArmor.innerText = '④'; bArmor.style.display = 'inline-block'; bArmor.style.background = '#bdc3c7';
-        desc.innerHTML = "<b>💡 【アタッカーのセオリー】</b><br>火力がすべて！最優先で<b>「大砲」</b>を赤(★5)にして『火力+10%』のパッシブを解放。次に攻撃ステータスが伸びる<b>「データ」</b>を強化するのが世界共通の鉄板です。";
+        desc.innerHTML = "<b>💡 【アタッカー(火力役)のセオリー】</b><br>火力がすべて！最優先で<b>「レールガン」</b>を赤(★5)にして『火力+10%』のパッシブを解放。次に攻撃ステータスが伸びる<b>「チップ」</b>を強化するのが世界共通の鉄板です。";
         desc.style.display = 'block';
     } else if (role === 'tank') {
         bRadar.innerText = '優先 ①'; bRadar.style.display = 'inline-block'; bRadar.style.background = '#2980b9';
         bArmor.innerText = '優先 ②'; bArmor.style.display = 'inline-block'; bArmor.style.background = '#3498db';
         bData.innerText = '③'; bData.style.display = 'inline-block'; bData.style.background = '#95a5a6';
         bGun.innerText = '④'; bGun.style.display = 'inline-block'; bGun.style.background = '#bdc3c7';
-        desc.innerHTML = "<b>💡 【タンク(壁役)のセオリー】</b><br>前線を維持する生存力が命。最優先で<b>「レーダー」</b>を赤(★5)にして『会心被ダメ30%減』を解放。次に『会心率15%減』の<b>「装甲」</b>を強化してカチカチにしましょう。";
+        desc.innerHTML = "<b>💡 【タンク(盾役)のセオリー】</b><br>前線を維持する生存力が命。最優先で<b>「レーダー」</b>を赤(★5)にして『会心被ダメ30%減』を解放。次に『会心率15%減』の<b>「装甲」</b>を強化してカチカチにしましょう。";
         desc.style.display = 'block';
     } else {
         desc.style.display = 'none';
