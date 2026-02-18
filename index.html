@@ -11,42 +11,37 @@
     .container { max-width: 1000px; margin: 0 auto; }
     
     .panel { background: #fff; padding: 12px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
-    .grid { display: flex; gap: 15px; flex-wrap: wrap; }
+    .grid { display: flex; gap: 12px; flex-wrap: wrap; }
     
-    .card { flex: 1; min-width: 100%; background: #fff; padding: 15px 10px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); box-sizing: border-box;}
+    .card { flex: 1; min-width: 100%; background: #fff; padding: 12px 8px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); box-sizing: border-box;}
     @media (min-width: 768px) { .card { min-width: calc(50% - 10px); padding: 20px 15px; } }
     
     .card-before { border-top: 6px solid #7f8c8d; }
     .card-after { border-top: 6px solid #e74c3c; background: linear-gradient(to bottom, #fffafb, #ffffff); }
     .panel-header { display: flex; justify-content: space-between; align-items: center; margin-top: 0; color: #2980b9; border-bottom: 2px solid #ecf0f1; padding-bottom: 8px; font-size: 1rem; }
     
-    /* ▼ ラベルの文字を大きく・太く調整 ▼ */
-    label { display: block; margin-top: 12px; margin-bottom: 4px; font-weight: 900; font-size: 0.95rem; color: #333; height: 1.3rem; line-height: 1.3rem; }
+    /* ラベル設定（視認性維持） */
+    label { display: block; margin-top: 10px; margin-bottom: 4px; font-weight: 900; font-size: 0.92rem; color: #333; height: 1.2rem; line-height: 1.2rem; white-space: nowrap; overflow: hidden; }
 
-    .stepper { display: flex; align-items: center; background: #fff; border: 1px solid #ccd1d9; border-radius: 8px; overflow: hidden; height: 40px; }
+    /* ステッパー設定（見切れ防止） */
+    .stepper { display: flex; align-items: center; background: #fff; border: 1px solid #ccd1d9; border-radius: 8px; overflow: hidden; height: 38px; width: 100%; box-sizing: border-box; }
     
     .stepper button { 
-        width: 32px; 
-        height: 100%; 
-        border: none; 
-        background: #eef2f5; 
-        font-size: 1.3rem; 
-        font-weight: bold; 
-        color: #34495e; 
-        cursor: pointer; 
-        touch-action: manipulation; 
+        width: 28px; /* 最小幅をさらに縮小 */
+        height: 100%; border: none; background: #eef2f5; font-size: 1.2rem; font-weight: bold; color: #34495e; cursor: pointer; touch-action: manipulation; flex-shrink: 0;
     }
+    @media (min-width: 360px) { .stepper button { width: 34px; } }
     @media (min-width: 400px) { .stepper button { width: 38px; } }
 
-    .stepper input { flex: 1; text-align: center; border: none; font-size: 18px; font-weight: bold; color: #2c3e50; min-width: 0; background: transparent; height: 100%; padding: 0; }
+    .stepper input { flex: 1; text-align: center; border: none; font-size: 16px; font-weight: bold; color: #2c3e50; min-width: 0; background: transparent; height: 100%; padding: 0; }
     
-    /* ▼ 星表示のサイズを調整 ▼ */
-    .stepper input[readonly] { font-size: 14px; letter-spacing: -1.5px; }
+    /* 星表示（極小画面対応） */
+    .stepper input[readonly] { font-size: 12px; letter-spacing: -2px; padding-left: 1px; }
 
     .stepper.disabled { opacity: 0.4; pointer-events: none; background-color: #ecf0f1; }
 
-    /* レイアウト比率の微調整 */
-    .gear-row { display: grid; grid-template-columns: 1.8fr 1fr; gap: 8px; margin-bottom: 5px; align-items: end; }
+    /* レイアウト比率調整（見切れ対策の黄金比） */
+    .gear-row { display: grid; grid-template-columns: 1.6fr 1fr; gap: 6px; margin-bottom: 5px; align-items: end; }
     
     .result { margin-top: 20px; padding: 12px; border-radius: 10px; text-align: center; border: 1px solid #eee; background-color: #f8f9fa;}
     .res-after { background-color: #faeaeb; border-color: #fadbd8; }
@@ -65,12 +60,12 @@
 <body>
 
 <div class="container">
-    <h1>育成シミュレーター<br><span style="font-size: 0.8rem; color: #7f8c8d;">(視認性向上版)</span></h1>
+    <h1>育成シミュレーター<br><span style="font-size: 0.8rem; color: #7f8c8d;">(見切れ調整 最終版)</span></h1>
 
     <div class="panel">
         <h3 class="panel-header">🏢 共通設定 <button class="reset-btn" onclick="resetAllData()">リセット</button></h3>
         <label>本部レベル (MAX 35)</label>
-        <div class="stepper" style="max-width: 160px;">
+        <div class="stepper" style="max-width: 150px;">
             <button type="button" onclick="stepHQ(-1)">-</button>
             <input type="number" id="hqLevel" value="30" min="1" max="35" onchange="updateHQ()">
             <button type="button" onclick="stepHQ(1)">+</button>
@@ -79,7 +74,7 @@
 
     <div class="grid">
         <div class="card card-before">
-            <h3 class="panel-header" style="color:#7f8c8d;">1. 現在のステータス</h3>
+            <h3 class="panel-header" style="color:#7f8c8d;">1. 現在</h3>
             <div class="gear-row" style="grid-template-columns: 1fr 1fr;">
                 <div><label id="cLevelLabel">👤 Lv</label><div class="stepper"><button onclick="step('cLevel', -1)">-</button><input type="number" id="cLevel" value="150" min="1" onchange="calculate()"><button onclick="step('cLevel', 1)">+</button></div></div>
                 <div><label>⚔️ 武装Lv</label><div class="stepper"><button onclick="step('cWeapon', -1)">-</button><input type="number" id="cWeapon" value="20" min="0" max="30" onchange="calculate()"><button onclick="step('cWeapon', 1)">+</button></div></div>
@@ -87,26 +82,26 @@
             <div style="margin-top:15px; padding-top:10px; border-top:1px dashed #ccc;">
                 <div class="gear-row">
                     <div><label>🔫 大砲 Lv</label><div class="stepper"><button onclick="step('cGunLv', -1)">-</button><input type="number" id="cGunLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('cGunLv', 1)">+</button></div></div>
-                    <div><label>★</label><div class="stepper"><button onclick="step('cGunStar', -1)">-</button><input type="text" id="cGunStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('cGunStar', 1)">+</button></div></div>
+                    <div><label>★段階</label><div class="stepper"><button onclick="step('cGunStar', -1)">-</button><input type="text" id="cGunStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('cGunStar', 1)">+</button></div></div>
                 </div>
                 <div class="gear-row">
-                    <div><label>💾 ﾃﾞｰﾀ Lv</label><div class="stepper"><button onclick="step('cDataLv', -1)">-</button><input type="number" id="cDataLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('cDataLv', 1)">+</button></div></div>
-                    <div><label>★</label><div class="stepper"><button onclick="step('cDataStar', -1)">-</button><input type="text" id="cDataStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('cDataStar', 1)">+</button></div></div>
+                    <div><label>💾 データ Lv</label><div class="stepper"><button onclick="step('cDataLv', -1)">-</button><input type="number" id="cDataLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('cDataLv', 1)">+</button></div></div>
+                    <div><label>★段階</label><div class="stepper"><button onclick="step('cDataStar', -1)">-</button><input type="text" id="cDataStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('cDataStar', 1)">+</button></div></div>
                 </div>
                 <div class="gear-row">
                     <div><label>🛡️ 装甲 Lv</label><div class="stepper"><button onclick="step('cArmorLv', -1)">-</button><input type="number" id="cArmorLv" value="20" min="0" max="40" onchange="calculate()"><button onclick="step('cArmorLv', 1)">+</button></div></div>
-                    <div><label>★</label><div class="stepper"><button onclick="step('cArmorStar', -1)">-</button><input type="text" id="cArmorStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('cArmorStar', 1)">+</button></div></div>
+                    <div><label>★段階</label><div class="stepper"><button onclick="step('cArmorStar', -1)">-</button><input type="text" id="cArmorStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('cArmorStar', 1)">+</button></div></div>
                 </div>
                 <div class="gear-row">
                     <div><label>📡 ﾚｰﾀﾞｰ Lv</label><div class="stepper"><button onclick="step('cRadarLv', -1)">-</button><input type="number" id="cRadarLv" value="20" min="0" max="40" onchange="calculate()"><button onclick="step('cRadarLv', 1)">+</button></div></div>
-                    <div><label>★</label><div class="stepper"><button onclick="step('cRadarStar', -1)">-</button><input type="text" id="cRadarStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('cRadarStar', 1)">+</button></div></div>
+                    <div><label>★段階</label><div class="stepper"><button onclick="step('cRadarStar', -1)">-</button><input type="text" id="cRadarStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('cRadarStar', 1)">+</button></div></div>
                 </div>
             </div>
-            <div class="result res-before"><div>現在のスコア</div><div class="score score-b" id="scoreBefore">0</div><div class="detail-text" id="detailBefore"></div></div>
+            <div class="result res-before"><div class="score score-b" id="scoreBefore">0</div><div class="detail-text" id="detailBefore"></div></div>
         </div>
 
         <div class="card card-after">
-            <h3 class="panel-header" style="color:#c0392b;">2. 目標のステータス</h3>
+            <h3 class="panel-header" style="color:#c0392b;">2. 目標</h3>
             <div class="gear-row" style="grid-template-columns: 1fr 1fr;">
                 <div><label id="tLevelLabel">👤 Lv</label><div class="stepper"><button onclick="step('tLevel', -1)">-</button><input type="number" id="tLevel" value="150" min="1" onchange="calculate()"><button onclick="step('tLevel', 1)">+</button></div></div>
                 <div><label>⚔️ 武装Lv</label><div class="stepper"><button onclick="step('tWeapon', -1)">-</button><input type="number" id="tWeapon" value="20" min="0" max="30" onchange="calculate()"><button onclick="step('tWeapon', 1)">+</button></div></div>
@@ -114,22 +109,22 @@
             <div style="margin-top:15px; padding-top:10px; border-top:1px dashed #ccc;">
                 <div class="gear-row">
                     <div><label>🔫 大砲 Lv</label><div class="stepper"><button onclick="step('tGunLv', -1)">-</button><input type="number" id="tGunLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('tGunLv', 1)">+</button></div></div>
-                    <div><label>★</label><div class="stepper"><button onclick="step('tGunStar', -1)">-</button><input type="text" id="tGunStar" data-val="2" value="★★☆☆☆" readonly><button onclick="step('tGunStar', 1)">+</button></div></div>
+                    <div><label>★段階</label><div class="stepper"><button onclick="step('tGunStar', -1)">-</button><input type="text" id="tGunStar" data-val="2" value="★★☆☆☆" readonly><button onclick="step('tGunStar', 1)">+</button></div></div>
                 </div>
                 <div class="gear-row">
-                    <div><label>💾 ﾃﾞｰﾀ Lv</label><div class="stepper"><button onclick="step('tDataLv', -1)">-</button><input type="number" id="tDataLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('tDataLv', 1)">+</button></div></div>
-                    <div><label>★</label><div class="stepper"><button onclick="step('tDataStar', -1)">-</button><input type="text" id="tDataStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('tDataStar', 1)">+</button></div></div>
+                    <div><label>💾 データ Lv</label><div class="stepper"><button onclick="step('tDataLv', -1)">-</button><input type="number" id="tDataLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('tDataLv', 1)">+</button></div></div>
+                    <div><label>★段階</label><div class="stepper"><button onclick="step('tDataStar', -1)">-</button><input type="text" id="tDataStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('tDataStar', 1)">+</button></div></div>
                 </div>
                 <div class="gear-row">
                     <div><label>🛡️ 装甲 Lv</label><div class="stepper"><button onclick="step('tArmorLv', -1)">-</button><input type="number" id="tArmorLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('tArmorLv', 1)">+</button></div></div>
-                    <div><label>★</label><div class="stepper"><button onclick="step('tArmorStar', -1)">-</button><input type="text" id="tArmorStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('tArmorStar', 1)">+</button></div></div>
+                    <div><label>★段階</label><div class="stepper"><button onclick="step('tArmorStar', -1)">-</button><input type="text" id="tArmorStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('tArmorStar', 1)">+</button></div></div>
                 </div>
                 <div class="gear-row">
                     <div><label>📡 ﾚｰﾀﾞｰ Lv</label><div class="stepper"><button onclick="step('tRadarLv', -1)">-</button><input type="number" id="tRadarLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('tRadarLv', 1)">+</button></div></div>
-                    <div><label>★</label><div class="stepper"><button onclick="step('tRadarStar', -1)">-</button><input type="text" id="tRadarStar" data-val="5" value="★★★★★" readonly><button onclick="step('tRadarStar', 1)">+</button></div></div>
+                    <div><label>★段階</label><div class="stepper"><button onclick="step('tRadarStar', -1)">-</button><input type="text" id="tRadarStar" data-val="5" value="★★★★★" readonly><button onclick="step('tRadarStar', 1)">+</button></div></div>
                 </div>
             </div>
-            <div class="result res-after"><div>強化後のスコア</div><div class="score score-a" id="scoreAfter">0</div><div class="detail-text" id="detailAfter"></div></div>
+            <div class="result res-after"><div class="score score-a" id="scoreAfter">0</div><div class="detail-text" id="detailAfter"></div></div>
         </div>
     </div>
 </div>
@@ -137,7 +132,6 @@
 <div class="diff-wrapper"><div class="diff" id="growthDiff">約 <span id="growthNum">0</span>% アップ！</div></div>
 
 <script>
-// --- 保存ロジック ---
 function saveAllData() {
     const data = {};
     document.querySelectorAll('input').forEach(input => {
@@ -161,8 +155,6 @@ function loadAllData() {
 function resetAllData() {
     if(confirm("データを初期化しますか？")) { localStorage.removeItem('lastwar_sim_data'); location.reload(); }
 }
-
-// --- UI・計算ロジック ---
 function animateValue(obj, start, end, duration, isPercent = false) {
     let startTimestamp = null;
     const step = (timestamp) => {
@@ -227,9 +219,9 @@ function calculate() {
     const gears = ['Gun', 'Data', 'Armor', 'Radar'];
     ['c', 't'].forEach(p => {
         gears.forEach(g => {
-            let lv = parseInt(document.getElementById(p+g+'Lv').value);
+            let lvEl = document.getElementById(p+g+'Lv');
             let sEl = document.getElementById(p+g+'Star');
-            if (lv < 40) { sEl.setAttribute('data-val', 0); updateStarDisplay(sEl, 0); sEl.closest('.stepper').classList.add('disabled'); }
+            if (parseInt(lvEl.value) < 40) { sEl.setAttribute('data-val', 0); updateStarDisplay(sEl, 0); sEl.closest('.stepper').classList.add('disabled'); }
             else sEl.closest('.stepper').classList.remove('disabled');
         });
     });
