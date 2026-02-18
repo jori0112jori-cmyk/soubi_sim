@@ -361,10 +361,10 @@ function calculate() {
         let totalM = gearStat * gearPass * wpMulti;
         
         let activeMythics = [];
-        if (m[0].passiveMulti > 1) activeMythics.push("大砲 (+10%火力)");
-        if (m[1].passiveMulti > 1) activeMythics.push("ﾃﾞｰﾀ (不利ダメ5%減)");
+        if (m[0].passiveMulti > 1) activeMythics.push("レールガン (+10%火力)");
+        if (m[1].passiveMulti > 1) activeMythics.push("チップ (不利ダメ5%減)");
         if (m[2].passiveMulti > 1) activeMythics.push("装甲 (会心率15%減)");
-        if (m[3].passiveMulti > 1) activeMythics.push("ﾚｰﾀﾞｰ (会心被ダメ30%減)");
+        if (m[3].passiveMulti > 1) activeMythics.push("レーダー (会心被ダメ30%減)");
         let mythicText = activeMythics.length > 0 ? "<div class='mythic-box'><span style='color:#e74c3c;'><b>★5 赤パッシブ発動中：</b></span><br>・" + activeMythics.join("<br>・") + "</div>" : "";
         
         return { score: baseStat * totalM, base: Math.round(baseStat), multi: totalM, mythicText: mythicText };
