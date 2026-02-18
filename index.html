@@ -54,7 +54,7 @@
 <body>
 
 <div class="container">
-    <h1>育成シミュレーター<br><span style="font-size: 0.8rem; color: #7f8c8d;">(倍率特化 シンプル版)</span></h1>
+    <h1>育成シミュレーター<br><span style="font-size: 0.8rem; color: #7f8c8d;">(連盟シェア対応版)</span></h1>
 
     <div class="panel">
         <h3 class="panel-header">🏢 共通設定 <button class="reset-btn" onclick="resetAllData()">リセット</button></h3>
@@ -91,8 +91,9 @@
                     <div><label>★段階</label><div class="stepper"><button onclick="step('cRadarStar', -1)">-</button><input type="text" id="cRadarStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('cRadarStar', 1)">+</button></div></div>
                 </div>
             </div>
+            
             <div class="result res-before">
-                <div style="font-size: 0.85rem; color: #7f8c8d; font-weight: bold;">基礎ステータスの</div>
+                <div style="font-size: 0.85rem; color: #7f8c8d; font-weight: bold;">基礎ステータス(装備なし)の</div>
                 <div class="score score-b"><span id="scoreBefore">1.00</span> <span style="font-size: 1.2rem;">倍</span></div>
                 <div class="detail-text" id="detailBefore"></div>
             </div>
@@ -122,8 +123,9 @@
                     <div><label>★段階</label><div class="stepper"><button onclick="step('tRadarStar', -1)">-</button><input type="text" id="tRadarStar" data-val="5" value="★★★★★" readonly><button onclick="step('tRadarStar', 1)">+</button></div></div>
                 </div>
             </div>
+            
             <div class="result res-after">
-                <div style="font-size: 0.85rem; color: #c0392b; font-weight: bold;">基礎ステータスの</div>
+                <div style="font-size: 0.85rem; color: #c0392b; font-weight: bold;">基礎ステータス(装備なし)の</div>
                 <div class="score score-a"><span id="scoreAfter">1.00</span> <span style="font-size: 1.2rem;">倍</span></div>
                 <div class="detail-text" id="detailAfter"></div>
             </div>
@@ -259,8 +261,17 @@ function calculate() {
     animateValue(document.getElementById("scoreBefore"), lastB_multi, resB.multi, 400, true);
     animateValue(document.getElementById("scoreAfter"), lastA_multi, resA.multi, 400, true);
     
-    document.getElementById("detailBefore").innerHTML = `基礎ステータス： <b>${resB.base}</b>` + resB.mythicText;
-    document.getElementById("detailAfter").innerHTML = `基礎ステータス： <b>${resA.base}</b>` + resA.mythicText;
+    // ▼ ボックス内の表記にも補足を追加してさらに親切に ▼
+    document.getElementById("detailBefore").innerHTML = `
+        <div style="color: #444; font-weight: bold;">基礎ステータス: ${resB.base}</div>
+        <div style="font-size: 0.7rem; color: #7f8c8d; margin-top: 2px;">(※装備や武装を外した素の数値)</div>
+        ${resB.mythicText}
+    `;
+    document.getElementById("detailAfter").innerHTML = `
+        <div style="color: #444; font-weight: bold;">基礎ステータス: ${resA.base}</div>
+        <div style="font-size: 0.7rem; color: #7f8c8d; margin-top: 2px;">(※装備や武装を外した素の数値)</div>
+        ${resA.mythicText}
+    `;
     
     let currentRatio = (resB.score > 0) ? (resA.score / resB.score) : 1.00;
     animateValue(document.getElementById("growthNum"), lastRatio, currentRatio, 400, true);
