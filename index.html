@@ -189,7 +189,7 @@ function updatePriority() {
         bData.innerText = '優先 ②'; bData.style.display = 'inline-block'; bData.style.background = '#e67e22';
         bRadar.innerText = '③'; bRadar.style.display = 'inline-block'; bRadar.style.background = '#95a5a6';
         bArmor.innerText = '④'; bArmor.style.display = 'inline-block'; bArmor.style.background = '#bdc3c7';
-        desc.innerHTML = "<b>💡 【アタッカー(火力役)のセオリー】</b><br>火力がすべて！最優先で<b>「大砲」</b>を赤(★5)にして『相性有利時与ダメ+10%』のパッシブを解放。次に攻撃ステータスが伸びる<b>「データ」</b>を強化するのが鉄板です。";
+        desc.innerHTML = "<b>💡 【アタッカー(火力役)のセオリー】</b><br>火力がすべて！最優先で<b>「レールガン」</b>を赤(★5)にして『相性有利時与ダメ+10%』のパッシブを解放。次に攻撃ステータスが伸びる<b>「チップ」</b>を強化するのが鉄板です。";
         desc.style.display = 'block';
     } else if (role === 'tank') {
         bRadar.innerText = '優先 ①'; bRadar.style.display = 'inline-block'; bRadar.style.background = '#2980b9';
@@ -307,7 +307,7 @@ let lastB_multi = 1.00, lastA_multi = 1.00, lastRatio = 1.00;
 
 function calculate() {
     const gears = ['Gun', 'Data', 'Armor', 'Radar'];
-    const gearNames = { 'Gun': '🔫 大砲', 'Data': '💾 データ', 'Armor': '🛡️ 装甲', 'Radar': '📡 ﾚｰﾀﾞｰ' };
+    const gearNames = { 'Gun': '🔫 レールガン', 'Data': '💾 チップ', 'Armor': '🛡️ 装甲', 'Radar': '📡 レーダー' };
     
     const urCumulative = [0, 5, 15, 30, 50, 50]; 
     const mrCumulative = [0, 0, 0, 0, 0, 10];
@@ -373,10 +373,10 @@ function calculate() {
         let totalM = gearStat * gearPass * wpMulti;
         
         let activeMythics = [];
-        if (m[0].passiveMulti > 1) activeMythics.push("大砲 (+10%火力)");
-        if (m[1].passiveMulti > 1) activeMythics.push("ﾃﾞｰﾀ (不利ダメ5%減)");
-        if (m[2].passiveMulti > 1) activeMythics.push("装甲 (会心率15%減)");
-        if (m[3].passiveMulti > 1) activeMythics.push("ﾚｰﾀﾞｰ (会心被ダメ30%減)");
+        if (m[0].passiveMulti > 1) activeMythics.push("レールガン (相性有利時与ダメ+10%)");
+        if (m[1].passiveMulti > 1) activeMythics.push("チップ (相性有利時被ダメ5%減)");
+        if (m[2].passiveMulti > 1) activeMythics.push("装甲 (会心被弾率15%減)");
+        if (m[3].passiveMulti > 1) activeMythics.push("レーダー (被会心ダメ30%減)");
         let mythicText = activeMythics.length > 0 ? "<div class='mythic-box'><span style='color:#e74c3c;'><b>★5 赤パッシブ発動中：</b></span><br>・" + activeMythics.join("<br>・") + "</div>" : "";
         
         return { score: baseStat * totalM, base: Math.round(baseStat), multi: totalM, mythicText: mythicText };
