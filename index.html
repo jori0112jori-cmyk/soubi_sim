@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -21,7 +20,8 @@
     .card-after { border-top: 6px solid #e74c3c; background: linear-gradient(to bottom, #fffafb, #ffffff); }
     .panel-header { display: flex; justify-content: space-between; align-items: center; margin-top: 0; color: #2980b9; border-bottom: 2px solid #ecf0f1; padding-bottom: 8px; font-size: 1rem; }
     
-    label { display: block; margin-top: 12px; margin-bottom: 4px; font-weight: bold; font-size: 0.8rem; color: #444; height: 1.2rem; line-height: 1.2rem; }
+    /* ▼ ラベルの文字を大きく・太く調整 ▼ */
+    label { display: block; margin-top: 12px; margin-bottom: 4px; font-weight: 900; font-size: 0.95rem; color: #333; height: 1.3rem; line-height: 1.3rem; }
 
     .stepper { display: flex; align-items: center; background: #fff; border: 1px solid #ccd1d9; border-radius: 8px; overflow: hidden; height: 40px; }
     
@@ -30,7 +30,7 @@
         height: 100%; 
         border: none; 
         background: #eef2f5; 
-        font-size: 1.2rem; 
+        font-size: 1.3rem; 
         font-weight: bold; 
         color: #34495e; 
         cursor: pointer; 
@@ -38,13 +38,15 @@
     }
     @media (min-width: 400px) { .stepper button { width: 38px; } }
 
-    .stepper input { flex: 1; text-align: center; border: none; font-size: 16px; font-weight: bold; color: #2c3e50; min-width: 0; background: transparent; height: 100%; padding: 0; }
-    .stepper input[readonly] { font-size: 12px; letter-spacing: -1.5px; }
+    .stepper input { flex: 1; text-align: center; border: none; font-size: 18px; font-weight: bold; color: #2c3e50; min-width: 0; background: transparent; height: 100%; padding: 0; }
+    
+    /* ▼ 星表示のサイズを調整 ▼ */
+    .stepper input[readonly] { font-size: 14px; letter-spacing: -1.5px; }
 
     .stepper.disabled { opacity: 0.4; pointer-events: none; background-color: #ecf0f1; }
 
-    /* 高さを揃えるための設定 */
-    .gear-row { display: grid; grid-template-columns: 1.8fr 1fr; gap: 6px; margin-bottom: 5px; align-items: end; }
+    /* レイアウト比率の微調整 */
+    .gear-row { display: grid; grid-template-columns: 1.8fr 1fr; gap: 8px; margin-bottom: 5px; align-items: end; }
     
     .result { margin-top: 20px; padding: 12px; border-radius: 10px; text-align: center; border: 1px solid #eee; background-color: #f8f9fa;}
     .res-after { background-color: #faeaeb; border-color: #fadbd8; }
@@ -63,7 +65,7 @@
 <body>
 
 <div class="container">
-    <h1>育成シミュレーター<br><span style="font-size: 0.8rem; color: #7f8c8d;">(レイアウト修正版)</span></h1>
+    <h1>育成シミュレーター<br><span style="font-size: 0.8rem; color: #7f8c8d;">(視認性向上版)</span></h1>
 
     <div class="panel">
         <h3 class="panel-header">🏢 共通設定 <button class="reset-btn" onclick="resetAllData()">リセット</button></h3>
@@ -255,4 +257,3 @@ window.onload = () => { if (!loadAllData()) updateHQ(); else updateHQ(false); };
 </script>
 </body>
 </html>
-
