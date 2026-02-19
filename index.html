@@ -3,695 +3,719 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>ラストウォー育成・判定シミュレーター</title>
+<title>ラストウォー育成シミュレーター</title>
 <style>
-    /* 全体のベース設定 */
-    body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; background-color: #f0f4f8; color: #333; padding: 12px 10px; padding-bottom: 100px; margin: 0; font-size: 16px; }
-    h1 { font-size: 1.4rem; text-align: center; color: #2c3e50; margin-bottom: 18px; line-height: 1.4; font-weight: 900; letter-spacing: 0.5px;}
-    .container { max-width: 1000px; margin: 0 auto; }
+    /* === ベース設定 === */
+    body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; background-color: #f0f2f5; color: #333; padding: 10px; padding-bottom: 120px; margin: 0; font-size: 14px; line-height: 1.4; }
+    h1 { font-size: 1.2rem; text-align: center; color: #2c3e50; margin: 10px 0 15px; font-weight: 900; letter-spacing: 1px; }
+    .container { max-width: 900px; margin: 0 auto; }
     
-    /* タブメニュー */
-    .tabs { display: flex; background: #e1e8ed; border-radius: 12px; padding: 4px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; }
-    .tab-btn { flex: 1; padding: 14px 0; text-align: center; font-size: 1.05rem; font-weight: 900; color: #7f8c8d; cursor: pointer; transition: all 0.3s ease; border-radius: 8px; }
-    .tab-btn.active { background: #fff; color: #2980b9; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-    .tab-content { display: none; animation: fadeIn 0.3s ease; }
-    .tab-content.active { display: block; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    /* === タブメニュー === */
+    .tabs { display: flex; background: #dfe4ea; border-radius: 8px; padding: 3px; margin-bottom: 15px; }
+    .tab-btn { flex: 1; padding: 10px 0; text-align: center; font-size: 0.9rem; font-weight: bold; color: #7f8c8d; cursor: pointer; border-radius: 6px; transition: 0.2s; }
+    .tab-btn.active { background: #fff; color: #2980b9; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* パネルとカードの基本設定 */
-    .panel { background: #fff; padding: 18px 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); margin-bottom: 18px; }
-    .panel-header { display: flex; justify-content: space-between; align-items: center; margin-top: 0; color: #2980b9; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; font-size: 1.15rem; margin-bottom: 15px; font-weight: 900;}
-    .reset-btn { font-size: 0.8rem; background: #f2f4f6; color: #7f8c8d; border: 1px solid #ccd1d9; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s;}
-    .reset-btn:active { background: #e1e8ed; }
-    
-    /* ステッパー・入力関連 */
-    label { display: block; margin-top: 5px; margin-bottom: 6px; font-weight: 900; font-size: 0.95rem; color: #444; }
-    .stepper { display: flex; align-items: center; background: #fff; border: 1px solid #ccd1d9; border-radius: 8px; overflow: hidden; height: 38px; width: 100%; box-sizing: border-box; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);}
-    .stepper button { width: 40px; height: 100%; border: none; background: #f2f4f6; font-size: 1.5rem; font-weight: bold; color: #34495e; cursor: pointer; touch-action: manipulation; flex-shrink: 0; transition: background 0.1s; }
-    .stepper button:active { background: #dce1e6; }
-    .stepper input { flex: 1; width: 100%; min-width: 0; text-align: center; border: none; font-size: 1.1rem; font-weight: 900; color: #2c3e50; background: transparent; height: 100%; padding: 0; }
-    .stepper input[readonly] { font-size: 0.9rem; letter-spacing: -1.5px; }
+    /* === パネル共通 === */
+    .panel { background: #fff; padding: 12px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); margin-bottom: 12px; border: 1px solid #eee; }
+    .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px; margin-bottom: 10px; font-size: 0.95rem; font-weight: 900; color: #2c3e50; }
+    .reset-btn { font-size: 0.7rem; background: #fff; color: #7f8c8d; border: 1px solid #ccc; padding: 4px 10px; border-radius: 4px; cursor: pointer; }
 
-    /* グレーアウト用のクラス */
-    .stepper.disabled { opacity: 0.4; pointer-events: none; background-color: #ecf0f1; }
+    /* === AI提案パネル === */
+    .ai-panel { background: linear-gradient(135deg, #fdfbfb, #ebedee); border-left: 4px solid #3498db; }
+    .ai-title { color: #2980b9; font-weight: bold; display: flex; align-items: center; gap: 6px; font-size: 0.95rem; margin-bottom: 8px; }
+    .suggestion-box { background: #fff; border-radius: 6px; padding: 12px; font-size: 0.85rem; line-height: 1.6; border: 1px solid #e1e8ed; color: #444; }
+    .swap-candidate { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ddd; background: #fffbf2; padding: 10px; border-radius: 6px; border: 1px solid #fce8b2; color: #555; }
+    .swap-title { font-weight: bold; color: #e67e22; display: block; margin-bottom: 4px; font-size: 0.9rem; }
+    .score-breakdown { font-size: 0.7rem; color: #999; margin-top: 5px; text-align: right; }
 
-    /* 部隊編成用のスタイル */
-    .squad-section { margin-bottom: 18px; border: 2px solid #e1e8ed; border-radius: 10px; overflow: hidden; background: #fff;}
-    .squad-header { background: linear-gradient(to right, #f8f9fa, #eef2f5); padding: 14px 15px; font-weight: 900; color: #2c3e50; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 1.1rem;}
-    .squad-body { padding: 15px 12px; display: none; }
+    /* === 部隊編成 UI === */
+    .squad-section { border: 1px solid #e1e8ed; border-radius: 8px; overflow: hidden; margin-bottom: 12px; background: #fff; }
+    .squad-header { background: #f8f9fa; padding: 10px 12px; font-weight: bold; color: #444; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 0.9rem; border-bottom: 1px solid #eee; }
+    .squad-body { padding: 12px; display: none; background: #fff; }
     .squad-body.open { display: block; }
-    .hero-slot { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; background: #fafbfc; padding: 10px; border-radius: 8px; border: 1px solid #f0f2f5; }
-    .hero-select { flex: 2; padding: 10px 6px; border-radius: 6px; border: 1px solid #ccd1d9; font-size: 1rem; font-weight: bold; color: #333; background: #fff;}
-    .wp-input-wrap { flex: 1; display: flex; align-items: center; gap: 6px; }
     
-    /* 陣形ビジュアル */
-    .form-visual-row { display: flex; justify-content: center; gap: 10px; margin-bottom: 12px; }
-    .hero-box { padding: 10px 4px; border-radius: 8px; width: 31%; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 3px 6px rgba(0,0,0,0.08); line-height: 1.3; border: 1px solid;}
-    
-    .hero-tank { background: linear-gradient(135deg, #fef5e7, #fdebd0); border-color: #fad7a1; }
-    .hero-air { background: linear-gradient(135deg, #ebf5fb, #d6eaf8); border-color: #aed6f1; }
-    .hero-mis { background: linear-gradient(135deg, #fdedec, #fadbd8); border-color: #f5b7b1; }
-    .hero-none { background: #f4f6f7; border-color: #e5e8e8; color: #999; }
-    
-    .type-badge { color: #fff; padding: 3px 6px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 5px; font-weight: 900; letter-spacing: 0.5px;}
-    .bg-tank { background-color: #e67e22; }
-    .bg-air { background-color: #2980b9; }
-    .bg-mis { background-color: #c0392b; }
-    .hero-name { font-size: 0.95rem; font-weight: 900; color: #2c3e50; margin-bottom: 4px; }
-    
-    .advice-box { font-size: 0.95rem; background: #fffbf2; padding: 15px; border-radius: 8px; border-left: 5px solid #f39c12; margin-top: 18px; line-height: 1.6; color: #444; font-weight: bold;}
-    .advice-err { border-left-color: #e74c3c; background: #fdedec; color: #a93226; }
-    .advice-ok { border-left-color: #27ae60; background: #eafaf1; color: #1e8449; }
+    .hero-slot { display: flex; gap: 5px; margin-bottom: 8px; align-items: center; padding: 6px; border-radius: 6px; border: 1px solid #eee; }
+    .slot-front { background-color: #fffaf0; border-left: 3px solid #f39c12; }
+    .slot-back { background-color: #f0f8ff; border-left: 3px solid #3498db; }
 
-    /* 装備シミュ用スタイル */
-    .grid { display: flex; gap: 15px; flex-wrap: wrap; }
-    .card { flex: 1; min-width: 100%; background: #fff; padding: 18px 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); box-sizing: border-box;}
-    @media (min-width: 768px) { .card { min-width: calc(50% - 15px); padding: 20px 15px; } }
-    .card-before { border-top: 6px solid #7f8c8d; }
-    .card-after { border-top: 6px solid #e74c3c; }
-    .gear-row { display: grid; grid-template-columns: 1.1fr 1fr; gap: 12px; margin-bottom: 10px; align-items: end; }
+    .pos-badge { font-size: 0.65rem; font-weight: bold; padding: 3px 0; width: 34px; text-align: center; border-radius: 3px; color: #fff; flex-shrink: 0; }
+    .badge-front { background-color: #f39c12; }
+    .badge-back { background-color: #3498db; }
+
+    .hero-select { flex: 1; min-width: 0; padding: 8px 4px; border-radius: 4px; border: 1px solid #ddd; font-size: 0.9rem; font-weight: bold; color: #333; background: #fff; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
     
-    .result { margin-top: 20px; padding: 18px; border-radius: 10px; text-align: center; border: 1px solid #e1e8ed; background-color: #f8f9fa;}
-    .res-after { background-color: #faeaeb; border-color: #fadbd8; }
-    .score { font-size: 2.6rem; font-weight: 900; margin: 8px 0; font-family: "Arial Black", Arial, sans-serif; letter-spacing: 1px;}
-    .score-b { color: #2980b9; } .score-a { color: #c0392b; }
-    .mythic-box { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e74c3c; text-align: left; font-size: 0.85rem; line-height: 1.6; color: #333;}
+    /* === 武装Lv入力 === */
+    .wp-wrap { display: flex; align-items: center; gap: 3px; flex-shrink: 0; }
+    .wp-label { font-size: 0.65rem; color: #888; font-weight: bold; }
     
-    /* フッター */
-    .diff-wrapper { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); width: calc(100% - 24px); max-width: 970px; z-index: 1000; }
-    .diff { font-size: 1.2rem; color: #e74c3c; font-weight: 900; text-align: center; padding: 12px; background: rgba(255, 250, 250, 0.96); backdrop-filter: blur(8px); border-radius: 12px; border: 2px solid #fadbd8; box-shadow: 0 6px 16px rgba(231, 76, 60, 0.15); line-height: 1.5;}
+    /* ステッパー共通 */
+    .stepper { display: flex; align-items: center; background: #fff; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; height: 32px; }
+    .stepper button { width: 26px; height: 100%; border: none; background: #f4f6f7; font-size: 1rem; font-weight: bold; color: #555; cursor: pointer; padding: 0; flex-shrink: 0; }
+    .stepper button:active { background: #dcdcdc; }
+    .stepper input { flex: 1; width: 100%; min-width: 0; text-align: center; border: none; font-size: 0.9rem; font-weight: bold; padding: 0; background: transparent; }
+    .stepper.disabled { background: #eee; opacity: 0.5; pointer-events: none; }
+    .stepper.disabled input { color: #888; font-size: 0.8rem; }
+
+    /* === 陣形ビジュアル === */
+    .visual-area { margin-top: 15px; padding-top: 10px; border-top: 1px dashed #ddd; background: #fafafa; border-radius: 6px; padding: 10px; }
+    .visual-label { font-size: 0.7rem; color: #999; text-align: center; margin-bottom: 6px; font-weight: bold; display: block; }
+    .visual-grid { display: flex; flex-direction: column; gap: 6px; }
+    .v-row-front { display: flex; justify-content: center; gap: 8px; }
+    .v-row-back { display: flex; justify-content: center; gap: 8px; }
+    
+    .hero-card { 
+        width: 30%; max-width: 90px; padding: 4px 2px; text-align: center; border-radius: 6px; 
+        border: 1px solid #ddd; box-shadow: 0 1px 2px rgba(0,0,0,0.05); background: #fff; height: 50px; 
+        display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative;
+    }
+    .card-tank { background: #fff8e1; border-color: #ffe0b2; color: #e65100; }
+    .card-air { background: #e3f2fd; border-color: #bbdefb; color: #0d47a1; }
+    .card-mis { background: #fbe9e7; border-color: #ffccbc; color: #bf360c; }
+    .card-none { background: #f5f5f5; border-color: #eee; color: #ccc; }
+    
+    .role-icon { position: absolute; top: 2px; right: 2px; font-size: 0.7rem; }
+    .hc-name { font-weight: bold; font-size: 0.7rem; width: 95%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; line-height: 1.2; margin-top: 2px; }
+    .hc-wp { font-size: 0.65rem; font-weight: bold; opacity: 0.8; margin-top: 1px; }
+
+    /* アドバイスエリア */
+    .advice { font-size: 0.85rem; padding: 12px; border-radius: 6px; margin-top: 10px; line-height: 1.5; background: #fffbf2; border-left: 4px solid #f39c12; color: #444; }
+    .adv-ok { background: #f0fdf4; border-color: #27ae60; color: #14532d; }
+    .adv-ng { background: #fef2f2; border-color: #e74c3c; color: #991b1b; }
+
+    /* === 装備シミュレーター === */
+    .gear-container { display: flex; flex-wrap: wrap; gap: 10px; }
+    .g-card { flex: 1; min-width: 100%; background: #fff; padding: 12px 10px; border-radius: 10px; border: 1px solid #e1e8ed; box-shadow: 0 2px 5px rgba(0,0,0,0.03); box-sizing: border-box; }
+    @media (min-width: 700px) { .g-card { min-width: 48%; } }
+    
+    .g-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .g-label { font-weight: bold; font-size: 0.8rem; color: #555; display: flex; align-items: center; gap: 2px; min-width: 40px; }
+    
+    .g-input-group { display: flex; gap: 4px; justify-content: flex-end; flex: 1; }
+    .stepper-lv { width: 85px; } 
+    .stepper-star { width: 120px; } 
+    .stepper-star input { font-size: 13px; letter-spacing: -2px; padding-left: 2px; }
+
+    /* バフ情報 */
+    .buff-info { font-size: 0.7rem; color: #e67e22; background: #fffbf2; padding: 5px; border-radius: 4px; margin-top: 10px; text-align: center; border: 1px dashed #f39c12; display: none; }
+    .buff-info.active { display: block; }
+
+    /* 必要図面パネル */
+    .cost-panel { margin-top: 12px; background: #fff; padding: 10px; border-radius: 8px; border-top: 3px solid #f39c12; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+    .cost-row { display: flex; justify-content: space-between; font-size: 0.85rem; border-bottom: 1px dashed #eee; padding: 4px 0; }
+    .cost-row:last-child { border-bottom: none; }
+
+    /* === フッター === */
+    .footer { position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); width: 94%; max-width: 600px; background: rgba(255,255,255,0.95); backdrop-filter: blur(8px); padding: 8px 12px; border-radius: 50px; border: 1px solid #fadbd8; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 999; font-weight: bold; color: #c0392b; display: flex; justify-content: space-between; align-items: center; }
+    .ft-main { font-size: 1rem; }
+    .ft-sub { font-size: 0.75rem; color: #555; background: #f8f9fa; padding: 2px 8px; border-radius: 10px; border: 1px solid #eee; }
 </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>育成シミュレーター<br><span style="font-size: 0.9rem; color: #7f8c8d;"></span></h1>
+    <h1>育成シミュレーター <span style="font-size:0.7rem; color:#999; font-weight:normal;">v13.0 (Star Lock Fix)</span></h1>
 
     <div class="tabs">
-        <div class="tab-btn active" onclick="switchTab('squadTab')">⚔️ 部隊編成・判定</div>
-        <div class="tab-btn" onclick="switchTab('gearTab')">🛡️ 装備シミュ</div>
+        <div class="tab-btn active" onclick="showTab('squad')">⚔️ 部隊編成</div>
+        <div class="tab-btn" onclick="showTab('gear')">🛡️ 装備シミュ</div>
     </div>
 
-    <div id="squadTab" class="tab-content active">
-        <div class="panel">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <label style="margin:0; font-size: 1.1rem;">📋 部隊編成と判定</label>
-                <button class="reset-btn" onclick="resetSquads()">🔄 編成リセット</button>
+    <div id="tab-squad" class="tab-content active">
+        <div class="panel ai-panel">
+            <div class="ai-title">
+                <span>🤖 編成提案 & 入替候補</span>
+                <button class="reset-btn" onclick="generateAiSuggestion()">再分析</button>
             </div>
-            <div id="squadContainer"></div>
-        </div>
-    </div>
-
-    <div id="gearTab" class="tab-content">
-        <div class="grid">
-            <div class="card card-before">
-                <h3 class="panel-header" style="color:#7f8c8d;">現在の装備・バフ</h3>
-                <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px dashed #e1e8ed;">
-                    <label>⚔️ 現在の専用武装 Lv (0〜30)</label>
-                    <div class="stepper"><button onclick="step('cWeapon', -1)">-</button><input type="number" id="cWeapon" value="20" min="0" max="30" onchange="calculate()"><button onclick="step('cWeapon', 1)">+</button></div>
-                </div>
-                <div class="gear-row">
-                    <div><label>🔫 レールガン Lv</label><div class="stepper"><button onclick="step('cGunLv', -1)">-</button><input type="number" id="cGunLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('cGunLv', 1)">+</button></div></div>
-                    <div><label>★</label><div class="stepper"><button onclick="step('cGunStar', -1)">-</button><input type="text" id="cGunStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('cGunStar', 1)">+</button></div></div>
-                </div>
-                <div class="gear-row">
-                    <div><label>💾 チップ Lv</label><div class="stepper"><button onclick="step('cDataLv', -1)">-</button><input type="number" id="cDataLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('cDataLv', 1)">+</button></div></div>
-                    <div><label>★</label><div class="stepper"><button onclick="step('cDataStar', -1)">-</button><input type="text" id="cDataStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('cDataStar', 1)">+</button></div></div>
-                </div>
-                <div class="gear-row">
-                    <div><label>🛡️ 装甲 Lv</label><div class="stepper"><button onclick="step('cArmorLv', -1)">-</button><input type="number" id="cArmorLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('cArmorLv', 1)">+</button></div></div>
-                    <div><label>★</label><div class="stepper"><button onclick="step('cArmorStar', -1)">-</button><input type="text" id="cArmorStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('cArmorStar', 1)">+</button></div></div>
-                </div>
-                <div class="gear-row">
-                    <div><label>📡 レーダー Lv</label><div class="stepper"><button onclick="step('cRadarLv', -1)">-</button><input type="number" id="cRadarLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('cRadarLv', 1)">+</button></div></div>
-                    <div><label>★</label><div class="stepper"><button onclick="step('cRadarStar', -1)">-</button><input type="text" id="cRadarStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('cRadarStar', 1)">+</button></div></div>
-                </div>
-                <div class="result res-before">
-                    <div style="font-size: 0.9rem; color: #7f8c8d; font-weight:bold;">装備・武装による総合バフ</div>
-                    <div class="score score-b">x <span id="scoreBefore">1.00</span></div>
-                    <div id="detailBefore"></div>
-                </div>
-            </div>
-
-            <div class="card card-after">
-                <h3 class="panel-header" style="color:#c0392b;">目標の装備 <button class="reset-btn" onclick="resetGear()">🔄 リセット</button></h3>
-                <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px dashed #fadbd8;">
-                    <label style="color:#c0392b;">⚔️ 武装Lv 目標 (0〜30)</label>
-                    <div class="stepper" style="border-color:#fadbd8;"><button onclick="step('tWeapon', -1)">-</button><input type="number" id="tWeapon" value="20" min="0" max="30" onchange="calculate()"><button onclick="step('tWeapon', 1)">+</button></div>
-                </div>
-                <div class="gear-row">
-                    <div><label>🔫 レールガン Lv</label><div class="stepper"><button onclick="step('tGunLv', -1)">-</button><input type="number" id="tGunLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('tGunLv', 1)">+</button></div></div>
-                    <div><label>★</label><div class="stepper"><button onclick="step('tGunStar', -1)">-</button><input type="text" id="tGunStar" data-val="2" value="★★☆☆☆" readonly><button onclick="step('tGunStar', 1)">+</button></div></div>
-                </div>
-                <div class="gear-row">
-                    <div><label>💾 チップ Lv</label><div class="stepper"><button onclick="step('tDataLv', -1)">-</button><input type="number" id="tDataLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('tDataLv', 1)">+</button></div></div>
-                    <div><label>★</label><div class="stepper"><button onclick="step('tDataStar', -1)">-</button><input type="text" id="tDataStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('tDataStar', 1)">+</button></div></div>
-                </div>
-                <div class="gear-row">
-                    <div><label>🛡️ 装甲 Lv</label><div class="stepper"><button onclick="step('tArmorLv', -1)">-</button><input type="number" id="tArmorLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('tArmorLv', 1)">+</button></div></div>
-                    <div><label>★</label><div class="stepper"><button onclick="step('tArmorStar', -1)">-</button><input type="text" id="tArmorStar" data-val="0" value="☆☆☆☆☆" readonly><button onclick="step('tArmorStar', 1)">+</button></div></div>
-                </div>
-                <div class="gear-row">
-                    <div><label>📡 レーダー Lv</label><div class="stepper"><button onclick="step('tRadarLv', -1)">-</button><input type="number" id="tRadarLv" value="40" min="0" max="40" onchange="calculate()"><button onclick="step('tRadarLv', 1)">+</button></div></div>
-                    <div><label>★</label><div class="stepper"><button onclick="step('tRadarStar', -1)">-</button><input type="text" id="tRadarStar" data-val="5" value="★★★★★" readonly><button onclick="step('tRadarStar', 1)">+</button></div></div>
-                </div>
-                <div class="result res-after">
-                    <div style="font-size: 0.9rem; color: #c0392b; font-weight:bold;">装備・武装による総合バフ</div>
-                    <div class="score score-a">x <span id="scoreAfter">1.00</span></div>
-                    <div id="detailAfter"></div>
-                </div>
+            <div id="ai-result" class="suggestion-box" style="display:none;"></div>
+            <div id="ai-placeholder" style="font-size:0.8rem; color:#777; padding:5px;">
+                各部隊の武装Lvを入力してください。全データから最適な組み合わせを分析します。
             </div>
         </div>
 
-        <div class="panel" id="costDetailPanel" style="display:none; margin-top: 20px; border-top: 4px solid #d35400;">
-            <h3 class="panel-header" style="color:#d35400; border-bottom: none; padding-bottom: 0; margin-bottom:10px;">🆙 必要な装備レシピ</h3>
-            <div id="costBreakdown" style="font-size: 0.95rem; line-height: 1.6; margin-bottom: 15px; padding-top: 10px; border-top: 1px dashed #ccc; font-weight:bold; color:#444;"></div>
-            <div style="font-size: 0.85rem; color: #777; text-align: center; background: #fff4e6; padding: 12px; border-radius: 8px; border: 1px solid #fdebd0;">
-                ★0→1:<b style="color:#f39c12; font-size:1rem;">5枚</b> / ★1→2:<b style="color:#f39c12; font-size:1rem;">10枚</b> / ★2→3:<b style="color:#f39c12; font-size:1rem;">15枚</b><br>
-                ★3→4:<b style="color:#f39c12; font-size:1rem;">20枚</b> / ★4→5:<b style="color:#e74c3c; font-size:1rem;">赤10枚</b>
+        <div class="panel" style="background:transparent; padding:0; border:none; box-shadow:none;">
+            <div style="display:flex; justify-content:flex-end; margin-bottom:5px;">
+                <button class="reset-btn" onclick="resetSquads()" style="background:#fff; border-color:#e1e8ed;">🗑️ 全編成リセット</button>
+            </div>
+            <div id="squad-container"></div>
+        </div>
+    </div>
+
+    <div id="tab-gear" class="tab-content">
+        <div class="gear-container">
+            <div class="g-card">
+                <div class="panel-header" style="color:#7f8c8d; border-color:#eee;">現在の装備</div>
+                
+                <div class="g-row" style="margin-bottom:12px;">
+                    <span class="g-label">⚔️ 武装Lv</span>
+                    <div class="stepper" style="width:100px;"><button onclick="gearStep('cWeapon', -1)">-</button><input id="cWeapon" value="20" readonly><button onclick="gearStep('cWeapon', 1)">+</button></div>
+                </div>
+                <div id="current-gear-rows"></div>
+                <div id="detail-curr" class="buff-info"></div>
+            </div>
+
+            <div class="g-card">
+                <div class="panel-header" style="color:#c0392b; border-color:#fadbd8;">
+                    目標の装備 <button class="reset-btn" onclick="resetGear()">クリア</button>
+                </div>
+                
+                <div class="g-row" style="margin-bottom:12px;">
+                    <span class="g-label" style="color:#c0392b;">⚔️ 目標Lv</span>
+                    <div class="stepper" style="border-color:#fadbd8; width:100px;"><button onclick="gearStep('tWeapon', -1)">-</button><input id="tWeapon" value="20" readonly><button onclick="gearStep('tWeapon', 1)">+</button></div>
+                </div>
+                <div id="target-gear-rows"></div>
+                <div id="detail-tgt" class="buff-info"></div>
+            </div>
+        </div>
+        
+        <div class="cost-panel">
+            <div style="font-weight:bold; color:#d35400; font-size:0.9rem; margin-bottom:5px;">🆙 不足している装備レシピ</div>
+            <div id="cost-list" style="margin-bottom:10px;"></div>
+            <div style="font-size:0.7rem; color:#888; background:#f9f9f9; padding:6px; border-radius:4px; text-align:center;">
+                ★0→1:5 / ★1→2:10 / ★2→3:15 / ★3→4:20 / ★4→5:赤10
             </div>
         </div>
     </div>
 </div>
 
-<div class="diff-wrapper" id="gearFooter" style="display:none;">
-    <div class="diff">
-        今の 約 <span id="growthNum" style="font-size:1.6rem; margin:0 4px;">1.00</span> 倍！<br>
-        <span id="footerCost" style="font-size: 0.95rem; font-weight: normal; display:none;">
-            必要レシピ: <span style="color:#f39c12; font-weight:bold;">UR <span id="footUr" style="font-size:1.2rem;">0</span>枚</span> / <span style="color:#e74c3c; font-weight:bold;">MR <span id="footMr" style="font-size:1.2rem;">0</span>枚</span>
-        </span>
-    </div>
+<div id="footer-bar" class="footer" style="display:none;">
+    <div class="ft-main">今より <span id="growth-rate" style="font-size:1.3rem;">1.00</span> 倍!</div>
+    <div class="ft-sub">必要: <span style="color:#f39c12;">UR<span id="ft-ur">0</span></span> <span style="color:#c0392b;">MR<span id="ft-mr">0</span></span></div>
 </div>
 
 <script>
-// ==========================================
-// 共通・タブ処理
-// ==========================================
-function switchTab(tabId) {
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-    
-    document.getElementById(tabId).classList.add('active');
-    event.currentTarget.classList.add('active');
-
-    document.getElementById('gearFooter').style.display = (tabId === 'gearTab') ? 'block' : 'none';
-}
-
-// ==========================================
-// 部隊編成ロジック (UR昇格キャラ完全対応)
-// ==========================================
+// --- データ定義 ---
 const HEROES = {
-    empty: {n:"未設定", t:"none", c:"hero-none", r:"none"},
-    // 戦車
-    murphy: {n:"ﾏｰﾌｨ", t:"tank", c:"hero-tank", r:"wall"},
-    williams: {n:"ｳｨﾘｱﾑｽﾞ", t:"tank", c:"hero-tank", r:"wall"},
-    scarlett: {n:"ｽｶｰﾚｯﾄ", t:"tank", c:"hero-tank", r:"wall", isUR: true},
-    violet: {n:"ｳﾞｨｵﾗ", t:"tank", c:"hero-tank", r:"wall", isUR: true},
-    kimberly: {n:"ｷﾝﾊﾞﾘｰ", t:"tank", c:"hero-tank", r:"atk"},
-    stetmann: {n:"ｽﾃｯﾄﾞﾏﾝ", t:"tank", c:"hero-tank", r:"atk"},
-    mason: {n:"ﾒｲｿﾝ", t:"tank", c:"hero-tank", r:"atk", isUR: true},
-    marshall: {n:"ﾏｰｼｬﾙ", t:"tank", c:"hero-tank", r:"sup"},
-    // 航空機
-    lucius: {n:"ﾙｼｳｽ", t:"air", c:"hero-air", r:"wall"},
-    carlie: {n:"ｶｰﾘｰ", t:"air", c:"hero-air", r:"wall"},
-    dva: {n:"DVA", t:"air", c:"hero-air", r:"atk"},
-    schuyler: {n:"ｽｶｲﾗｰ", t:"air", c:"hero-air", r:"atk"},
-    morrison: {n:"ﾓﾘｿﾝ", t:"air", c:"hero-air", r:"atk"},
-    sarah: {n:"ｻﾗ", t:"air", c:"hero-air", r:"atk", isUR: true},
-    // ミサイル
-    mcgregor: {n:"ﾏｸﾚｶﾞｰ", t:"mis", c:"hero-mis", r:"wall"},
-    adam: {n:"ｱﾀﾞﾑ", t:"mis", c:"hero-mis", r:"wall"},
-    tesla: {n:"ﾃｽﾗ", t:"mis", c:"hero-mis", r:"atk"},
-    fiona: {n:"ﾌｨｵﾅ", t:"mis", c:"hero-mis", r:"atk"},
-    swift: {n:"ｽｳｨﾌﾄ", t:"mis", c:"hero-mis", r:"atk"},
-    venom: {n:"ﾍﾞﾉﾑ", t:"mis", c:"hero-mis", r:"atk", isUR: true}
+    empty: {n:"- 未設定 -", t:"none", r:"none", ur:false},
+    murphy: {n:"マーフィ", t:"tank", r:"wall", ur:false},
+    williams: {n:"ウィリアムズ", t:"tank", r:"wall", ur:false},
+    scarlett: {n:"スカーレット", t:"tank", r:"wall", ur:true},
+    violet: {n:"ヴィオラ", t:"tank", r:"wall", ur:true},
+    kimberly: {n:"キンバリー", t:"tank", r:"atk", ur:false},
+    stetmann: {n:"ステッドマン", t:"tank", r:"atk", ur:false},
+    mason: {n:"メイソン", t:"tank", r:"atk", ur:true},
+    marshall: {n:"マーシャル", t:"tank", r:"sup", ur:false},
+    lucius: {n:"ルシウス", t:"air", r:"wall", ur:false},
+    carlie: {n:"カーリー", t:"air", r:"wall", ur:false},
+    dva: {n:"DVA", t:"air", r:"atk", ur:false},
+    schuyler: {n:"スカイラー", t:"air", r:"atk", ur:false},
+    morrison: {n:"モリソン", t:"air", r:"atk", ur:false},
+    sarah: {n:"サラ", t:"air", r:"atk", ur:true},
+    mcgregor: {n:"マクレガー", t:"mis", r:"wall", ur:false},
+    adam: {n:"アダム", t:"mis", r:"wall", ur:false},
+    tesla: {n:"テスラ", t:"mis", r:"atk", ur:false},
+    fiona: {n:"フィオナ", t:"mis", r:"atk", ur:false},
+    swift: {n:"スウィフト", t:"mis", r:"atk", ur:false},
+    venom: {n:"ベノム", t:"mis", r:"atk", ur:true}
 };
 
-function getRoleIcon(r) {
-    if(r === 'wall') return '🛡️';
-    if(r === 'atk') return '⚔️';
-    if(r === 'sup') return '🛠️';
-    return '';
+const GEAR_TYPES = ['Gun', 'Data', 'Armor', 'Radar'];
+const GEAR_NAMES = { 'Gun':'🔫レールガン', 'Data':'💾チップ', 'Armor':'🛡️装甲', 'Radar':'📡レーダー' };
+
+// --- 初期化 ---
+window.onload = function() {
+    initSquadHTML();
+    initGearHTML();
+    loadAllData();
+    calculateGear();
+    generateAiSuggestion();
+};
+
+function showTab(id) {
+    document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(e => e.classList.remove('active'));
+    document.getElementById('tab-'+id).classList.add('active');
+    event.currentTarget.classList.add('active');
+    document.getElementById('footer-bar').style.display = (id === 'gear') ? 'flex' : 'none';
 }
 
-function getTypeInfo(t) {
-    if(t === 'tank') return { text: '戦車', bg: 'bg-tank' };
-    if(t === 'air') return { text: '航空', bg: 'bg-air' };
-    if(t === 'mis') return { text: 'ﾛｹﾗﾝ', bg: 'bg-mis' };
-    return { text: '', bg: '' };
-}
-
-function updateAllSelectOptions() {
+// --- 部隊編成 ---
+function initSquadHTML() {
+    let html = '';
     for(let s=1; s<=3; s++) {
-        let selectedInSquad = [];
-        for(let p=1; p<=5; p++){
-            let el = document.getElementById(`h_${s}_${p}`);
-            if(el && el.value !== 'empty') selectedInSquad.push(el.value);
+        let openClass = s === 1 ? 'open' : '';
+        let arrow = s === 1 ? '▼' : '▶';
+        html += `
+        <div class="squad-section">
+            <div class="squad-header" onclick="toggleSquad(${s}, this)">
+                <span>第${s}部隊</span><span>${arrow}</span>
+            </div>
+            <div class="squad-body ${openClass}" id="sq-body-${s}">
+                ${[1,2,3,4,5].map(p => {
+                    let isFront = p<=2;
+                    let slotClass = isFront ? "slot-front" : "slot-back";
+                    let badgeClass = isFront ? "badge-front" : "badge-back";
+                    let label = isFront ? "前衛" : "後衛";
+                    return `
+                    <div class="hero-slot ${slotClass}">
+                        <div class="pos-badge ${badgeClass}">${label}</div>
+                        <select class="hero-select" id="h-${s}-${p}" onchange="updateSquad(${s})"></select>
+                        <div class="wp-wrap">
+                            <span class="wp-label">Lv</span>
+                            <div class="stepper" id="wp-box-${s}-${p}" style="width:100px; height:32px;">
+                                <button onclick="stepWp(${s},${p},-1)">-</button>
+                                <input type="text" id="w-${s}-${p}" value="0" readonly>
+                                <button onclick="stepWp(${s},${p},1)">+</button>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('')}
+                <div class="visual-area">
+                    <span class="visual-label">配置イメージ</span>
+                    <div id="vis-${s}" class="visual-grid"></div>
+                </div>
+                <div id="adv-${s}" class="advice" style="display:none;"></div>
+            </div>
+        </div>`;
+    }
+    document.getElementById('squad-container').innerHTML = html;
+    
+    let opts = "";
+    for(let k in HEROES) {
+        let h = HEROES[k];
+        let mark = h.t==='tank'?'[戦]': h.t==='air'?'[空]': h.t==='mis'?'[ﾛｹ]':'';
+        if(k==='empty') mark = '';
+        let name = h.n + (h.ur ? "(UR)" : "");
+        opts += `<option value="${k}">${mark} ${name}</option>`;
+    }
+    document.querySelectorAll('.hero-select').forEach(sel => sel.innerHTML = opts);
+}
+
+function toggleSquad(s, header) {
+    let body = document.getElementById(`sq-body-${s}`);
+    let arrow = header.children[1];
+    if(body.classList.contains('open')) {
+        body.classList.remove('open'); arrow.innerText = '▶';
+    } else {
+        body.classList.add('open'); arrow.innerText = '▼';
+    }
+}
+
+function stepWp(s, p, d) {
+    let el = document.getElementById(`w-${s}-${p}`);
+    let val = el.value === "未解放" || el.value === "未実装" ? 0 : parseInt(el.value);
+    let v = val || 0;
+    let newVal = Math.min(Math.max(v + d, 0), 30);
+    
+    el.value = newVal;
+    updateSquad(s);
+}
+
+function updateSquad(s) {
+    lockDuplicateHeroes(s);
+    let members = [];
+    let counts = {tank:0, air:0, mis:0, none:0};
+
+    for(let p=1; p<=5; p++) {
+        let hid = document.getElementById(`h-${s}-${p}`).value;
+        let wpEl = document.getElementById(`w-${s}-${p}`);
+        let wpBox = document.getElementById(`wp-box-${s}-${p}`);
+        let h = HEROES[hid];
+
+        let currentVal = wpEl.value === "未解放" || wpEl.value === "未実装" ? 0 : parseInt(wpEl.value) || 0;
+
+        if(h.ur) {
+            wpBox.classList.add('disabled');
+            wpEl.value = "未実装";
+            currentVal = 0;
+        } else if(hid === 'empty') {
+            wpBox.classList.add('disabled');
+            wpEl.value = "-";
+            currentVal = 0;
+        } else {
+            wpBox.classList.remove('disabled');
+            wpEl.value = currentVal === 0 ? "未解放" : currentVal;
         }
+
+        members.push({ ...h, id:hid, wp:currentVal, pos:p });
+        counts[h.t]++;
+    }
+
+    renderVisual(s, members);
+    analyzeSquad(s, members, counts);
+    saveData();
+    generateAiSuggestion(); 
+}
+
+function lockDuplicateHeroes(s) {
+    let selected = [];
+    for(let p=1; p<=5; p++) {
+        let v = document.getElementById(`h-${s}-${p}`).value;
+        if(v !== 'empty') selected.push(v);
+    }
+    for(let p=1; p<=5; p++) {
+        let sel = document.getElementById(`h-${s}-${p}`);
+        let myVal = sel.value;
+        for(let opt of sel.options) {
+            if(opt.value !== 'empty' && selected.includes(opt.value) && opt.value !== myVal) {
+                opt.disabled = true; opt.style.color = "#ccc";
+            } else {
+                opt.disabled = false; opt.style.color = "#333";
+            }
+        }
+    }
+}
+
+function renderVisual(s, m) {
+    let html = m.map(h => {
+        if(h.id === 'empty') return `<div class="hero-card card-none"><span style="font-size:0.7rem;">未設定</span></div>`;
+        let cls = h.t === 'tank' ? 'card-tank' : h.t === 'air' ? 'card-air' : 'card-mis';
+        let roleIcon = h.r === 'wall' ? '🛡️' : h.r === 'atk' ? '⚔️' : '🛠️';
+        let urTag = h.ur ? '<span style="color:#8e44ad;font-size:0.6rem;">(UR)</span>' : '';
+        let wpTxt = h.ur ? '未実装' : (h.wp === 0 ? '未解放' : `Lv${h.wp}`);
+        return `
+        <div class="hero-card ${cls}">
+            <div class="role-icon">${roleIcon}</div>
+            <div class="hc-name">${h.n}${urTag}</div>
+            <div class="hc-wp">${wpTxt}</div>
+        </div>`;
+    });
+    
+    let front = `<div class="v-row-front">${html[0]}${html[1]}</div>`;
+    let back = `<div class="v-row-back">${html[2]}${html[3]}${html[4]}</div>`;
+    document.getElementById(`vis-${s}`).innerHTML = front + back;
+}
+
+function analyzeSquad(s, m, c) {
+    let div = document.getElementById(`adv-${s}`);
+    if(c.none > 0) { div.style.display = 'none'; return; }
+    div.style.display = 'block';
+
+    let maxC = Math.max(c.tank, c.air, c.mis);
+    let buff = maxC===5?"+20%": maxC===4?"+15%": maxC===3?"+10%":"0%";
+    let mainT = Object.keys(c).reduce((a,b)=> c[a]>c[b]?a:b);
+    
+    let msgs = [`<b> 同種英雄${maxC}体 (戦闘中,体力,攻撃力,防御力${buff})</b>`];
+    let status = 'ok';
+
+    if(['atk','sup'].includes(m[0].r) || ['atk','sup'].includes(m[1].r)) {
+        msgs.push("⚠️ 前衛に火力/支援がいます。盾役(🛡️)を推奨。");
+        status = 'ng';
+    }
+
+    if(maxC === 4) {
+        let out = m.find(h => h.t !== mainT);
+        if(out.id === 'lucius') {
+            if(out.wp < 10) { msgs.push("⚠️ ルシウス出張は【武装Lv10】以上が必須です。"); status='ng'; }
+            else msgs.push("⭕ ルシウス出張OK！回避性能が優秀です。");
+        } else if(out.id === 'murphy') {
+            if(out.wp < 20) { msgs.push("⚠️ マーフィー出張は【武装Lv20】以上推奨。"); status='ng'; }
+            else msgs.push("⭕ マーフィー出張OK！物理盾として機能します。");
+        } else if(out.ur && out.r === 'wall') {
+            msgs.push(`⭕ ${out.n}(UR)出張OK！高HPで優秀な壁になります。`);
+        } else if(out.r === 'atk') {
+            if(out.ur) { msgs.push(`⚠️ ${out.n}の出張は火力不足のため非推奨です。`); status='ng'; }
+            else if(out.wp < 30) { msgs.push(`⚠️ アタッカー出張は【武装Lv30】が必要です。`); status='ng'; }
+            else msgs.push(`🔥 ${out.n}出張OK！Lv30の火力でゴリ押し可能。`);
+        } else {
+            msgs.push(`⚠️ ${out.n}の出張メリットは薄いです。`); status='ng';
+        }
+    } else if (maxC < 4) {
+        msgs.push("❌ バフが低いです。4体以上揃えましょう。"); status='ng';
+    }
+
+    div.className = "advice " + (status==='ok'?'adv-ok':'adv-ng');
+    div.innerHTML = msgs.join('<br>');
+}
+
+// === AI提案ロジック ===
+function generateAiSuggestion() {
+    let resultBox = document.getElementById('ai-result');
+    let placeH = document.getElementById('ai-placeholder');
+    
+    let scores = { tank: 0, air: 0, mis: 0 };
+    let totalPower = 0;
+    let squadComp = { 1:{t:0,a:0,m:0}, 2:{t:0,a:0,m:0}, 3:{t:0,a:0,m:0} };
+
+    for(let s=1; s<=3; s++) {
+        for(let p=1; p<=5; p++) {
+            let hid = document.getElementById(`h-${s}-${p}`).value;
+            let el = document.getElementById(`w-${s}-${p}`);
+            let val = el.value === "未解放" || el.value === "未実装" ? 0 : parseInt(el.value);
+            let wp = val || 0;
+
+            if(hid !== 'empty') {
+                let h = HEROES[hid];
+                let points = 10 + wp; 
+                scores[h.t] += points;
+                totalPower += points;
+                
+                if(h.t==='tank') squadComp[s].t += points;
+                else if(h.t==='air') squadComp[s].a += points;
+                else if(h.t==='mis') squadComp[s].m += points;
+            }
+        }
+    }
+
+    if(totalPower === 0) {
+        resultBox.style.display = 'none';
+        placeH.style.display = 'block';
+        return;
+    }
+    
+    placeH.style.display = 'none';
+    resultBox.style.display = 'block';
+    
+    let bestFaction = 'tank';
+    let s1 = squadComp[1];
+    let mainSquadFaction = s1.t >= s1.a && s1.t >= s1.m ? 'tank' : (s1.a >= s1.m ? 'air' : 'mis');
+
+    if(scores.air > scores.tank && scores.air > scores.mis) bestFaction = 'air';
+    else if(scores.mis > scores.tank && scores.mis > scores.air) bestFaction = 'mis';
+    else if(scores.tank > scores.air && scores.tank > scores.mis) bestFaction = 'tank';
+    else bestFaction = mainSquadFaction;
+
+    let mainSquad = 1;
+    let maxCompScore = -1;
+    for(let s=1; s<=3; s++) {
+        let score = (bestFaction==='tank')? squadComp[s].t : (bestFaction==='air')? squadComp[s].a : squadComp[s].m;
+        if(score > maxCompScore) { maxCompScore = score; mainSquad = s; }
+    }
+
+    let swapAdvice = "";
+    let weakest = null;
+    let minWp = 999;
+    
+    for(let p=1; p<=5; p++) {
+        let hid = document.getElementById(`h-${mainSquad}-${p}`).value;
+        if(hid === 'empty') continue;
         
-        for(let p=1; p<=5; p++){
-            let selectEl = document.getElementById(`h_${s}_${p}`);
-            if(!selectEl) continue;
-            let currentVal = selectEl.value;
-            for(let j=0; j<selectEl.options.length; j++){
-                let opt = selectEl.options[j];
-                if(opt.value !== 'empty' && selectedInSquad.includes(opt.value) && opt.value !== currentVal) {
-                    opt.disabled = true;
-                    opt.style.color = '#ccc';
+        let h = HEROES[hid];
+        let el = document.getElementById(`w-${mainSquad}-${p}`);
+        let wp = el.value==="未解放"||el.value==="未実装"? 0 : parseInt(el.value);
+        
+        if(h.t !== bestFaction) { weakest = h; break; }
+        if(wp < minWp) { minWp = wp; weakest = h; }
+    }
+
+    if(weakest) {
+        let candidates = [];
+        for(let s=1; s<=3; s++) {
+            if(s === mainSquad) continue;
+            for(let p=1; p<=5; p++) {
+                let hid = document.getElementById(`h-${s}-${p}`).value;
+                if(hid === 'empty') continue;
+                let h = HEROES[hid];
+                let el = document.getElementById(`w-${s}-${p}`);
+                let wp = el.value==="未解放"||el.value==="未実装"? 0 : parseInt(el.value);
+
+                // 壁を探しているなら強い壁を、そうでないなら強いキャラを
+                if(weakest.r === 'wall') {
+                    if(h.r === 'wall' && (h.ur || wp >= 20)) candidates.push({ ...h, squad: s, wp: wp });
                 } else {
-                    opt.disabled = false;
-                    opt.style.color = '#333';
+                    if((h.r === 'wall' && (h.ur || wp >= 20)) || (h.r === 'atk' && wp >= 30)) {
+                        candidates.push({ ...h, squad: s, wp: wp });
+                    }
                 }
             }
         }
-    }
-}
-
-function initSquadUI() {
-    let container = document.getElementById('squadContainer');
-    let html = '';
-    for(let s=1; s<=3; s++) {
-        let isOpen = s===1 ? 'open' : '';
-        let arrow = s===1 ? '▼' : '▶';
-        html += `
-            <div class="squad-section" id="sqSection${s}">
-                <div class="squad-header" onclick="toggleSquad(${s})">
-                    <span>第${s}部隊</span><span id="sqArr${s}">${arrow}</span>
-                </div>
-                <div class="squad-body ${isOpen}" id="sqBody${s}">
-                    ${[1,2].map(pos => makeHeroSlot(s, pos, "前衛")).join('')}
-                    ${[3,4,5].map(pos => makeHeroSlot(s, pos, "後衛")).join('')}
-                    <div id="sqVisual${s}" style="margin-top:20px;"></div>
-                    <div id="sqAdvice${s}"></div>
-                </div>
-            </div>`;
-    }
-    container.innerHTML = html;
-}
-
-function makeHeroSlot(sq, pos, label) {
-    let options = Object.keys(HEROES).map(k => {
-        if(k === 'empty') return `<option value="${k}">- 未設定 -</option>`;
-        let typeText = getTypeInfo(HEROES[k].t).text;
-        let roleIcon = getRoleIcon(HEROES[k].r);
-        let urText = HEROES[k].isUR ? " (UR)" : "";
-        return `<option value="${k}">[${typeText}] ${roleIcon} ${HEROES[k].n}${urText}</option>`;
-    }).join('');
-    
-    return `
-        <div class="hero-slot">
-            <div style="font-size:0.85rem; color:#7f8c8d; font-weight:bold; width:35px;">${label}</div>
-            <select class="hero-select" id="h_${sq}_${pos}" onchange="evalSquad(${sq}); saveSquadData();">${options}</select>
-            <div class="wp-input-wrap">
-                <span style="font-size:0.85rem; font-weight:bold; color:#555;">Lv</span>
-                <div class="stepper" id="wp_wrap_${sq}_${pos}" style="width:80px; height:36px;">
-                    <button style="width:28px; font-size:1.3rem;" onclick="stepSq('${sq}','${pos}',-1)">-</button>
-                    <input type="number" id="wp_${sq}_${pos}" value="0" readonly>
-                    <button style="width:28px; font-size:1.3rem;" onclick="stepSq('${sq}','${pos}',1)">+</button>
-                </div>
-            </div>
-        </div>`;
-}
-
-function toggleSquad(s) {
-    let body = document.getElementById(`sqBody${s}`);
-    let arr = document.getElementById(`sqArr${s}`);
-    if(body.classList.contains('open')){
-        body.classList.remove('open'); arr.innerText = '▶';
-    }else{
-        body.classList.add('open'); arr.innerText = '▼';
-    }
-}
-
-function stepSq(sq, pos, delta) {
-    let el = document.getElementById(`wp_${sq}_${pos}`);
-    let v = parseInt(el.value)||0;
-    el.value = Math.min(Math.max(v + delta, 0), 30);
-    evalSquad(sq);
-    saveSquadData();
-}
-
-function renderHeroBox(h) {
-    if(h.id === 'empty') return `<div class="hero-box ${h.c}"><div class="hero-name" style="margin-top:10px;">- 未設定 -</div></div>`;
-    
-    let typeInfo = getTypeInfo(h.t);
-    let typeBadge = `<div class="type-badge ${typeInfo.bg}">${typeInfo.text}</div>`;
-    let roleIcon = getRoleIcon(h.r);
-    let urTag = h.isUR ? `<span style="color:#8e44ad; font-size:0.65rem;">(UR)</span>` : '';
-    let wpText = h.isUR ? `<span style="opacity:0.5;">武装未実装</span>` : `武装Lv${h.wp}`;
-    
-    return `
-        <div class="hero-box ${h.c}">
-            ${typeBadge}
-            <div class="hero-name">${roleIcon} ${h.n}${urTag}</div>
-            <span style="font-size:0.8rem;font-weight:bold;color:inherit;">${wpText}</span>
-        </div>`;
-}
-
-function evalSquad(sq) {
-    updateAllSelectOptions(); 
-
-    let heroes = [];
-    let counts = {tank:0, air:0, mis:0, none:0};
-    
-    for(let i=1; i<=5; i++){
-        let hid = document.getElementById(`h_${sq}_${i}`).value;
-        let wpEl = document.getElementById(`wp_${sq}_${i}`);
-        let wpWrap = document.getElementById(`wp_wrap_${sq}_${i}`);
-        let hdata = HEROES[hid];
         
-        // ▼ UR昇格組 または 未設定 の場合は専用武装入力をロック(グレーアウト)して0にする ▼
-        if (hdata.isUR || hid === 'empty') {
-            wpWrap.classList.add('disabled');
-            wpEl.value = 0;
+        candidates.sort((a,b) => b.wp - a.wp);
+        let bestCand = candidates[0];
+        let suggestionText = "";
+
+        if(bestCand) {
+            suggestionText = `控えにいる<b>『${bestCand.n}』(第${bestCand.squad}部隊)</b>と入れ替えてみましょう。<br>既存の戦力を活かして勝率アップが狙えます。`;
         } else {
-            wpWrap.classList.remove('disabled');
+            if(weakest.r === 'wall') {
+                suggestionText = `ここに<b>【回避・物理耐性・高HP】を持つ他兵種の盾役</b>(ルシウス/マーフィー/URスカ等)を入れると安定します。`;
+            } else {
+                suggestionText = `ここに<b>【他兵種の超火力アタッカー(武装Lv30)】</b>を入れるか、<b>【他兵種の盾役】</b>を入れて耐久寄りの3-2編成にするのがお勧めです。`;
+            }
         }
 
-        let wp = parseInt(wpEl.value)||0;
-        heroes.push({pos: i, id: hid, wp: wp, ...hdata});
-        counts[hdata.t]++;
+        swapAdvice = `<div class="swap-candidate">
+            <span class="swap-title">🔄 入れ替え候補 (第${mainSquad}部隊)</span>
+            現在の構成では『${weakest.n}』が入れ替えの第一候補です。<br>${suggestionText}
+        </div>`;
     }
 
-    let visHtml = `
-        <div class="form-visual-row">${[heroes[0], heroes[1]].map(renderHeroBox).join('')}</div>
-        <div class="form-visual-row">${[heroes[2], heroes[3], heroes[4]].map(renderHeroBox).join('')}</div>
-    `;
-    document.getElementById(`sqVisual${sq}`).innerHTML = visHtml;
-
-    let adviceHtml = "";
-    let isComplete = counts.none === 0;
+    let scoreTxt = `<div class="score-breakdown">スコア内訳: 戦車${scores.tank} / 航空${scores.air} / ﾛｹﾗﾝ${scores.mis}</div>`;
+    let msg = "";
+    if(bestFaction === 'tank') {
+        msg = `💡 <b>戦車軸がおすすめ</b><br>戦車キャラの戦力が最も高いです。第${mainSquad}部隊を中心に、戦車5体または4+1編成を組みましょう。${swapAdvice}${scoreTxt}`;
+    } else if(bestFaction === 'air') {
+        msg = `💡 <b>航空機軸がおすすめ</b><br>航空機の戦力が最も高いです。対戦車で無双できます。ロケラン対策に物理盾を混ぜるのがトレンドです。${swapAdvice}${scoreTxt}`;
+    } else if(bestFaction === 'mis') {
+        msg = `💡 <b>ロケラン軸がおすすめ</b><br>ロケランの戦力が最も高いです。航空機編成を狩るのに最適です。前衛を厚くすると勝率が上がります。${swapAdvice}${scoreTxt}`;
+    }
     
-    if(!isComplete) {
-        adviceHtml = `<div class="advice-box">5人すべて配置してください。</div>`;
-    } else {
-        let maxCount = Math.max(counts.tank, counts.air, counts.mis);
-        let buffText = maxCount === 5 ? "同兵種5体 (バフ+20%)" : maxCount === 4 ? "同兵種4体 (バフ+15%)" : maxCount === 3 ? "同兵種3体 / 3+2 (バフ+10%)" : "バフなし";
-        let mainType = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
-        
-        let msgs = [`<b style="color:#2980b9; font-size:1.05rem;">【編成ボーナス】${buffText}</b>`];
-        let hasError = false;
-        let isPerfect = false;
-
-        // 前衛配置チェック
-        if(heroes[0].r === 'atk' || heroes[0].r === 'sup' || heroes[1].r === 'atk' || heroes[1].r === 'sup') {
-            msgs.push("⚠️ 前衛に火力/支援がいます。盾役(🛡️)を配置してください。");
-            hasError = true;
-        }
-
-        // UR昇格キャラの注記
-        let hasURPromo = heroes.some(h => h.isUR);
-        if (hasURPromo) {
-            msgs.push("<span style='color:#8e44ad; font-size:0.85rem;'>💡 【補足】ヴィオラやスカーレット等の元SSR組は「UR昇格済み」を前提とした判定です。</span>");
-        }
-
-        if (maxCount === 4) {
-            let outider = heroes.find(h => h.t !== mainType);
-            if(outider.id === 'lucius') {
-                if(outider.wp < 10) { msgs.push("⚠️ ルシウスの出張は回避解放の【専武Lv10】未満は非推奨です。"); hasError = true; }
-                else { msgs.push("⭕ ルシウス出張OK！回避による耐久がバフ減少分を補います。"); isPerfect = true;}
-            } else if(outider.id === 'murphy') {
-                if(outider.wp < 20) { msgs.push("⚠️ マーフィー出張は基礎ステが上がる【専武Lv20】未満は非推奨です。"); hasError = true; }
-                else { msgs.push("⭕ マーフィー出張OK！対ロケランの物理盾として機能します。"); isPerfect = true;}
-            } else if(outider.id === 'scarlett') {
-                msgs.push(`⭕ ｽｶｰﾚｯﾄ出張OK！UR化による圧倒的なHPで、どの兵種でも最強クラスの肉盾になります。`); 
-                isPerfect = true;
-            } else if(outider.id === 'violet') {
-                msgs.push(`⭕ ｳﾞｨｵﾗ出張OK！UR化によるダメージ軽減が優秀で、前衛の代用として十分に機能します。`); 
-                isPerfect = true;
-            } else if(outider.isUR && outider.r === 'atk') {
-                msgs.push(`⚠️ ${outider.n}の出張は非推奨です。純正URの専武Lv30ほどの理不尽火力がないため、バフを落とすメリットがありません。`); 
-                hasError = true;
-            } else if(outider.r === 'atk') {
-                if(outider.wp < 30) { msgs.push(`⚠️ ${outider.n}の出張は【専武Lv30】必須です。火力が足りずバフ減少の赤字になります。`); hasError = true; }
-                else { msgs.push(`🔥 ${outider.n}出張OK！Lv30の理不尽な火力で敵を粉砕できます。`); isPerfect = true;}
-            } else if(outider.r === 'wall') {
-                msgs.push(`⚠️ ${outider.n}をあえて出張させるメリットは薄いです。(ﾏｰﾌｨｰ, ﾙｼｳｽ, URｽｶｰﾚｯﾄ等を推奨)`); hasError = true;
-            } else {
-                msgs.push(`⚠️ ${outider.n}の出張は非推奨です。`); hasError = true;
-            }
-        } else if (maxCount === 5) {
-            msgs.push("⭕ 最も安定してステータスが伸びる王道の形です。");
-            isPerfect = true;
-        } else if (maxCount === 3) {
-            let types = Object.values(counts).filter(c => c > 0);
-            if (types.includes(3) && types.includes(2)) {
-                msgs.push("⚠️ 【3+2編成】トップ層の専武Lv30による暴力以外では、ステータス不足になりがちで非推奨です。");
-                hasError = true;
-            } else {
-                msgs.push("❌ バフが低すぎます。最低でも4体は同じ兵種で揃えましょう。");
-                hasError = true;
-            }
-        } else {
-            msgs.push("❌ バフが低すぎます。最低でも4体は同じ兵種で揃えましょう。");
-            hasError = true;
-        }
-
-        let boxClass = hasError ? "advice-err" : (isPerfect ? "advice-ok" : "");
-        adviceHtml = `<div class="advice-box ${boxClass}">${msgs.join('<br>')}</div>`;
-    }
-    document.getElementById(`sqAdvice${sq}`).innerHTML = adviceHtml;
-}
-
-function saveSquadData() {
-    let sqData = {};
-    for(let s=1; s<=3; s++){
-        for(let p=1; p<=5; p++){
-            let hEl = document.getElementById(`h_${s}_${p}`);
-            let wEl = document.getElementById(`wp_${s}_${p}`);
-            if(hEl && wEl) {
-                sqData[`h_${s}_${p}`] = hEl.value;
-                sqData[`wp_${s}_${p}`] = wEl.value;
-            }
-        }
-    }
-    localStorage.setItem('lastwar_squad_data_v8', JSON.stringify(sqData));
-}
-
-function loadSquadData() {
-    let saved = localStorage.getItem('lastwar_squad_data_v8') || localStorage.getItem('lastwar_squad_data_v7');
-    if(saved) {
-        let data = JSON.parse(saved);
-        for(let k in data) {
-            let el = document.getElementById(k);
-            if(el) el.value = data[k];
-        }
-    } else {
-        const t1 = ['murphy', 'williams', 'kimberly', 'marshall', 'stetmann'];
-        for(let i=1; i<=5; i++) {
-            document.getElementById(`h_1_${i}`).value = t1[i-1];
-            document.getElementById(`wp_1_${i}`).value = i===3 ? 20 : 10;
-        }
-    }
-    for(let s=1; s<=3; s++) evalSquad(s);
+    resultBox.innerHTML = msg;
 }
 
 function resetSquads() {
-    if(confirm("部隊編成をリセットしますか？")){
-        localStorage.removeItem('lastwar_squad_data_v8');
-        location.reload();
-    }
-}
-
-// ==========================================
-// 装備シミュレーターロジック
-// ==========================================
-function saveGearData() {
-    const data = {};
-    document.querySelectorAll('#gearTab input').forEach(input => {
-        data[input.id] = input.id.includes('Star') ? input.getAttribute('data-val') : input.value;
-    });
-    localStorage.setItem('lastwar_gear_data', JSON.stringify(data));
-}
-
-function loadGearData() {
-    const saved = localStorage.getItem('lastwar_gear_data');
-    if (!saved) return false;
-    const data = JSON.parse(saved);
-    for (let id in data) {
-        let el = document.getElementById(id);
-        if (el) {
-            if (id.includes('Star')) { el.setAttribute('data-val', data[id]); updateStarDisplay(el, parseInt(data[id])); }
-            else { el.value = data[id]; }
+    if(confirm("編成をリセットしますか？")) {
+        for(let s=1; s<=3; s++) for(let p=1; p<=5; p++) {
+            document.getElementById(`h-${s}-${p}`).value = 'empty';
+            document.getElementById(`w-${s}-${p}`).value = 0;
         }
+        for(let s=1; s<=3; s++) updateSquad(s);
     }
-    const keys = ['Weapon', 'GunLv', 'GunStar', 'DataLv', 'DataStar', 'ArmorLv', 'ArmorStar', 'RadarLv', 'RadarStar'];
-    keys.forEach(k => {
-        let cEl = document.getElementById('c'+k), tEl = document.getElementById('t'+k);
-        if(cEl && tEl) {
-            let cVal = k.includes('Star') ? parseInt(cEl.getAttribute('data-val')) : parseInt(cEl.value);
-            let tVal = k.includes('Star') ? parseInt(tEl.getAttribute('data-val')) : parseInt(tEl.value);
-            if (cVal > tVal) {
-                if(k.includes('Star')) { tEl.setAttribute('data-val', cVal); updateStarDisplay(tEl, cVal); }
-                else { tEl.value = cVal; }
+}
+
+// --- 装備シミュレーター ---
+function initGearHTML() {
+    const makeRow = (prefix) => {
+        return GEAR_TYPES.map(g => `
+        <div class="g-row">
+            <span class="g-label">${GEAR_NAMES[g]}</span>
+            <div class="g-input-group">
+                <div class="stepper stepper-lv"><button onclick="gearStep('${prefix}${g}Lv', -1)">-</button><input id="${prefix}${g}Lv" value="40" readonly><button onclick="gearStep('${prefix}${g}Lv', 1)">+</button></div>
+                <div class="stepper stepper-star"><button onclick="gearStep('${prefix}${g}Star', -1)">-</button><input id="${prefix}${g}Star" data-val="0" value="☆☆☆☆☆" readonly><button onclick="gearStep('${prefix}${g}Star', 1)">+</button></div>
+            </div>
+        </div>`).join('');
+    };
+    document.getElementById('current-gear-rows').innerHTML = makeRow('c');
+    document.getElementById('target-gear-rows').innerHTML = makeRow('t');
+}
+
+function gearStep(id, d) {
+    let el = document.getElementById(id);
+    let isStar = id.includes('Star');
+    let isWeapon = id.includes('Weapon');
+
+    let v = isStar ? parseInt(el.getAttribute('data-val')) : parseInt(el.value);
+    let max = isStar ? 5 : (isWeapon ? 30 : 40); 
+    let newVal = Math.min(Math.max(v + d, 0), max);
+    
+    if(isStar) {
+        el.setAttribute('data-val', newVal);
+        let s = ""; for(let i=0; i<5; i++) s += i<newVal ? "★":"☆";
+        el.value = s;
+        el.style.color = newVal===5 ? "#e74c3c" : newVal>0 ? "#f39c12" : "#ccc";
+    } else {
+        el.value = newVal;
+    }
+    calculateGear();
+    saveData();
+}
+
+function calculateGear() {
+    // 装備Lv40未満は★入力をロックして0にする
+    ['c', 't'].forEach(p => {
+        GEAR_TYPES.forEach(g => {
+            let lvEl = document.getElementById(`${p}${g}Lv`);
+            let starEl = document.getElementById(`${p}${g}Star`);
+            let starWrap = starEl.closest('.stepper');
+            if (parseInt(lvEl.value) < 40) {
+                starEl.setAttribute('data-val', 0);
+                starEl.value = "☆☆☆☆☆";
+                starEl.style.color = "#ccc";
+                starWrap.classList.add('disabled');
+            } else {
+                starWrap.classList.remove('disabled');
             }
+        });
+    });
+
+    let costUr = 0, costMr = 0;
+    const urReq = [0, 5, 15, 30, 50, 50]; 
+    const mrReq = [0, 0, 0, 0, 0, 10];
+    
+    let listHtml = "";
+    GEAR_TYPES.forEach(g => {
+        let cS = parseInt(document.getElementById(`c${g}Star`).getAttribute('data-val'));
+        let tS = parseInt(document.getElementById(`t${g}Star`).getAttribute('data-val'));
+        if(tS > cS) {
+            let u = urReq[tS] - urReq[cS];
+            let m = mrReq[tS] - mrReq[cS];
+            costUr += u; costMr += m;
+            let txt = [];
+            if(u>0) txt.push(`<span style="color:#f39c12">UR${u}</span>`);
+            if(m>0) txt.push(`<span style="color:#c0392b">MR${m}</span>`);
+            listHtml += `<div class="cost-row"><span>${GEAR_NAMES[g]} ★${cS}→${tS}</span><span>${txt.join('+')}</span></div>`;
         }
     });
-    return true;
+    
+    document.getElementById('cost-list').innerHTML = listHtml || "<span style='color:#ccc;'>追加コストなし</span>";
+    document.getElementById('ft-ur').innerText = costUr;
+    document.getElementById('ft-mr').innerText = costMr;
+
+    const calcP = (p) => {
+        let wp = parseInt(document.getElementById(`${p}Weapon`).value);
+        let m = 1.0;
+        let mythics = [];
+        
+        GEAR_TYPES.forEach(g => {
+            let lv = parseInt(document.getElementById(`${p}${g}Lv`).value);
+            let st = parseInt(document.getElementById(`${p}${g}Star`).getAttribute('data-val'));
+            let base = 1 + (lv * 0.005) + (st * 0.05); 
+            if(st===5) { 
+                base += 0.1; 
+                mythics.push(GEAR_NAMES[g].replace(/[\u231a-\u26ff]/g, ''));
+            }
+            m *= base;
+        });
+        m *= (1 + wp * 0.02); 
+        return { val: m.toFixed(2), myth: mythics };
+    };
+
+    let resC = calcP('c');
+    let resT = calcP('t');
+    
+    document.getElementById('growth-rate').innerText = (resC.val > 0) ? (resT.val / resC.val).toFixed(2) : "1.00";
+    
+    let dispBuff = (el, arr) => {
+        if(arr.length === 0) {
+            el.innerHTML = ""; el.classList.remove('active');
+        } else {
+            el.innerHTML = "<b>発動中:</b> " + arr.join(" / "); el.classList.add('active');
+        }
+    };
+    dispBuff(document.getElementById('detail-curr'), resC.myth);
+    dispBuff(document.getElementById('detail-tgt'), resT.myth);
+}
+
+// --- 保存/読込 ---
+function saveData() {
+    let data = {};
+    for(let s=1; s<=3; s++) for(let p=1; p<=5; p++) {
+        data[`h-${s}-${p}`] = document.getElementById(`h-${s}-${p}`).value;
+        data[`w-${s}-${p}`] = document.getElementById(`w-${s}-${p}`).value;
+    }
+    ['c','t'].forEach(p => {
+        data[`${p}Weapon`] = document.getElementById(`${p}Weapon`).value;
+        GEAR_TYPES.forEach(g => {
+            data[`${p}${g}Lv`] = document.getElementById(`${p}${g}Lv`).value;
+            data[`${p}${g}Star`] = document.getElementById(`${p}${g}Star`).getAttribute('data-val');
+        });
+    });
+    localStorage.setItem('lw_sim_final_layout_v9', JSON.stringify(data));
+}
+
+function loadAllData() {
+    let saved = localStorage.getItem('lw_sim_final_layout_v9');
+    if(saved) {
+        let d = JSON.parse(saved);
+        for(let s=1; s<=3; s++) for(let p=1; p<=5; p++) {
+            let h = d[`h-${s}-${p}`], w = d[`w-${s}-${p}`];
+            if(h) document.getElementById(`h-${s}-${p}`).value = h;
+            if(w) document.getElementById(`w-${s}-${p}`).value = w;
+        }
+        ['c','t'].forEach(p => {
+            if(d[`${p}Weapon`]) document.getElementById(`${p}Weapon`).value = d[`${p}Weapon`];
+            GEAR_TYPES.forEach(g => {
+                if(d[`${p}${g}Lv`]) document.getElementById(`${p}${g}Lv`).value = d[`${p}${g}Lv`];
+                if(d[`${p}${g}Star`]) gearStep(`${p}${g}Star`, parseInt(d[`${p}${g}Star`])); 
+            });
+        });
+    }
+    for(let s=1; s<=3; s++) updateSquad(s);
 }
 
 function resetGear() {
-    if(confirm("装備データを初期化しますか？")) { localStorage.removeItem('lastwar_gear_data'); location.reload(); }
-}
-
-function animateValue(obj, start, end, duration, isRatio = false) {
-    if(!obj) return;
-    let startTimestamp = null;
-    const step = (timestamp) => {
-        if (!startTimestamp) startTimestamp = timestamp;
-        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-        const easeOut = 1 - Math.pow(1 - progress, 3);
-        let current = start + (end - start) * easeOut;
-        obj.innerHTML = isRatio ? current.toFixed(2) : Math.floor(current).toLocaleString();
-        if (progress < 1) window.requestAnimationFrame(step);
-        else obj.innerHTML = isRatio ? end.toFixed(2) : Math.floor(end).toLocaleString();
-    };
-    window.requestAnimationFrame(step);
-}
-
-function updateStarDisplay(el, val) {
-    let stars = ""; for (let i = 0; i < 5; i++) stars += (i < val) ? "★" : "☆";
-    el.value = stars;
-    if (val === 5) el.style.color = "#e74c3c";
-    else if (val > 0) el.style.color = "#f39c12";
-    else el.style.color = "#bdc3c7";
-}
-
-function step(id, delta) {
-    let el = document.getElementById(id);
-    let isStar = id.includes('Star');
-    let val = parseInt(isStar ? el.getAttribute('data-val') : el.value) || 0;
-    
-    let min = isStar ? 0 : (parseInt(el.getAttribute('min')) || 0);
-    let max = isStar ? 5 : (parseInt(el.getAttribute('max')) || 999);
-    
-    let oldVal = val; 
-    let newVal = Math.min(Math.max(val + delta, min), max);
-    
-    if (isStar) { el.setAttribute('data-val', newVal); updateStarDisplay(el, newVal); }
-    else { el.value = newVal; }
-    
-    if (id.startsWith('c')) {
-        let tId = 't' + id.substring(1);
-        let tEl = document.getElementById(tId);
-        let tVal = isStar ? parseInt(tEl.getAttribute('data-val')) : parseInt(tEl.value);
-        if (newVal > tVal) {
-            if (isStar) { tEl.setAttribute('data-val', newVal); updateStarDisplay(tEl, newVal); }
-            else { tEl.value = newVal; }
-        } else if (newVal < oldVal && tVal === oldVal) {
-            if (isStar) { tEl.setAttribute('data-val', newVal); updateStarDisplay(tEl, newVal); }
-            else { tEl.value = newVal; }
-        }
-    }
-    calculate();
-}
-
-function getGearMultiplier(gearLevel, stars, type) {
-    let baseBoost = 0.025 + (gearLevel * 0.00125);
-    let starBoost = [0, 0.025, 0.075, 0.1, 0.15, 0.23][stars] || 0;
-    let passiveMulti = 1.0;
-    if (stars === 5) {
-        if (type === 'gun') passiveMulti = 1.10;
-        if (type === 'radar') passiveMulti = 1.30;
-        if (type === 'armor') passiveMulti = 1.15;
-        if (type === 'data') passiveMulti = 1.05;
-    }
-    return { statMulti: 1.0 + baseBoost + starBoost, passiveMulti: passiveMulti };
-}
-
-let lastB_multi = 1.00, lastA_multi = 1.00, lastRatio = 1.00;
-
-function calculate() {
-    const gears = ['Gun', 'Data', 'Armor', 'Radar'];
-    const gearNames = { 'Gun': '🔫レールガン', 'Data': '💾チップ', 'Armor': '🛡️装甲', 'Radar': '📡レーダー' };
-    
-    const urCumulative = [0, 5, 15, 30, 50, 50]; 
-    const mrCumulative = [0, 0, 0, 0, 0, 10];
-    let totalUrReq = 0, totalMrReq = 0;
-    let breakdownHtml = "";
-
-    ['c', 't'].forEach(p => {
-        gears.forEach(g => {
-            let lvEl = document.getElementById(p+g+'Lv');
-            let sEl = document.getElementById(p+g+'Star');
-            if (parseInt(lvEl.value) < 40) { sEl.setAttribute('data-val', 0); updateStarDisplay(sEl, 0); sEl.closest('.stepper').style.opacity = "0.5"; }
-            else sEl.closest('.stepper').style.opacity = "1";
+    ['c','t'].forEach(p => {
+        document.getElementById(`${p}Weapon`).value = 20;
+        GEAR_TYPES.forEach(g => {
+            document.getElementById(`${p}${g}Lv`).value = 40;
+            gearStep(`${p}${g}Star`, -5); 
         });
     });
-    
-    gears.forEach(g => {
-        let cLv = parseInt(document.getElementById('c'+g+'Lv').value);
-        let cStar = cLv >= 40 ? parseInt(document.getElementById('c'+g+'Star').getAttribute('data-val')) : 0;
-        let tLv = parseInt(document.getElementById('t'+g+'Lv').value);
-        let tStar = tLv >= 40 ? parseInt(document.getElementById('t'+g+'Star').getAttribute('data-val')) : 0;
-        
-        if (tStar > cStar) {
-            let urReq = urCumulative[tStar] - urCumulative[cStar];
-            let mrReq = mrCumulative[tStar] - mrCumulative[cStar];
-            totalUrReq += urReq;
-            totalMrReq += mrReq;
-            let reqText = [];
-            if (urReq > 0) reqText.push(`<span style="color:#f39c12;">UR ${urReq}枚</span>`);
-            if (mrReq > 0) reqText.push(`<span style="color:#e74c3c;">MR ${mrReq}枚</span>`);
-            breakdownHtml += `<div style="margin-bottom: 8px; border-bottom: 1px dashed #eee; padding-bottom: 6px;">${gearNames[g]} : ★${cStar} → ★${tStar} <span style="float:right;">${reqText.join(' ＋ ')}</span></div>`;
-        }
-    });
-    
-    let detailPanel = document.getElementById("costDetailPanel");
-    let footerCost = document.getElementById("footerCost");
-    
-    if (totalUrReq > 0 || totalMrReq > 0) {
-        document.getElementById("footUr").innerText = totalUrReq;
-        document.getElementById("footMr").innerText = totalMrReq;
-        footerCost.style.display = "inline";
-        document.getElementById("costBreakdown").innerHTML = breakdownHtml;
-        detailPanel.style.display = "block";
-    } else {
-        footerCost.style.display = "none";
-        detailPanel.style.display = "none";
-    }
-
-    const calc = (p) => {
-        let wp = parseInt(document.getElementById(p+'Weapon').value);
-        let m = gears.map(g => getGearMultiplier(parseInt(document.getElementById(p+g+'Lv').value), parseInt(document.getElementById(p+g+'Star').getAttribute('data-val')), g.toLowerCase()));
-        
-        let gearStat = m[0].statMulti * m[1].statMulti * ((m[2].statMulti + m[3].statMulti)/2);
-        let gearPass = m.reduce((acc, cur) => acc * cur.passiveMulti, 1);
-        let wpMulti = (1.0 + (wp * 0.01)) * ([1, 1.05, 1.2, 1.4][Math.floor(wp/10)] || 1);
-        let totalM = gearStat * gearPass * wpMulti;
-        
-        let activeMythics = [];
-        if (m[0].passiveMulti > 1) activeMythics.push("レールガン (相性有利時与ダメ+10%)");
-        if (m[1].passiveMulti > 1) activeMythics.push("チップ (相性有利時被ダメ5%減)");
-        if (m[2].passiveMulti > 1) activeMythics.push("装甲 (会心被弾率15%減)");
-        if (m[3].passiveMulti > 1) activeMythics.push("レーダー (被会心ダメ30%減)");
-        let mythicText = activeMythics.length > 0 ? "<div class='mythic-box'><span style='color:#e74c3c; font-weight:bold;'>★5 赤パッシブ発動：</span><br>・" + activeMythics.join("<br>・") + "</div>" : "";
-        
-        return { multi: totalM, mythicText: mythicText };
-    };
-    
-    let resB = calc('c'), resA = calc('t');
-    
-    animateValue(document.getElementById("scoreBefore"), lastB_multi, resB.multi, 400, true);
-    animateValue(document.getElementById("scoreAfter"), lastA_multi, resA.multi, 400, true);
-    
-    document.getElementById("detailBefore").innerHTML = resB.mythicText;
-    document.getElementById("detailAfter").innerHTML = resA.mythicText;
-    
-    let currentRatio = (resB.multi > 0) ? (resA.multi / resB.multi) : 1.00;
-    animateValue(document.getElementById("growthNum"), lastRatio, currentRatio, 400, true);
-    
-    lastB_multi = resB.multi; lastA_multi = resA.multi; lastRatio = currentRatio;
-    saveGearData();
+    calculateGear();
+    saveData();
 }
-
-window.onload = () => {
-    initSquadUI();
-    loadSquadData();
-    loadGearData();
-    calculate();
-    document.getElementById('gearFooter').style.display = 'none';
-};
 </script>
 </body>
 </html>
