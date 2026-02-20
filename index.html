@@ -26,14 +26,14 @@
     /* === AI提案パネル === */
     .ai-panel { background: linear-gradient(135deg, #fdfbfb, #ebedee); border-left: 4px solid #3498db; }
     .ai-title { color: #2980b9; font-weight: bold; display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 0.95rem; margin-bottom: 8px; flex-wrap: wrap; }
-    .mode-switch { display: flex; gap: 12px; font-size: 0.8rem; background: #fff; padding: 4px 10px; border-radius: 20px; border: 1px solid #dcdde1; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-    .mode-switch label { display: flex; align-items: center; gap: 4px; cursor: pointer; font-weight: bold; color: #555; }
-    .mode-switch input[type="radio"] { cursor: pointer; margin: 0; }
     
     .suggestion-box { background: #fff; border-radius: 6px; padding: 12px; font-size: 0.85rem; line-height: 1.6; border: 1px solid #e1e8ed; color: #444; }
-    .swap-candidate { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ddd; background: #fffbf2; padding: 10px; border-radius: 6px; border: 1px solid #fce8b2; color: #555; }
-    .swap-title { font-weight: bold; color: #e67e22; display: block; margin-bottom: 8px; font-size: 0.9rem; }
-    .score-breakdown { font-size: 0.75rem; color: #777; margin-top: 8px; text-align: right; background: #f8f9fa; padding: 4px 8px; border-radius: 4px; border: 1px solid #eee;}
+    .swap-candidate { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ddd; background: #fffbf2; padding: 12px; border-radius: 8px; border: 1px solid #fce8b2; color: #555; }
+    .swap-title { font-weight: bold; color: #e67e22; display: block; margin-bottom: 10px; font-size: 0.95rem; border-bottom: 1px dashed #fce8b2; padding-bottom: 6px; }
+    .score-breakdown { font-size: 0.75rem; color: #777; margin-top: 8px; text-align: center; background: #f8f9fa; padding: 6px 10px; border-radius: 6px; border: 1px solid #eee; font-weight: bold;}
+    
+    .apply-btn { background: #2980b9; color: #fff; border: none; padding: 12px 20px; border-radius: 25px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(41,128,185,0.2); font-size: 0.9rem; width: 100%; max-width: 280px; transition: 0.2s; display: block; margin: 15px auto 5px; }
+    .apply-btn:active { transform: translateY(2px); box-shadow: none; }
 
     /* === 部隊編成 UI === */
     .squad-section { border: 1px solid #e1e8ed; border-radius: 8px; overflow: hidden; margin-bottom: 12px; background: #fff; }
@@ -118,7 +118,7 @@
 <body>
 
 <div class="container">
-    <h1>育成シミュレーター <span style="font-size:0.7rem; color:#999; font-weight:normal;">v14.3 </span></h1>
+    <h1>育成シミュレーター <span style="font-size:0.7rem; color:#999; font-weight:normal;">v14.7 </span></h1>
 
     <div class="tabs">
         <div class="tab-btn active" onclick="showTab('squad')">⚔️ 部隊編成</div>
@@ -129,17 +129,11 @@
         <div class="panel ai-panel">
             <div class="ai-title">
                 <div><span>🤖 編成提案 & 入替候補</span></div>
-                <div class="mode-switch">
-                    <label><input type="radio" name="sim-mode" value="pvp" checked onchange="generateAiSuggestion()">⚔️ PvP</label>
-                    <label><input type="radio" name="sim-mode" value="pve" onchange="generateAiSuggestion()">👾 PvE</label>
-                </div>
+                <button class="reset-btn" onclick="generateAiSuggestion()">再分析</button>
             </div>
             <div id="ai-result" class="suggestion-box" style="display:none;"></div>
             <div id="ai-placeholder" style="font-size:0.8rem; color:#777; padding:5px;">
                 各部隊の武装Lvを入力してください。全データから最適な組み合わせを分析します。
-            </div>
-            <div style="text-align:right; margin-top:8px;">
-                <button class="reset-btn" onclick="generateAiSuggestion()">再分析</button>
             </div>
         </div>
 
@@ -192,6 +186,9 @@
 </div>
 
 <script>
+// --- グローバル変数 ---
+window.currentBestSwap = null; 
+
 // --- データ定義 ---
 const HEROES = {
     empty: {n:"- 未設定 -", t:"none", r:"none", ur:false},
@@ -221,14 +218,13 @@ const GEAR_TYPES = ['Gun', 'Data', 'Armor', 'Radar'];
 const GEAR_NAMES = { 'Gun':'🔫レールガン', 'Data':'💾チップ', 'Armor':'🛡️装甲', 'Radar':'📡レーダー' };
 
 const getMaxP = (s) => s === 4 ? 10 : 5;
-const getSquadName = (s) => s === 4 ? "控え室" : `第${s}部隊`;
+const getSquadName = (s) => s === 4 ? "控え" : `第${s}部隊`;
 
 window.onload = function() {
     initSquadHTML();
     initGearHTML();
     loadAllData();
     calculateGear();
-    generateAiSuggestion();
 };
 
 function showTab(id) {
@@ -245,7 +241,7 @@ function initSquadHTML() {
         let isBench = s === 4;
         let openClass = s === 1 ? 'open' : '';
         let arrow = s === 1 ? '▼' : '▶';
-        let title = isBench ? '控え室（未編成キャラ）' : `第${s}部隊`;
+        let title = isBench ? '控え（未編成キャラ）' : `第${s}部隊`;
         
         html += `
         <div class="squad-section">
@@ -255,7 +251,7 @@ function initSquadHTML() {
             <div class="squad-body ${openClass}" id="sq-body-${s}">`;
             
         if(isBench) {
-            html += `<div style="font-size:0.75rem; color:#666; margin-bottom:10px;">部隊に入っていないが育成済みのキャラを登録しておくと、AIが全パターンを計算し最適な入替候補を提示します。</div>`;
+            html += `<div style="font-size:0.75rem; color:#666; margin-bottom:10px;">部隊に入っていないが育成済みのキャラを登録しておくと、全パターンを計算し最適な入替候補を提示します。</div>`;
         }
 
         let maxP = getMaxP(s);
@@ -334,7 +330,7 @@ function stepWp(s, p, d) {
     updateSquad(s);
 }
 
-function updateSquad(s) {
+function updateSquad(s, skipAi = false) {
     lockDuplicateHeroes(s);
     let members = [];
     let counts = {tank:0, air:0, mis:0, none:0};
@@ -369,8 +365,11 @@ function updateSquad(s) {
         renderVisual(s, members);
         analyzeSquad(s, members, counts);
     }
-    saveData();
-    generateAiSuggestion(); 
+    
+    if(!skipAi) {
+        saveData();
+        generateAiSuggestion(); 
+    }
 }
 
 function lockDuplicateHeroes(s) {
@@ -454,8 +453,8 @@ function analyzeSquad(s, m, c) {
     div.innerHTML = msgs.join('<br>');
 }
 
-// === v14.3 武装スキル覚醒ボーナス計算 ===
-function calcSquadScore(squadArr, mode) {
+// === 常時PvPメタ（最強）判定 ===
+function calcSquadScore(squadArr) {
     let score = 0;
     let counts = {tank:0, air:0, mis:0};
     let activeSynergies = [];
@@ -471,7 +470,7 @@ function calcSquadScore(squadArr, mode) {
 
     let hasMurphyFront = squadArr.some(c => c.id === 'murphy' && c.pos <= 2);
     if (hasMurphyFront) {
-        score += (mode === 'pvp' ? 50 : 10);
+        score += 50; 
         activeSynergies.push("マーフィー前列配置");
     }
 
@@ -484,11 +483,48 @@ function calcSquadScore(squadArr, mode) {
     return { score, maxC, factionBonus, synergies: activeSynergies };
 }
 
+function applySwap() {
+    if(!window.currentBestSwap) return;
+    
+    document.querySelectorAll('.hero-select option').forEach(opt => opt.disabled = false);
+
+    let inArr = window.currentBestSwap.in;
+    let outArr = window.currentBestSwap.out;
+    
+    for(let i=0; i<inArr.length; i++) {
+        let cIn = inArr[i];
+        let cOut = outArr[i];
+        
+        let inSel = document.getElementById(`h-${cIn.squad}-${cIn.pos}`);
+        let inWp = document.getElementById(`w-${cIn.squad}-${cIn.pos}`);
+        
+        let outSel = document.getElementById(`h-${cOut.squad}-${cOut.pos}`);
+        let outWp = document.getElementById(`w-${cOut.squad}-${cOut.pos}`);
+        
+        let valInId = inSel.value;
+        let valInWp = inWp.value;
+        
+        let valOutId = outSel.value;
+        let valOutWp = outWp.value;
+        
+        inSel.value = valOutId;
+        inWp.value = valOutWp;
+        
+        outSel.value = valInId;
+        outWp.value = valInWp;
+    }
+    
+    for(let s=1; s<=4; s++) {
+        updateSquad(s, true); 
+    }
+    saveData();
+    generateAiSuggestion(); 
+}
+
 function generateAiSuggestion() {
+    window.currentBestSwap = null; 
     let resultBox = document.getElementById('ai-result');
     let placeH = document.getElementById('ai-placeholder');
-    let simModeRadio = document.querySelector('input[name="sim-mode"]:checked');
-    let simMode = simModeRadio ? simModeRadio.value : 'pvp';
     
     let allScores = { tank: 0, air: 0, mis: 0 };
     let roster = [];
@@ -499,10 +535,9 @@ function generateAiSuggestion() {
         if(wp >= 30) return "👑"; 
         if(wp >= 20) return "◎";
         if(wp >= 10) return "〇";
-        return "×"; // UR昇格組も未実装なので×になる
+        return "×"; 
     };
 
-    // ▼▼ スキル覚醒ロジック ▼▼
     for(let s=1; s<=4; s++) {
         let maxP = getMaxP(s);
         for(let p=1; p<=maxP; p++) {
@@ -516,16 +551,10 @@ function generateAiSuggestion() {
             let points = (h.ur ? 15 : 10) + (wp * 5); 
             let charSyns = []; 
 
-            // 覚醒ボーナス（節目の超強化＆正式スキル名）
-            if (wp >= 10) {
-                points += 5; 
-            }
-            if (wp >= 20) {
-                points += 15; 
-            }
+            if (wp >= 10) { points += 5; }
+            if (wp >= 20) { points += 15; }
             if (wp >= 30) {
                 points += 20; 
-                // ゲーム内の正式名称が判明しているものはその名前を、不明なものは汎用名称を付与
                 if (hid === 'williams') { points += 40; charSyns.push("鋼鉄の心"); } 
                 else if (hid === 'morrison') { points += 25; charSyns.push("爆裂徹甲弾"); }
                 else { points += 25; charSyns.push("専用武装"); }
@@ -551,18 +580,17 @@ function generateAiSuggestion() {
     resultBox.style.display = 'block';
 
     let bench = roster.filter(c => c.squad !== 1);
-    let currentEval = calcSquadScore(mainSquad, simMode);
+    let currentEval = calcSquadScore(mainSquad); 
     
     let bestSwap = null;
     let bestScore = currentEval.score + 5; 
 
-    // [1体入れ替え]
     bench.forEach(bChar => {
         mainSquad.forEach(mChar => {
             let isSameRole = (bChar.r === 'wall' && mChar.r === 'wall') || (bChar.r !== 'wall' && mChar.r !== 'wall');
             if(isSameRole) {
                 let testSquad = mainSquad.map(c => c.pos === mChar.pos ? {...bChar, pos: mChar.pos} : c);
-                let testEval = calcSquadScore(testSquad, simMode);
+                let testEval = calcSquadScore(testSquad);
                 if(testEval.score > bestScore) {
                     bestScore = testEval.score;
                     bestSwap = { in: [bChar], out: [mChar], eval: testEval };
@@ -571,7 +599,6 @@ function generateAiSuggestion() {
         });
     });
 
-    // [2体同時入れ替え]
     for(let i=0; i<bench.length; i++){
         for(let j=i+1; j<bench.length; j++){
             let b1 = bench[i], b2 = bench[j];
@@ -594,7 +621,7 @@ function generateAiSuggestion() {
                             testSquad[m2] = {...b1, pos: o2.pos};
                         }
                         
-                        let testEval = calcSquadScore(testSquad, simMode);
+                        let testEval = calcSquadScore(testSquad);
                         if(testEval.score > bestScore) {
                             bestScore = testEval.score;
                             bestSwap = { in: [b1, b2], out: [o1, o2], eval: testEval };
@@ -605,39 +632,58 @@ function generateAiSuggestion() {
         }
     }
 
-    // ▼▼ UI描画（未実装表記への対応 ＆ 推奨バッジの削除） ▼▼
+    if (bestSwap) { window.currentBestSwap = bestSwap; }
+
     const makeCompareBox = (inArr, outArr) => {
         const formatInChar = (c) => {
             let wpTxt = (c.ur && c.wp === 0) ? "未実装" : `Lv${c.wp}`;
-            let synBadge = c.charSyns.length > 0 ? `<div style="font-size:0.65rem; color:#e67e22; margin-top:2px; font-weight:bold;">✨${c.charSyns[c.charSyns.length-1]} 覚醒</div>` : "";
+            let synBadge = c.charSyns.length > 0 ? `<div style="font-size:0.65rem; color:#d35400; background:#fdebd0; padding:4px 8px; border-radius:12px; margin-top:8px; display:inline-block; font-weight:bold; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">✨ ${c.charSyns[c.charSyns.length-1]} 覚醒</div>` : "";
             
-            return `<div style="margin-top:6px; line-height:1.4;"><b>${c.n}</b><br><span style="font-size:0.75rem; color:#666; white-space:nowrap; display:inline-block; margin-top:4px;">(${getSquadName(c.squad)}: ${wpTxt} / ${getEvalMark(c.wp)})</span>${synBadge}</div>`;
+            return `
+            <div style="margin-top:4px;">
+                <div style="font-size:1.05rem; font-weight:900; color:#166534; line-height:1.2;">${c.n}</div>
+                <div style="font-size:0.75rem; color:#4b5563; margin-top:6px; line-height:1.4;">
+                    ${getSquadName(c.squad)}<br>${wpTxt} / ${getEvalMark(c.wp)}
+                </div>
+                ${synBadge}
+            </div>`;
         };
         const formatOutChar = (c) => {
             let wpTxt = (c.ur && c.wp === 0) ? "未実装" : `Lv${c.wp}`;
-            return `<div style="margin-top:6px; line-height:1.4;"><b>${c.n}</b><br><span style="font-size:0.75rem; color:#666; white-space:nowrap; display:inline-block; margin-top:4px;">(${wpTxt} / ${getEvalMark(c.wp)})</span></div>`;
+            return `
+            <div style="margin-top:4px;">
+                <div style="font-size:1.05rem; font-weight:900; color:#991b1b; line-height:1.2;">${c.n}</div>
+                <div style="font-size:0.75rem; color:#4b5563; margin-top:6px; line-height:1.4;">
+                    現在の編成<br>${wpTxt} / ${getEvalMark(c.wp)}
+                </div>
+            </div>`;
         };
         
         return `
-        <div style="display:flex; justify-content:space-around; align-items:center; background:#fff; border:1px solid #dcdde1; border-radius:8px; padding:10px; margin:10px 0; box-shadow:inset 0 1px 3px rgba(0,0,0,0.03);">
-            <div style="text-align:center; flex:1; min-width:0;">
-                <div style="font-size:0.7rem; color:#27ae60; font-weight:bold; margin-bottom:4px;">🟢 IN </div>
+        <div style="display:flex; justify-content:center; align-items:stretch; gap:10px; margin:15px 0;">
+            <div style="flex:1; min-width:0; background:#f0fdf4; border:2px solid #bbf7d0; border-radius:10px; padding:12px 6px; text-align:center; box-sizing:border-box; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                <div style="font-size:0.75rem; color:#15803d; font-weight:900; margin-bottom:8px; letter-spacing:0.5px;">🟢 IN </div>
                 ${inArr.map(formatInChar).join('')}
             </div>
-            <div style="font-size:1.4rem; color:#bdc3c7; padding:0 5px;">🔄</div>
-            <div style="text-align:center; flex:1; min-width:0;">
-                <div style="font-size:0.7rem; color:#e74c3c; font-weight:bold; margin-bottom:4px;">🔴 OUT </div>
+            <div style="display:flex; align-items:center; justify-content:center; font-size:1.4rem; color:#bdc3c7;">
+                🔄
+            </div>
+            <div style="flex:1; min-width:0; background:#fef2f2; border:2px solid #fecaca; border-radius:10px; padding:12px 6px; text-align:center; box-sizing:border-box; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                <div style="font-size:0.75rem; color:#b91c1c; font-weight:900; margin-bottom:8px; letter-spacing:0.5px;">🔴 OUT </div>
                 ${outArr.map(formatOutChar).join('')}
             </div>
         </div>`;
     };
 
     const formatProsCons = (pro, con) => `
-        <div style="margin-top:8px; font-size:0.8rem; background:#fafafa; padding:8px; border-radius:6px; border:1px solid #eee;">
-            <div style="color:#27ae60; margin-bottom:4px;"><b>⭕ メリット:</b> ${pro}</div>
-            <div style="color:#c0392b;"><b>⚠️ デメリット:</b> ${con}</div>
+        <div style="margin-top:10px; font-size:0.85rem; background:#fff; padding:12px; border-radius:8px; border:1px solid #e5e7eb;">
+            <div style="color:#27ae60; margin-bottom:6px; line-height:1.5;"><b>⭕ メリット:</b><br>${pro}</div>
+            <div style="color:#c0392b; line-height:1.5;"><b>⚠️ デメリット:</b><br>${con}</div>
         </div>
     `;
+
+    // バフ数値を％表記にするヘルパー関数
+    const getBuffText = (count) => count === 5 ? "20%" : count === 4 ? "15%" : count === 3 ? "10%" : "0%";
 
     let adviceType = "";
     let suggestionText = "";
@@ -645,8 +691,8 @@ function generateAiSuggestion() {
 
     if (!bestSwap) {
         adviceType = "✨ 現在の編成がベストです";
-        suggestionText = `現在選択中のモード（${simMode === 'pvp' ? 'PvP' : 'PvE'}）において、現状の第1部隊が所持キャラの中で最も高いポテンシャルを発揮できる最適な編成です。`;
-        swapCandidateHtml = `<div class="swap-candidate"><span class="swap-title">${adviceType}</span><div style="font-size:0.85rem;">${suggestionText}</div></div>`;
+        suggestionText = `現状の第1部隊が、所持キャラの中で最も高いポテンシャルを発揮できる最適な編成です。`;
+        swapCandidateHtml = `<div class="swap-candidate" style="text-align:center; padding:20px;"><span class="swap-title" style="border:none; margin-bottom:5px;">${adviceType}</span><div style="font-size:0.85rem;">${suggestionText}</div></div>`;
     } else {
         let oldMaxC = currentEval.maxC;
         let newMaxC = bestSwap.eval.maxC;
@@ -657,11 +703,12 @@ function generateAiSuggestion() {
         let synText = awakenedSkills.length > 0 ? `<br>💡 <b>さらに、専用武装の覚醒効果（${awakenedSkills[awakenedSkills.length-1]}等）が戦局を大きく有利にします！</b>` : "";
 
         if (newMaxC < oldMaxC) {
-            demerit = `陣形が崩れるため、兵種バフが低下します（${oldMaxC}体→${newMaxC}体）。`;
+            // ここで％表記を使用！
+            demerit = `兵種バフが低下します（${getBuffText(oldMaxC)} ➡ ${getBuffText(newMaxC)}）`;
             
             let squadSynNames = [];
-            if(bestSwap.eval.synergies.includes('murphy') && !currentEval.synergies.includes('マーフィー前列配置')) squadSynNames.push("マーフィーの強固な物理盾");
-            if(bestSwap.eval.synergies.includes('marshall') && !currentEval.synergies.includes('マーシャルの全体バフ')) squadSynNames.push("マーシャルの全体バフ");
+            if(bestSwap.eval.synergies.includes('マーフィー前列配置') && !currentEval.synergies.includes('マーフィー前列配置')) squadSynNames.push("マーフィーの強固な物理盾");
+            if(bestSwap.eval.synergies.includes('マーシャルの全体バフ') && !currentEval.synergies.includes('マーシャルの全体バフ')) squadSynNames.push("マーシャルの全体バフ");
             
             if(squadSynNames.length > 0) {
                 merit = `兵種バフの低下を<b>【${squadSynNames.join('と')}】</b>で完全に相殺し、さらに総合戦力を高めます！${synText}`;
@@ -669,12 +716,12 @@ function generateAiSuggestion() {
                 merit = `兵種バフの低下を、入れ替えたキャラの高レベル武装による圧倒的なステータス差で補って余りある火力を出せます！${synText}`;
             }
             
-            adviceType = simMode === 'pvp' ? "💡 メタ編成：強力な異種出張" : "🛩️ 高ステータスによるゴリ押し編成";
+            adviceType = "💡 メタ編成：強力な異種出張";
             if (bestSwap.in.length === 2 && newMaxC === 3) adviceType = "🛩️ メタ移行ルート (3+2編成)";
 
         } else if (newMaxC > oldMaxC) {
             adviceType = "✨ 理想陣形への統一";
-            merit = `同兵種${newMaxC}体ボーナスが新たに発動し、部隊全体の基礎ステータスが大きく跳ね上がります！${synText}`;
+            merit = `同兵種ボーナス（${getBuffText(newMaxC)}）が新たに発動し、部隊全体の基礎ステータスが大きく跳ね上がります！${synText}`;
             demerit = "特になし（迷わず入れ替えることをおすすめします）。";
         } else {
             adviceType = "🚀 純粋な戦力アップ（上位互換への入れ替え）";
@@ -682,14 +729,21 @@ function generateAiSuggestion() {
             demerit = "特になし（完全な上位互換への入れ替えです）。";
         }
 
-        suggestionText = `控えにより高いポテンシャルを持つキャラがいます。以下の入れ替えを行うことで、部隊の「総合スコア」が最大化されます。`;
+        suggestionText = `より高いポテンシャルを持つキャラがいます。`;
         
+        let applyBtnHtml = `
+            <div style="text-align:center; margin-top:15px;">
+                <button class="apply-btn" onclick="applySwap()">🔄 この提案を自動で適用する</button>
+            </div>
+        `;
+
         swapCandidateHtml = `
         <div class="swap-candidate">
             <span class="swap-title">${adviceType}</span>
-            <div style="font-size:0.85rem; margin-bottom:8px;">${suggestionText}</div>
+            <div style="font-size:0.85rem; margin-bottom:12px;">${suggestionText}</div>
             ${makeCompareBox(bestSwap.in, bestSwap.out)}
             ${formatProsCons(merit, demerit)}
+            ${applyBtnHtml}
         </div>`;
     }
 
@@ -720,7 +774,7 @@ function generateAiSuggestion() {
         squadWarning = `<div style="font-size:0.75rem; color:#c0392b; background:#fadbd8; padding:6px; border-radius:4px; margin-top:8px; font-weight:bold;">⚠️ 第${bestSquadNum}部隊の戦力が第1部隊を大きく上回っています。メイン部隊の交代もおすすめです！</div>`;
     }
 
-    let scoreTxt = `<div class="score-breakdown">第1部隊スコア: 現在 <b>${currentEval.score}</b> ➡ 入替後 <b><span style="color:#e74c3c">${bestSwap ? bestSwap.eval.score : currentEval.score}</span></b> (シナジー補正込み)</div>`;
+    let scoreTxt = `<div class="score-breakdown">第1部隊スコア: 現在 <b>${currentEval.score}</b> ➡ 入替後 <b><span style="color:#e74c3c">${bestSwap ? bestSwap.eval.score : currentEval.score}</span></b> </div>`;
     
     resultBox.innerHTML = `${topMessage}${squadWarning}<br>${swapCandidateHtml}${scoreTxt}`;
 }
@@ -866,8 +920,6 @@ function saveData() {
             data[`${p}${g}Star`] = document.getElementById(`${p}${g}Star`).getAttribute('data-val');
         });
     });
-    let modeRadio = document.querySelector('input[name="sim-mode"]:checked');
-    if(modeRadio) data['sim-mode'] = modeRadio.value;
 
     localStorage.setItem('lw_sim_final_layout_v9', JSON.stringify(data));
 }
@@ -891,12 +943,9 @@ function loadAllData() {
                 if(d[`${p}${g}Star`]) gearStep(`${p}${g}Star`, parseInt(d[`${p}${g}Star`])); 
             });
         });
-        if(d['sim-mode']) {
-            let r = document.querySelector(`input[name="sim-mode"][value="${d['sim-mode']}"]`);
-            if(r) r.checked = true;
-        }
     }
-    for(let s=1; s<=4; s++) updateSquad(s);
+    for(let s=1; s<=4; s++) updateSquad(s, true);
+    generateAiSuggestion();
 }
 
 function resetGear() {
