@@ -25,11 +25,15 @@
 
     /* === AI提案パネル === */
     .ai-panel { background: linear-gradient(135deg, #fdfbfb, #ebedee); border-left: 4px solid #3498db; }
-    .ai-title { color: #2980b9; font-weight: bold; display: flex; align-items: center; gap: 6px; font-size: 0.95rem; margin-bottom: 8px; }
+    .ai-title { color: #2980b9; font-weight: bold; display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 0.95rem; margin-bottom: 8px; flex-wrap: wrap; }
+    .mode-switch { display: flex; gap: 12px; font-size: 0.8rem; background: #fff; padding: 4px 10px; border-radius: 20px; border: 1px solid #dcdde1; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .mode-switch label { display: flex; align-items: center; gap: 4px; cursor: pointer; font-weight: bold; color: #555; }
+    .mode-switch input[type="radio"] { cursor: pointer; margin: 0; }
+    
     .suggestion-box { background: #fff; border-radius: 6px; padding: 12px; font-size: 0.85rem; line-height: 1.6; border: 1px solid #e1e8ed; color: #444; }
     .swap-candidate { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ddd; background: #fffbf2; padding: 10px; border-radius: 6px; border: 1px solid #fce8b2; color: #555; }
     .swap-title { font-weight: bold; color: #e67e22; display: block; margin-bottom: 8px; font-size: 0.9rem; }
-    .score-breakdown { font-size: 0.7rem; color: #999; margin-top: 5px; text-align: right; }
+    .score-breakdown { font-size: 0.75rem; color: #777; margin-top: 8px; text-align: right; background: #f8f9fa; padding: 4px 8px; border-radius: 4px; border: 1px solid #eee;}
 
     /* === 部隊編成 UI === */
     .squad-section { border: 1px solid #e1e8ed; border-radius: 8px; overflow: hidden; margin-bottom: 12px; background: #fff; }
@@ -40,10 +44,12 @@
     .hero-slot { display: flex; gap: 5px; margin-bottom: 8px; align-items: center; padding: 6px; border-radius: 6px; border: 1px solid #eee; }
     .slot-front { background-color: #fffaf0; border-left: 3px solid #f39c12; }
     .slot-back { background-color: #f0f8ff; border-left: 3px solid #3498db; }
+    .slot-bench { background-color: #f8f9fa; border-left: 3px solid #bdc3c7; }
 
     .pos-badge { font-size: 0.65rem; font-weight: bold; padding: 3px 0; width: 34px; text-align: center; border-radius: 3px; color: #fff; flex-shrink: 0; }
     .badge-front { background-color: #f39c12; }
     .badge-back { background-color: #3498db; }
+    .badge-bench { background-color: #95a5a6; }
 
     .hero-select { flex: 1; min-width: 0; padding: 8px 4px; border-radius: 4px; border: 1px solid #ddd; font-size: 0.9rem; font-weight: bold; color: #333; background: #fff; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
     optgroup { font-weight: bold; font-style: normal; color: #2c3e50; background: #f8f9fa; }
@@ -112,7 +118,7 @@
 <body>
 
 <div class="container">
-    <h1>育成シミュレーター <span style="font-size:0.7rem; color:#999; font-weight:normal;">v13.5 (UX Polish)</span></h1>
+    <h1>育成シミュレーター <span style="font-size:0.7rem; color:#999; font-weight:normal;">v14.3 </span></h1>
 
     <div class="tabs">
         <div class="tab-btn active" onclick="showTab('squad')">⚔️ 部隊編成</div>
@@ -122,12 +128,18 @@
     <div id="tab-squad" class="tab-content active">
         <div class="panel ai-panel">
             <div class="ai-title">
-                <span>🤖 編成提案 & 入替候補</span>
-                <button class="reset-btn" onclick="generateAiSuggestion()">再分析</button>
+                <div><span>🤖 編成提案 & 入替候補</span></div>
+                <div class="mode-switch">
+                    <label><input type="radio" name="sim-mode" value="pvp" checked onchange="generateAiSuggestion()">⚔️ PvP</label>
+                    <label><input type="radio" name="sim-mode" value="pve" onchange="generateAiSuggestion()">👾 PvE</label>
+                </div>
             </div>
             <div id="ai-result" class="suggestion-box" style="display:none;"></div>
             <div id="ai-placeholder" style="font-size:0.8rem; color:#777; padding:5px;">
                 各部隊の武装Lvを入力してください。全データから最適な組み合わせを分析します。
+            </div>
+            <div style="text-align:right; margin-top:8px;">
+                <button class="reset-btn" onclick="generateAiSuggestion()">再分析</button>
             </div>
         </div>
 
@@ -208,7 +220,9 @@ const HEROES = {
 const GEAR_TYPES = ['Gun', 'Data', 'Armor', 'Radar'];
 const GEAR_NAMES = { 'Gun':'🔫レールガン', 'Data':'💾チップ', 'Armor':'🛡️装甲', 'Radar':'📡レーダー' };
 
-// --- 初期化 ---
+const getMaxP = (s) => s === 4 ? 10 : 5;
+const getSquadName = (s) => s === 4 ? "控え室" : `第${s}部隊`;
+
 window.onload = function() {
     initSquadHTML();
     initGearHTML();
@@ -227,45 +241,60 @@ function showTab(id) {
 
 function initSquadHTML() {
     let html = '';
-    for(let s=1; s<=3; s++) {
+    for(let s=1; s<=4; s++) {
+        let isBench = s === 4;
         let openClass = s === 1 ? 'open' : '';
         let arrow = s === 1 ? '▼' : '▶';
+        let title = isBench ? '控え室（未編成キャラ）' : `第${s}部隊`;
+        
         html += `
         <div class="squad-section">
             <div class="squad-header" onclick="toggleSquad(${s}, this)">
-                <span>第${s}部隊</span><span>${arrow}</span>
+                <span>${title}</span><span>${arrow}</span>
             </div>
-            <div class="squad-body ${openClass}" id="sq-body-${s}">
-                ${[1,2,3,4,5].map(p => {
-                    let isFront = p<=2;
-                    let slotClass = isFront ? "slot-front" : "slot-back";
-                    let badgeClass = isFront ? "badge-front" : "badge-back";
-                    let label = isFront ? "前衛" : "後衛";
-                    return `
-                    <div class="hero-slot ${slotClass}">
-                        <div class="pos-badge ${badgeClass}">${label}</div>
-                        <select class="hero-select" id="h-${s}-${p}" onchange="updateSquad(${s})"></select>
-                        <div class="wp-wrap">
-                            <span class="wp-label">Lv</span>
-                            <div class="stepper" id="wp-box-${s}-${p}" style="width:100px; height:32px;">
-                                <button onclick="stepWp(${s},${p},-1)">-</button>
-                                <input type="text" id="w-${s}-${p}" value="0" readonly>
-                                <button onclick="stepWp(${s},${p},1)">+</button>
-                            </div>
-                        </div>
-                    </div>`;
-                }).join('')}
-                <div class="visual-area">
-                    <span class="visual-label">配置イメージ</span>
-                    <div id="vis-${s}" class="visual-grid"></div>
+            <div class="squad-body ${openClass}" id="sq-body-${s}">`;
+            
+        if(isBench) {
+            html += `<div style="font-size:0.75rem; color:#666; margin-bottom:10px;">部隊に入っていないが育成済みのキャラを登録しておくと、AIが全パターンを計算し最適な入替候補を提示します。</div>`;
+        }
+
+        let maxP = getMaxP(s);
+        let slotsHtml = [];
+        for(let p=1; p<=maxP; p++) {
+            let isFront = p<=2;
+            let slotClass = isBench ? "slot-bench" : (isFront ? "slot-front" : "slot-back");
+            let badgeClass = isBench ? "badge-bench" : (isFront ? "badge-front" : "badge-back");
+            let label = isBench ? "控え" : (isFront ? "前衛" : "後衛");
+            
+            slotsHtml.push(`
+            <div class="hero-slot ${slotClass}">
+                <div class="pos-badge ${badgeClass}">${label}</div>
+                <select class="hero-select" id="h-${s}-${p}" onchange="updateSquad(${s})"></select>
+                <div class="wp-wrap">
+                    <span class="wp-label">Lv</span>
+                    <div class="stepper" id="wp-box-${s}-${p}" style="width:100px; height:32px;">
+                        <button onclick="stepWp(${s},${p},-1)">-</button>
+                        <input type="text" id="w-${s}-${p}" value="0" readonly>
+                        <button onclick="stepWp(${s},${p},1)">+</button>
+                    </div>
                 </div>
-                <div id="adv-${s}" class="advice" style="display:none;"></div>
+            </div>`);
+        }
+        html += slotsHtml.join('');
+        
+        if(!isBench) {
+            html += `
+            <div class="visual-area">
+                <span class="visual-label">配置イメージ</span>
+                <div id="vis-${s}" class="visual-grid"></div>
             </div>
-        </div>`;
+            <div id="adv-${s}" class="advice" style="display:none;"></div>`;
+        }
+        
+        html += `</div></div>`;
     }
     document.getElementById('squad-container').innerHTML = html;
     
-    // 【修正箇所】プルダウンをグループ分け（optgroup）で生成
     let opts = '<option value="empty">- 未設定 -</option>';
     let tankOpts = '<optgroup label="【戦車】">';
     let airOpts = '<optgroup label="【航空機】">';
@@ -282,11 +311,7 @@ function initSquadHTML() {
         else if(h.t === 'mis') misOpts += optionHtml;
     }
     
-    tankOpts += '</optgroup>';
-    airOpts += '</optgroup>';
-    misOpts += '</optgroup>';
-    
-    opts += tankOpts + airOpts + misOpts;
+    opts += tankOpts + '</optgroup>' + airOpts + '</optgroup>' + misOpts + '</optgroup>';
     document.querySelectorAll('.hero-select').forEach(sel => sel.innerHTML = opts);
 }
 
@@ -313,8 +338,9 @@ function updateSquad(s) {
     lockDuplicateHeroes(s);
     let members = [];
     let counts = {tank:0, air:0, mis:0, none:0};
+    let maxP = getMaxP(s);
 
-    for(let p=1; p<=5; p++) {
+    for(let p=1; p<=maxP; p++) {
         let hid = document.getElementById(`h-${s}-${p}`).value;
         let wpEl = document.getElementById(`w-${s}-${p}`);
         let wpBox = document.getElementById(`wp-box-${s}-${p}`);
@@ -339,19 +365,22 @@ function updateSquad(s) {
         counts[h.t]++;
     }
 
-    renderVisual(s, members);
-    analyzeSquad(s, members, counts);
+    if(s !== 4) {
+        renderVisual(s, members);
+        analyzeSquad(s, members, counts);
+    }
     saveData();
     generateAiSuggestion(); 
 }
 
 function lockDuplicateHeroes(s) {
     let selected = [];
-    for(let p=1; p<=5; p++) {
+    let maxP = getMaxP(s);
+    for(let p=1; p<=maxP; p++) {
         let v = document.getElementById(`h-${s}-${p}`).value;
         if(v !== 'empty') selected.push(v);
     }
-    for(let p=1; p<=5; p++) {
+    for(let p=1; p<=maxP; p++) {
         let sel = document.getElementById(`h-${s}-${p}`);
         let myVal = sel.value;
         for(let opt of sel.options) {
@@ -425,24 +454,58 @@ function analyzeSquad(s, m, c) {
     div.innerHTML = msgs.join('<br>');
 }
 
-// === AI提案ロジック ===
+// === v14.3 武装スキル覚醒ボーナス計算 ===
+function calcSquadScore(squadArr, mode) {
+    let score = 0;
+    let counts = {tank:0, air:0, mis:0};
+    let activeSynergies = [];
+
+    squadArr.forEach(c => {
+        score += c.pts;
+        counts[c.t]++;
+    });
+
+    let maxC = Math.max(counts.tank, counts.air, counts.mis);
+    let factionBonus = maxC === 5 ? 80 : maxC === 4 ? 40 : maxC === 3 ? 15 : 0;
+    score += factionBonus;
+
+    let hasMurphyFront = squadArr.some(c => c.id === 'murphy' && c.pos <= 2);
+    if (hasMurphyFront) {
+        score += (mode === 'pvp' ? 50 : 10);
+        activeSynergies.push("マーフィー前列配置");
+    }
+
+    let hasMarshall = squadArr.some(c => c.id === 'marshall');
+    if (hasMarshall) {
+        score += 30;
+        activeSynergies.push("マーシャルの全体バフ");
+    }
+
+    return { score, maxC, factionBonus, synergies: activeSynergies };
+}
+
 function generateAiSuggestion() {
     let resultBox = document.getElementById('ai-result');
     let placeH = document.getElementById('ai-placeholder');
+    let simModeRadio = document.querySelector('input[name="sim-mode"]:checked');
+    let simMode = simModeRadio ? simModeRadio.value : 'pvp';
     
     let allScores = { tank: 0, air: 0, mis: 0 };
     let roster = [];
     let mainSquad = [];
+    let squadScores = {1:0, 2:0, 3:0, 4:0};
 
     const getEvalMark = (wp) => {
+        if(wp >= 30) return "👑"; 
         if(wp >= 20) return "◎";
         if(wp >= 10) return "〇";
-        if(wp > 0) return "△";
-        return "×";
+        return "×"; // UR昇格組も未実装なので×になる
     };
 
-    for(let s=1; s<=3; s++) {
-        for(let p=1; p<=5; p++) {
+    // ▼▼ スキル覚醒ロジック ▼▼
+    for(let s=1; s<=4; s++) {
+        let maxP = getMaxP(s);
+        for(let p=1; p<=maxP; p++) {
             let hid = document.getElementById(`h-${s}-${p}`).value;
             if(hid === 'empty') continue;
 
@@ -450,17 +513,35 @@ function generateAiSuggestion() {
             let el = document.getElementById(`w-${s}-${p}`);
             let wp = el.value === "未解放" || el.value === "未実装" ? 0 : parseInt(el.value);
 
-            let points = (h.ur ? 15 : 10) + (wp * 5);
-            allScores[h.t] += points;
+            let points = (h.ur ? 15 : 10) + (wp * 5); 
+            let charSyns = []; 
 
-            let charData = { ...h, id: hid, squad: s, pos: p, wp: wp, pts: points };
+            // 覚醒ボーナス（節目の超強化＆正式スキル名）
+            if (wp >= 10) {
+                points += 5; 
+            }
+            if (wp >= 20) {
+                points += 15; 
+            }
+            if (wp >= 30) {
+                points += 20; 
+                // ゲーム内の正式名称が判明しているものはその名前を、不明なものは汎用名称を付与
+                if (hid === 'williams') { points += 40; charSyns.push("鋼鉄の心"); } 
+                else if (hid === 'morrison') { points += 25; charSyns.push("爆裂徹甲弾"); }
+                else { points += 25; charSyns.push("専用武装"); }
+            }
+
+            allScores[h.t] += points;
+            squadScores[s] += points;
+
+            let charData = { ...h, id: hid, squad: s, pos: p, wp: wp, pts: points, charSyns: charSyns };
             roster.push(charData);
 
             if(s === 1) mainSquad.push(charData); 
         }
     }
 
-    if(roster.length === 0) {
+    if(roster.length === 0 || mainSquad.length === 0) {
         resultBox.style.display = 'none';
         placeH.style.display = 'block';
         return;
@@ -468,43 +549,85 @@ function generateAiSuggestion() {
     
     placeH.style.display = 'none';
     resultBox.style.display = 'block';
-    
-    let s1Counts = { tank: 0, air: 0, mis: 0 };
-    mainSquad.forEach(c => s1Counts[c.t]++);
-    let mainFaction = 'tank';
-    if(s1Counts.air >= s1Counts.tank && s1Counts.air >= s1Counts.mis) mainFaction = 'air';
-    if(s1Counts.mis >= s1Counts.tank && s1Counts.mis >= s1Counts.air) mainFaction = 'mis';
 
     let bench = roster.filter(c => c.squad !== 1);
-    bench.sort((a, b) => b.wp - a.wp);
+    let currentEval = calcSquadScore(mainSquad, simMode);
+    
+    let bestSwap = null;
+    let bestScore = currentEval.score + 5; 
 
-    let suggestionText = "";
-    let adviceType = "";
-    let prosConsText = "";
-    let compareUi = "";
+    // [1体入れ替え]
+    bench.forEach(bChar => {
+        mainSquad.forEach(mChar => {
+            let isSameRole = (bChar.r === 'wall' && mChar.r === 'wall') || (bChar.r !== 'wall' && mChar.r !== 'wall');
+            if(isSameRole) {
+                let testSquad = mainSquad.map(c => c.pos === mChar.pos ? {...bChar, pos: mChar.pos} : c);
+                let testEval = calcSquadScore(testSquad, simMode);
+                if(testEval.score > bestScore) {
+                    bestScore = testEval.score;
+                    bestSwap = { in: [bChar], out: [mChar], eval: testEval };
+                }
+            }
+        });
+    });
 
-    // 【修正箇所】IN側のキャラ名に「前衛/後衛」のバッジを追加表示
+    // [2体同時入れ替え]
+    for(let i=0; i<bench.length; i++){
+        for(let j=i+1; j<bench.length; j++){
+            let b1 = bench[i], b2 = bench[j];
+            if(b1.t !== b2.t) continue;
+            
+            for(let m1=0; m1<mainSquad.length; m1++){
+                for(let m2=m1+1; m2<mainSquad.length; m2++){
+                    let o1 = mainSquad[m1], o2 = mainSquad[m2];
+                    
+                    let match1 = (b1.r==='wall' === o1.r==='wall') && (b2.r==='wall' === o2.r==='wall');
+                    let match2 = (b1.r==='wall' === o2.r==='wall') && (b2.r==='wall' === o1.r==='wall');
+                    
+                    if(match1 || match2) {
+                        let testSquad = [...mainSquad];
+                        if(match1) {
+                            testSquad[m1] = {...b1, pos: o1.pos};
+                            testSquad[m2] = {...b2, pos: o2.pos};
+                        } else {
+                            testSquad[m1] = {...b2, pos: o1.pos};
+                            testSquad[m2] = {...b1, pos: o2.pos};
+                        }
+                        
+                        let testEval = calcSquadScore(testSquad, simMode);
+                        if(testEval.score > bestScore) {
+                            bestScore = testEval.score;
+                            bestSwap = { in: [b1, b2], out: [o1, o2], eval: testEval };
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ▼▼ UI描画（未実装表記への対応 ＆ 推奨バッジの削除） ▼▼
     const makeCompareBox = (inArr, outArr) => {
         const formatInChar = (c) => {
-            let posBadge = c.r === 'wall' ? 
-                '<span style="background:#f39c12; color:#fff; padding:2px 4px; border-radius:3px; font-size:0.65rem; margin-left:4px;">前衛推奨</span>' : 
-                '<span style="background:#3498db; color:#fff; padding:2px 4px; border-radius:3px; font-size:0.65rem; margin-left:4px;">後衛推奨</span>';
-            return `<div style="margin-top:6px; line-height:1.2;"><b>${c.n}</b>${posBadge}<br><span style="font-size:0.75rem; color:#666; white-space:nowrap; display:inline-block; margin-top:4px;">(Lv${c.wp} / ${getEvalMark(c.wp)})</span></div>`;
+            let wpTxt = (c.ur && c.wp === 0) ? "未実装" : `Lv${c.wp}`;
+            let synBadge = c.charSyns.length > 0 ? `<div style="font-size:0.65rem; color:#e67e22; margin-top:2px; font-weight:bold;">✨${c.charSyns[c.charSyns.length-1]} 覚醒</div>` : "";
+            
+            return `<div style="margin-top:6px; line-height:1.4;"><b>${c.n}</b><br><span style="font-size:0.75rem; color:#666; white-space:nowrap; display:inline-block; margin-top:4px;">(${getSquadName(c.squad)}: ${wpTxt} / ${getEvalMark(c.wp)})</span>${synBadge}</div>`;
         };
-        const formatOutChar = (c) => `<div style="margin-top:6px; line-height:1.2;"><b>${c.n}</b><br><span style="font-size:0.75rem; color:#666; white-space:nowrap; display:inline-block; margin-top:4px;">(Lv${c.wp} / ${getEvalMark(c.wp)})</span></div>`;
+        const formatOutChar = (c) => {
+            let wpTxt = (c.ur && c.wp === 0) ? "未実装" : `Lv${c.wp}`;
+            return `<div style="margin-top:6px; line-height:1.4;"><b>${c.n}</b><br><span style="font-size:0.75rem; color:#666; white-space:nowrap; display:inline-block; margin-top:4px;">(${wpTxt} / ${getEvalMark(c.wp)})</span></div>`;
+        };
         
-        const inHtml = inArr.map(formatInChar).join('');
-        const outHtml = outArr.map(formatOutChar).join('');
         return `
         <div style="display:flex; justify-content:space-around; align-items:center; background:#fff; border:1px solid #dcdde1; border-radius:8px; padding:10px; margin:10px 0; box-shadow:inset 0 1px 3px rgba(0,0,0,0.03);">
             <div style="text-align:center; flex:1; min-width:0;">
                 <div style="font-size:0.7rem; color:#27ae60; font-weight:bold; margin-bottom:4px;">🟢 IN </div>
-                ${inHtml}
+                ${inArr.map(formatInChar).join('')}
             </div>
             <div style="font-size:1.4rem; color:#bdc3c7; padding:0 5px;">🔄</div>
             <div style="text-align:center; flex:1; min-width:0;">
                 <div style="font-size:0.7rem; color:#e74c3c; font-weight:bold; margin-bottom:4px;">🔴 OUT </div>
-                ${outHtml}
+                ${outArr.map(formatOutChar).join('')}
             </div>
         </div>`;
     };
@@ -516,101 +639,102 @@ function generateAiSuggestion() {
         </div>
     `;
 
-    if (s1Counts[mainFaction] >= 4 && mainFaction === 'tank') {
-        let strongAirBench = bench.filter(c => c.t === 'air' && c.wp >= 10).sort((a,b) => b.wp - a.wp);
+    let adviceType = "";
+    let suggestionText = "";
+    let swapCandidateHtml = "";
 
-        if (strongAirBench.length >= 2) {
-            adviceType = "🛩️ 航空機への移行ルート (3+2編成)";
-            let inChars = strongAirBench.slice(0, 2);
-            let outCandidates = mainSquad.filter(c => c.r !== 'wall').sort((a,b) => a.wp - b.wp);
-            if(outCandidates.length < 2) outCandidates = mainSquad.sort((a,b) => a.wp - b.wp); 
-            let outChars = outCandidates.slice(0, 2);
-
-            suggestionText = `控えの航空機が育ってきています！武装レベルのステータス上昇分で兵種バフの低下を完全に相殺できます。`;
-            compareUi = makeCompareBox(inChars, outChars);
-            prosConsText = formatProsCons(
-                "対戦車での圧倒的な相性有利を得られ、高い武装Lvによる火力アップが見込めます。",
-                "同種5体の兵種バフ(20%)が10%に下がるため、同格の航空機編成などには脆くなる場合があります。"
-            );
-
-        } else if (strongAirBench.length === 1) {
-            adviceType = "🛩️ 航空機への移行準備";
-            let inChars = [strongAirBench[0]];
-            let outChars = [mainSquad.filter(c => c.r !== 'wall').sort((a,b) => a.wp - b.wp)[0] || mainSquad[0]];
-
-            suggestionText = `まずは育った航空機を1体だけ出張させ、【戦車4＋航空機1】で運用しつつ、もう1体育つのを待つルートがおすすめです。`;
-            compareUi = makeCompareBox(inChars, outChars);
-            prosConsText = formatProsCons(
-                "強力な航空機キャラを即戦力として投入し、火力の底上げができます。",
-                "陣形が崩れるため、兵種バフが20%から15%に低下します。"
-            );
-        } else {
-            adviceType = "🛡️ 王道・戦車軸の強化";
-            suggestionText = `現在の戦車編成は安定しています。さらに火力を伸ばすか、ゆくゆくは控えの航空機キャラの武装Lvを上げて移行する準備を始めましょう。`;
-        }
-
-    } else if (mainFaction === 'air') {
-        let hasMurphyS1 = mainSquad.some(c => c.id === 'murphy');
-        let strongMurphyBench = bench.find(c => c.id === 'murphy' && c.wp >= 20);
-
-        if (!hasMurphyS1 && strongMurphyBench) {
-            adviceType = "💡 海外トレンド：対ロケラン防衛 (4+1編成)";
-            let inChars = [strongMurphyBench];
-            let outChars = [mainSquad.filter(c => c.pos <= 2).sort((a,b) => a.wp - b.wp)[0] || mainSquad[0]];
-
-            suggestionText = `ミサイル対策として、育ったマーフィーを前列に配置する【航空機4＋戦車1】が現在の最適解です。`;
-            compareUi = makeCompareBox(inChars, outChars);
-            prosConsText = formatProsCons(
-                "航空機の天敵であるロケランからの被ダメージをマーフィーの盾で激減させ、生存率が跳ね上がります。",
-                "同種5体の兵種バフ(20%)が失われ、15%に低下します。"
-            );
-        } else if (hasMurphyS1) {
-            adviceType = "✨ トレンド編成（完成形）";
-            suggestionText = `マーフィー入りの航空機混成編成が組まれています！現在の対人・対NPC環境において最も生存率の高い強力な編成です。`;
-        } else {
-            adviceType = "🛩️ 航空機軸の調整";
-            suggestionText = `強力な航空機編成です！もしロケラン部隊に勝てない場合は、兵種バフを崩してでも武装Lv20以上のマーフィーを前列に出張させると安定します。`;
-        }
+    if (!bestSwap) {
+        adviceType = "✨ 現在の編成がベストです";
+        suggestionText = `現在選択中のモード（${simMode === 'pvp' ? 'PvP' : 'PvE'}）において、現状の第1部隊が所持キャラの中で最も高いポテンシャルを発揮できる最適な編成です。`;
+        swapCandidateHtml = `<div class="swap-candidate"><span class="swap-title">${adviceType}</span><div style="font-size:0.85rem;">${suggestionText}</div></div>`;
     } else {
-        adviceType = "🔄 編成の最適化";
-        let bestChar = bench[0];
-        if(bestChar && bestChar.wp >= 20) {
-            let inChars = [bestChar];
-            let outChars = [mainSquad.sort((a,b) => a.wp - b.wp)[0]];
+        let oldMaxC = currentEval.maxC;
+        let newMaxC = bestSwap.eval.maxC;
+        let merit = "";
+        let demerit = "";
 
-            suggestionText = `控えの高レベルキャラを出張させ、ステータスの暴力で押し切る編成も有効です。`;
-            compareUi = makeCompareBox(inChars, outChars);
-            prosConsText = formatProsCons(
-                "高レベル武装による圧倒的なステータスで、部隊全体の火力が底上げされます。",
-                "陣形が崩れやすいため、兵種バフが十分に得られない可能性があります。"
-            );
+        let awakenedSkills = bestSwap.in.map(c => c.charSyns).flat();
+        let synText = awakenedSkills.length > 0 ? `<br>💡 <b>さらに、専用武装の覚醒効果（${awakenedSkills[awakenedSkills.length-1]}等）が戦局を大きく有利にします！</b>` : "";
+
+        if (newMaxC < oldMaxC) {
+            demerit = `陣形が崩れるため、兵種バフが低下します（${oldMaxC}体→${newMaxC}体）。`;
+            
+            let squadSynNames = [];
+            if(bestSwap.eval.synergies.includes('murphy') && !currentEval.synergies.includes('マーフィー前列配置')) squadSynNames.push("マーフィーの強固な物理盾");
+            if(bestSwap.eval.synergies.includes('marshall') && !currentEval.synergies.includes('マーシャルの全体バフ')) squadSynNames.push("マーシャルの全体バフ");
+            
+            if(squadSynNames.length > 0) {
+                merit = `兵種バフの低下を<b>【${squadSynNames.join('と')}】</b>で完全に相殺し、さらに総合戦力を高めます！${synText}`;
+            } else {
+                merit = `兵種バフの低下を、入れ替えたキャラの高レベル武装による圧倒的なステータス差で補って余りある火力を出せます！${synText}`;
+            }
+            
+            adviceType = simMode === 'pvp' ? "💡 メタ編成：強力な異種出張" : "🛩️ 高ステータスによるゴリ押し編成";
+            if (bestSwap.in.length === 2 && newMaxC === 3) adviceType = "🛩️ メタ移行ルート (3+2編成)";
+
+        } else if (newMaxC > oldMaxC) {
+            adviceType = "✨ 理想陣形への統一";
+            merit = `同兵種${newMaxC}体ボーナスが新たに発動し、部隊全体の基礎ステータスが大きく跳ね上がります！${synText}`;
+            demerit = "特になし（迷わず入れ替えることをおすすめします）。";
         } else {
-            suggestionText = `まずは第1部隊の兵種を4体以上揃えるか、主力キャラの武装Lvを重点的に上げていきましょう。`;
+            adviceType = "🚀 純粋な戦力アップ（上位互換への入れ替え）";
+            merit = `陣形ボーナスを維持したまま、キャラ単体のポテンシャルを大幅にアップグレードできます。${synText}`;
+            demerit = "特になし（完全な上位互換への入れ替えです）。";
         }
+
+        suggestionText = `控えにより高いポテンシャルを持つキャラがいます。以下の入れ替えを行うことで、部隊の「総合スコア」が最大化されます。`;
+        
+        swapCandidateHtml = `
+        <div class="swap-candidate">
+            <span class="swap-title">${adviceType}</span>
+            <div style="font-size:0.85rem; margin-bottom:8px;">${suggestionText}</div>
+            ${makeCompareBox(bestSwap.in, bestSwap.out)}
+            ${formatProsCons(merit, demerit)}
+        </div>`;
     }
+
+    let mainFaction = 'tank';
+    let s1Counts = { tank: 0, air: 0, mis: 0 };
+    mainSquad.forEach(c => s1Counts[c.t]++);
+    if(s1Counts.air >= s1Counts.tank && s1Counts.air >= s1Counts.mis) mainFaction = 'air';
+    if(s1Counts.mis >= s1Counts.tank && s1Counts.mis >= s1Counts.air) mainFaction = 'mis';
 
     let bestFaction = Object.keys(allScores).reduce((a,b)=> allScores[a]>allScores[b]?a:b);
     let factionName = bestFaction==='tank' ? '戦車' : bestFaction==='air' ? '航空機' : 'ロケラン';
+    let mainFactionName = mainFaction==='tank' ? '戦車' : mainFaction==='air' ? '航空機' : 'ロケラン';
 
-    let swapAdvice = `<div class="swap-candidate">
-        <span class="swap-title">${adviceType}</span>
-        <div style="font-size:0.85rem; margin-bottom:8px;">${suggestionText}</div>
-        ${compareUi}
-        ${prosConsText}
-    </div>`;
+    let topMessage = "";
+    if (bestFaction === mainFaction) {
+        topMessage = `💡 <b>現在の総合ポテンシャルは「${factionName}軸」が最強です</b>`;
+    } else {
+        topMessage = `💡 <b>全体では「${factionName}軸」が最強ですが、第1部隊を基準に「${mainFactionName}軸」の強化を提案します</b>`;
+    }
 
-    let scoreTxt = `<div class="score-breakdown">全データ評価: 戦車${allScores.tank} / 航空${allScores.air} / ﾛｹﾗﾝ${allScores.mis} (武装Lv重視)</div>`;
+    let squadWarning = "";
+    let bestSquadNum = 1;
+    let maxSqScore = squadScores[1];
+    if (squadScores[2] > maxSqScore) { bestSquadNum = 2; maxSqScore = squadScores[2]; }
+    if (squadScores[3] > maxSqScore) { bestSquadNum = 3; maxSqScore = squadScores[3]; }
     
-    resultBox.innerHTML = `💡 <b>現在の総合ポテンシャルは「${factionName}軸」が最強です</b><br>${swapAdvice}${scoreTxt}`;
+    if (bestSquadNum !== 1 && maxSqScore > squadScores[1] + 15) {
+        squadWarning = `<div style="font-size:0.75rem; color:#c0392b; background:#fadbd8; padding:6px; border-radius:4px; margin-top:8px; font-weight:bold;">⚠️ 第${bestSquadNum}部隊の戦力が第1部隊を大きく上回っています。メイン部隊の交代もおすすめです！</div>`;
+    }
+
+    let scoreTxt = `<div class="score-breakdown">第1部隊スコア: 現在 <b>${currentEval.score}</b> ➡ 入替後 <b><span style="color:#e74c3c">${bestSwap ? bestSwap.eval.score : currentEval.score}</span></b> (シナジー補正込み)</div>`;
+    
+    resultBox.innerHTML = `${topMessage}${squadWarning}<br>${swapCandidateHtml}${scoreTxt}`;
 }
 
 function resetSquads() {
     if(confirm("編成をリセットしますか？")) {
-        for(let s=1; s<=3; s++) for(let p=1; p<=5; p++) {
-            document.getElementById(`h-${s}-${p}`).value = 'empty';
-            document.getElementById(`w-${s}-${p}`).value = 0;
+        for(let s=1; s<=4; s++) {
+            let maxP = getMaxP(s);
+            for(let p=1; p<=maxP; p++) {
+                document.getElementById(`h-${s}-${p}`).value = 'empty';
+                document.getElementById(`w-${s}-${p}`).value = 0;
+            }
+            updateSquad(s);
         }
-        for(let s=1; s<=3; s++) updateSquad(s);
     }
 }
 
@@ -728,9 +852,12 @@ function calculateGear() {
 
 function saveData() {
     let data = {};
-    for(let s=1; s<=3; s++) for(let p=1; p<=5; p++) {
-        data[`h-${s}-${p}`] = document.getElementById(`h-${s}-${p}`).value;
-        data[`w-${s}-${p}`] = document.getElementById(`w-${s}-${p}`).value;
+    for(let s=1; s<=4; s++) {
+        let maxP = getMaxP(s);
+        for(let p=1; p<=maxP; p++) {
+            data[`h-${s}-${p}`] = document.getElementById(`h-${s}-${p}`).value;
+            data[`w-${s}-${p}`] = document.getElementById(`w-${s}-${p}`).value;
+        }
     }
     ['c','t'].forEach(p => {
         data[`${p}Weapon`] = document.getElementById(`${p}Weapon`).value;
@@ -739,6 +866,9 @@ function saveData() {
             data[`${p}${g}Star`] = document.getElementById(`${p}${g}Star`).getAttribute('data-val');
         });
     });
+    let modeRadio = document.querySelector('input[name="sim-mode"]:checked');
+    if(modeRadio) data['sim-mode'] = modeRadio.value;
+
     localStorage.setItem('lw_sim_final_layout_v9', JSON.stringify(data));
 }
 
@@ -746,10 +876,13 @@ function loadAllData() {
     let saved = localStorage.getItem('lw_sim_final_layout_v9');
     if(saved) {
         let d = JSON.parse(saved);
-        for(let s=1; s<=3; s++) for(let p=1; p<=5; p++) {
-            let h = d[`h-${s}-${p}`], w = d[`w-${s}-${p}`];
-            if(h) document.getElementById(`h-${s}-${p}`).value = h;
-            if(w) document.getElementById(`w-${s}-${p}`).value = w;
+        for(let s=1; s<=4; s++) {
+            let maxP = getMaxP(s);
+            for(let p=1; p<=maxP; p++) {
+                let h = d[`h-${s}-${p}`], w = d[`w-${s}-${p}`];
+                if(h) document.getElementById(`h-${s}-${p}`).value = h;
+                if(w) document.getElementById(`w-${s}-${p}`).value = w;
+            }
         }
         ['c','t'].forEach(p => {
             if(d[`${p}Weapon`]) document.getElementById(`${p}Weapon`).value = d[`${p}Weapon`];
@@ -758,8 +891,12 @@ function loadAllData() {
                 if(d[`${p}${g}Star`]) gearStep(`${p}${g}Star`, parseInt(d[`${p}${g}Star`])); 
             });
         });
+        if(d['sim-mode']) {
+            let r = document.querySelector(`input[name="sim-mode"][value="${d['sim-mode']}"]`);
+            if(r) r.checked = true;
+        }
     }
-    for(let s=1; s<=3; s++) updateSquad(s);
+    for(let s=1; s<=4; s++) updateSquad(s);
 }
 
 function resetGear() {
