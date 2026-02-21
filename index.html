@@ -6,119 +6,115 @@
 <title>ラストウォー育成シミュレーター</title>
 <style>
     /* === ベース設定 === */
-    body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; background-color: #f0f2f5; color: #333; padding: 10px; padding-bottom: 120px; margin: 0; font-size: 14px; line-height: 1.4; }
-    h1 { font-size: 1.2rem; text-align: center; color: #2c3e50; margin: 10px 0 15px; font-weight: 900; letter-spacing: 1px; }
+    body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background-color: #f4f6f8; color: #2c3e50; padding: 12px 10px 120px; margin: 0; font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+    h1 { font-size: 1.25rem; text-align: center; color: #1a252f; margin: 5px 0 15px; font-weight: 900; letter-spacing: 0.5px; }
     .container { max-width: 900px; margin: 0 auto; }
     
-    /* === タブメニュー === */
-    .tabs { display: flex; background: #dfe4ea; border-radius: 8px; padding: 3px; margin-bottom: 15px; }
-    .tab-btn { flex: 1; padding: 10px 0; text-align: center; font-size: 0.9rem; font-weight: bold; color: #7f8c8d; cursor: pointer; border-radius: 6px; transition: 0.2s; }
-    .tab-btn.active { background: #fff; color: #2980b9; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* === UIコンポーネント === */
+    .tabs { display: flex; background: #e2e8f0; border-radius: 10px; padding: 4px; margin-bottom: 18px; }
+    .tab-btn { flex: 1; padding: 12px 0; text-align: center; font-size: 0.95rem; font-weight: bold; color: #64748b; cursor: pointer; border-radius: 8px; transition: all 0.2s ease; }
+    .tab-btn.active { background: #fff; color: #2563eb; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
     .tab-content { display: none; }
-    .tab-content.active { display: block; animation: fadeIn 0.3s; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+    .tab-content.active { display: block; animation: fadeIn 0.3s ease-out; }
 
-    /* === パネル共通 === */
-    .panel { background: #fff; padding: 12px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); margin-bottom: 12px; border: 1px solid #eee; }
-    .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px; margin-bottom: 10px; font-size: 0.95rem; font-weight: 900; color: #2c3e50; }
-    .reset-btn { font-size: 0.7rem; background: #fff; color: #7f8c8d; border: 1px solid #ccc; padding: 4px 10px; border-radius: 4px; cursor: pointer; }
+    .panel { background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); margin-bottom: 15px; border: 1px solid #edf2f7; }
+    .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f8fafc; padding-bottom: 10px; margin-bottom: 12px; font-size: 1rem; font-weight: 900; color: #1e293b; }
+    .reset-btn { font-size: 0.75rem; background: #fff; color: #64748b; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+    .reset-btn:active { background: #f1f5f9; }
 
-    /* === AI提案パネル === */
-    .ai-panel { background: linear-gradient(135deg, #fdfbfb, #ebedee); border-left: 4px solid #3498db; }
-    .ai-title { color: #2980b9; font-weight: bold; display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 0.95rem; margin-bottom: 8px; flex-wrap: wrap; }
-    
-    .suggestion-box { background: #fff; border-radius: 6px; padding: 12px; font-size: 0.85rem; line-height: 1.6; border: 1px solid #e1e8ed; color: #444; }
-    .swap-candidate { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ddd; background: #fffbf2; padding: 12px; border-radius: 8px; border: 1px solid #fce8b2; color: #555; }
-    .swap-title { font-weight: bold; color: #e67e22; display: block; margin-bottom: 10px; font-size: 0.95rem; border-bottom: 1px dashed #fce8b2; padding-bottom: 6px; }
-    .score-breakdown { font-size: 0.75rem; color: #777; margin-top: 8px; text-align: center; background: #f8f9fa; padding: 6px 10px; border-radius: 6px; border: 1px solid #eee; font-weight: bold;}
-    
-    .apply-btn { background: #2980b9; color: #fff; border: none; padding: 12px 20px; border-radius: 25px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(41,128,185,0.2); font-size: 0.9rem; width: 100%; max-width: 280px; transition: 0.2s; display: block; margin: 15px auto 5px; }
-    .apply-btn:active { transform: translateY(2px); box-shadow: none; }
+    /* === AI提案 === */
+    .ai-panel { background: linear-gradient(135deg, #ffffff, #f8fafc); border-left: 5px solid #3b82f6; }
+    .ai-title { color: #1d4ed8; font-weight: 900; display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 1.05rem; margin-bottom: 10px; flex-wrap: wrap; }
+    .suggestion-box { background: #fff; border-radius: 8px; padding: 15px; font-size: 0.9rem; line-height: 1.6; border: 1px solid #e2e8f0; color: #334155; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    .swap-candidate { margin-top: 12px; padding-top: 12px; border-top: 1px dashed #cbd5e1; background: #fffbeb; padding: 15px; border-radius: 10px; border: 1px solid #fde68a; color: #475569; }
+    .swap-title { font-weight: 900; color: #d97706; display: block; margin-bottom: 12px; font-size: 1rem; border-bottom: 2px dotted #fcd34d; padding-bottom: 8px; }
+    .score-breakdown { font-size: 0.8rem; color: #64748b; margin-top: 12px; text-align: center; background: #f8fafc; padding: 8px 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-weight: bold;}
+    .apply-btn { background: linear-gradient(to right, #2563eb, #1d4ed8); color: #fff; border: none; padding: 14px 20px; border-radius: 30px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(37,99,235,0.25); font-size: 0.95rem; width: 100%; max-width: 300px; transition: transform 0.1s, box-shadow 0.1s; display: block; margin: 18px auto 5px; letter-spacing: 0.5px;}
+    .apply-btn:active { transform: translateY(2px); box-shadow: 0 2px 5px rgba(37,99,235,0.2); }
 
-    /* === 部隊編成 UI === */
-    .squad-section { border: 1px solid #e1e8ed; border-radius: 8px; overflow: hidden; margin-bottom: 12px; background: #fff; }
-    .squad-header { background: #f8f9fa; padding: 10px 12px; font-weight: bold; color: #444; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 0.9rem; border-bottom: 1px solid #eee; }
-    .squad-body { padding: 12px; display: none; background: #fff; }
-    .squad-body.open { display: block; }
+    /* === 部隊編成 === */
+    .squad-section { border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; margin-bottom: 15px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
+    .squad-header { background: #f8fafc; padding: 12px 15px; font-weight: 900; color: #334155; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 0.95rem; border-bottom: 1px solid #e2e8f0; transition: background 0.2s; }
+    .squad-header:active { background: #f1f5f9; }
+    .squad-body { padding: 15px; display: none; background: #fff; }
+    .squad-body.open { display: block; animation: fadeIn 0.2s ease-out; }
     
-    .hero-slot { display: flex; gap: 5px; margin-bottom: 8px; align-items: center; padding: 6px; border-radius: 6px; border: 1px solid #eee; }
-    .slot-front { background-color: #fffaf0; border-left: 3px solid #f39c12; }
-    .slot-back { background-color: #f0f8ff; border-left: 3px solid #3498db; }
-    .slot-bench { background-color: #f8f9fa; border-left: 3px solid #bdc3c7; }
+    .hero-slot { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0; background: #fafafa;}
+    .slot-front { background-color: #fffbeb; border-left: 4px solid #f59e0b; }
+    .slot-back { background-color: #eff6ff; border-left: 4px solid #3b82f6; }
+    .slot-bench { background-color: #f8fafc; border-left: 4px solid #94a3b8; }
+    .pos-badge { font-size: 0.7rem; font-weight: bold; padding: 4px 0; width: 36px; text-align: center; border-radius: 4px; color: #fff; flex-shrink: 0; }
+    .badge-front { background-color: #f59e0b; }
+    .badge-back { background-color: #3b82f6; }
+    .badge-bench { background-color: #94a3b8; }
 
-    .pos-badge { font-size: 0.65rem; font-weight: bold; padding: 3px 0; width: 34px; text-align: center; border-radius: 3px; color: #fff; flex-shrink: 0; }
-    .badge-front { background-color: #f39c12; }
-    .badge-back { background-color: #3498db; }
-    .badge-bench { background-color: #95a5a6; }
-
-    .hero-select { flex: 1; min-width: 0; padding: 8px 4px; border-radius: 4px; border: 1px solid #ddd; font-size: 0.9rem; font-weight: bold; color: #333; background: #fff; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
-    optgroup { font-weight: bold; font-style: normal; color: #2c3e50; background: #f8f9fa; }
+    .hero-select { flex: 1; min-width: 110px; padding: 10px 6px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.95rem; font-weight: bold; color: #1e293b; background: #fff; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 8px center; background-size: 14px; padding-right: 24px; transition: border-color 0.2s;}
+    .hero-select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+    optgroup { font-weight: bold; background: #f8fafc; color: #475569; }
     
-    /* === 武装Lv入力 === */
-    .wp-wrap { display: flex; align-items: center; gap: 3px; flex-shrink: 0; }
-    .wp-label { font-size: 0.65rem; color: #888; font-weight: bold; }
-    
-    .stepper { display: flex; align-items: center; background: #fff; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; height: 32px; }
-    .stepper button { width: 26px; height: 100%; border: none; background: #f4f6f7; font-size: 1rem; font-weight: bold; color: #555; cursor: pointer; padding: 0; flex-shrink: 0; }
-    .stepper button:active { background: #dcdcdc; }
-    .stepper input { flex: 1; width: 100%; min-width: 0; text-align: center; border: none; font-size: 0.9rem; font-weight: bold; padding: 0; background: transparent; }
-    .stepper.disabled { background: #eee; opacity: 0.5; pointer-events: none; }
-    .stepper.disabled input { color: #888; font-size: 0.8rem; }
+    .wp-wrap { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .wp-label { font-size: 0.7rem; color: #64748b; font-weight: bold; }
+    .stepper { display: flex; align-items: center; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; height: 36px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);}
+    .stepper button { width: 30px; height: 100%; border: none; background: #f1f5f9; font-size: 1.1rem; font-weight: bold; color: #475569; cursor: pointer; padding: 0; flex-shrink: 0; transition: background 0.1s;}
+    .stepper button:active { background: #e2e8f0; }
+    .stepper input { flex: 1; width: 100%; min-width: 0; text-align: center; border: none; font-size: 0.95rem; font-weight: 900; padding: 0; background: transparent; color: #1e293b;}
+    .stepper.disabled { background: #e2e8f0; opacity: 0.6; pointer-events: none; }
+    .stepper.disabled input { color: #94a3b8; font-size: 0.85rem; }
 
     /* === 陣形ビジュアル === */
-    .visual-area { margin-top: 15px; padding-top: 10px; border-top: 1px dashed #ddd; background: #fafafa; border-radius: 6px; padding: 10px; }
-    .visual-label { font-size: 0.7rem; color: #999; text-align: center; margin-bottom: 6px; font-weight: bold; display: block; }
-    .visual-grid { display: flex; flex-direction: column; gap: 6px; }
-    .v-row-front { display: flex; justify-content: center; gap: 8px; }
-    .v-row-back { display: flex; justify-content: center; gap: 8px; }
+    .visual-area { margin-top: 15px; padding-top: 15px; border-top: 1px dashed #cbd5e1; background: #f8fafc; border-radius: 8px; padding: 12px; }
+    .visual-label { font-size: 0.75rem; color: #64748b; text-align: center; margin-bottom: 8px; font-weight: bold; display: block; letter-spacing: 0.5px;}
+    .visual-grid { display: flex; flex-direction: column; gap: 8px; }
+    .v-row-front, .v-row-back { display: flex; justify-content: center; gap: 10px; }
     
-    .hero-card { 
-        width: 30%; max-width: 90px; padding: 4px 2px; text-align: center; border-radius: 6px; 
-        border: 1px solid #ddd; box-shadow: 0 1px 2px rgba(0,0,0,0.05); background: #fff; height: 50px; 
-        display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative;
-    }
-    .card-tank { background: #fff8e1; border-color: #ffe0b2; color: #e65100; }
-    .card-air { background: #e3f2fd; border-color: #bbdefb; color: #0d47a1; }
-    .card-mis { background: #fbe9e7; border-color: #ffccbc; color: #bf360c; }
-    .card-none { background: #f5f5f5; border-color: #eee; color: #ccc; }
+    /* ▼▼ 高さ（height）を可変にし、スキル名が表示されても潰れないように修正 ▼▼ */
+    .hero-card { width: 30%; max-width: 90px; padding: 6px 2px; text-align: center; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.04); background: #fff; min-height: 54px; height: auto; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; }
+    .card-tank { background: #fffbeb; border-color: #fde68a; color: #b45309; }
+    .card-air { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+    .card-mis { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+    .card-none { background: #f8fafc; border-color: #e2e8f0; color: #94a3b8; }
     
-    .role-icon { position: absolute; top: 2px; right: 2px; font-size: 0.7rem; }
-    .hc-name { font-weight: bold; font-size: 0.7rem; width: 95%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; line-height: 1.2; margin-top: 2px; }
-    .hc-wp { font-size: 0.65rem; font-weight: bold; opacity: 0.8; margin-top: 1px; }
+    .role-icon { position: absolute; top: 3px; right: 3px; font-size: 0.75rem; }
+    .hc-name { font-weight: 900; font-size: 0.7rem; width: 95%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; line-height: 1.2; margin-top: 2px; }
+    .hc-wp { font-size: 0.65rem; font-weight: bold; opacity: 0.85; margin-top: 2px; }
 
-    .advice { font-size: 0.85rem; padding: 12px; border-radius: 6px; margin-top: 10px; line-height: 1.5; background: #fffbf2; border-left: 4px solid #f39c12; color: #444; }
-    .adv-ok { background: #f0fdf4; border-color: #27ae60; color: #14532d; }
-    .adv-ng { background: #fef2f2; border-color: #e74c3c; color: #991b1b; }
+    .advice { font-size: 0.85rem; padding: 10px 15px; border-radius: 8px; line-height: 1.5; background: #fffbeb; border-left: 4px solid #f59e0b; color: #475569; font-weight: bold;}
+    .adv-ok { background: #f0fdf4; border-color: #22c55e; color: #166534; }
+    .adv-ng { background: #fef2f2; border-color: #ef4444; color: #991b1b; }
 
     /* === 装備シミュレーター === */
-    .gear-container { display: flex; flex-wrap: wrap; gap: 10px; }
-    .g-card { flex: 1; min-width: 100%; background: #fff; padding: 12px 10px; border-radius: 10px; border: 1px solid #e1e8ed; box-shadow: 0 2px 5px rgba(0,0,0,0.03); box-sizing: border-box; }
+    .gear-container { display: flex; flex-wrap: wrap; gap: 12px; }
+    .g-card { flex: 1; min-width: 100%; background: #fff; padding: 15px 12px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 10px rgba(0,0,0,0.03); box-sizing: border-box; }
     @media (min-width: 700px) { .g-card { min-width: 48%; } }
+    .g-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .g-label { font-weight: bold; font-size: 0.85rem; color: #475569; display: flex; align-items: center; gap: 4px; min-width: 45px; }
+    .g-input-group { display: flex; gap: 6px; justify-content: flex-end; flex: 1; min-width: 0; }
     
-    .g-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-    .g-label { font-weight: bold; font-size: 0.8rem; color: #555; display: flex; align-items: center; gap: 2px; min-width: 40px; }
-    
-    .g-input-group { display: flex; gap: 4px; justify-content: flex-end; flex: 1; min-width: 0; }
-    .stepper-lv { width: 105px; } 
-    .stepper-star { width: 115px; } 
+    .stepper-lv { width: 100px; } 
+    .stepper-star { width: 130px; } 
     .stepper-star input { font-size: 13px; letter-spacing: -2px; padding-left: 2px; }
 
-    .buff-info { font-size: 0.7rem; color: #e67e22; background: #fffbf2; padding: 5px; border-radius: 4px; margin-top: 10px; text-align: center; border: 1px dashed #f39c12; display: none; }
-    .buff-info.active { display: block; }
-
-    .cost-panel { margin-top: 12px; background: #fff; padding: 10px; border-radius: 8px; border-top: 3px solid #f39c12; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
-    .cost-row { display: flex; justify-content: space-between; font-size: 0.85rem; border-bottom: 1px dashed #eee; padding: 4px 0; }
+    .buff-info { font-size: 0.75rem; color: #d97706; background: #fffbeb; padding: 8px; border-radius: 6px; margin-top: 12px; text-align: center; border: 1px dashed #fbbf24; display: none; font-weight: bold;}
+    .buff-info.active { display: block; animation: fadeIn 0.3s; }
+    .cost-panel { margin-top: 15px; background: #fff; padding: 15px; border-radius: 10px; border-top: 4px solid #f59e0b; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .cost-row { display: flex; justify-content: space-between; font-size: 0.9rem; border-bottom: 1px dashed #e2e8f0; padding: 6px 0; font-weight: bold; color: #475569;}
     .cost-row:last-child { border-bottom: none; }
 
-    .footer { position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); width: 94%; max-width: 600px; background: rgba(255,255,255,0.95); backdrop-filter: blur(8px); padding: 8px 12px; border-radius: 50px; border: 1px solid #fadbd8; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 999; font-weight: bold; color: #c0392b; display: flex; justify-content: space-between; align-items: center; }
-    .ft-main { font-size: 1rem; }
-    .ft-sub { font-size: 0.75rem; color: #555; background: #f8f9fa; padding: 2px 8px; border-radius: 10px; border: 1px solid #eee; }
+    .footer { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 500px; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); padding: 10px 15px; border-radius: 50px; border: 1px solid #fecaca; text-align: center; box-shadow: 0 8px 25px rgba(0,0,0,0.15); z-index: 999; font-weight: 900; color: #b91c1c; display: flex; justify-content: space-between; align-items: center; }
+    .ft-main { font-size: 1.1rem; }
+    .ft-sub { font-size: 0.8rem; color: #4b5563; background: #f8fafc; padding: 4px 10px; border-radius: 12px; border: 1px solid #e2e8f0; }
+    
+    .link-area { text-align: center; font-size: 0.85rem; margin-top: 25px; padding: 15px; border-top: 2px dashed #cbd5e1; color: #64748b; }
+    .link-btn { display: inline-block; background: #fff; border: 1px solid #cbd5e1; padding: 8px 15px; border-radius: 20px; color: #2563eb; text-decoration: none; font-weight: bold; margin: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.03); transition: all 0.2s; }
+    .link-btn:hover { background: #eff6ff; border-color: #3b82f6; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.05);}
 </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>育成シミュレーター <span style="font-size:0.7rem; color:#999; font-weight:normal;">v14.7 </span></h1>
+    <h1>育成シミュレーター <span style="font-size:0.7rem; color:#94a3b8; font-weight:normal;">v14.20 </span></h1>
 
     <div class="tabs">
         <div class="tab-btn active" onclick="showTab('squad')">⚔️ 部隊編成</div>
@@ -132,14 +128,14 @@
                 <button class="reset-btn" onclick="generateAiSuggestion()">再分析</button>
             </div>
             <div id="ai-result" class="suggestion-box" style="display:none;"></div>
-            <div id="ai-placeholder" style="font-size:0.8rem; color:#777; padding:5px;">
-                各部隊の武装Lvを入力してください。全データから最適な組み合わせを分析します。
+            <div id="ai-placeholder" style="font-size:0.85rem; color:#64748b; padding:10px; text-align:center; font-weight:bold;">
+                各部隊の武装Lvを入力してください。<br>全データから最適な組み合わせを分析します。
             </div>
         </div>
 
         <div class="panel" style="background:transparent; padding:0; border:none; box-shadow:none;">
-            <div style="display:flex; justify-content:flex-end; margin-bottom:5px;">
-                <button class="reset-btn" onclick="resetSquads()" style="background:#fff; border-color:#e1e8ed;">🗑️ 全編成リセット</button>
+            <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
+                <button class="reset-btn" onclick="resetSquads()" style="background:#fff; border-color:#cbd5e1; padding:8px 12px;">🗑️ 全編成リセット</button>
             </div>
             <div id="squad-container"></div>
         </div>
@@ -148,8 +144,8 @@
     <div id="tab-gear" class="tab-content">
         <div class="gear-container">
             <div class="g-card">
-                <div class="panel-header" style="color:#7f8c8d; border-color:#eee;">現在の装備</div>
-                <div class="g-row" style="margin-bottom:12px;">
+                <div class="panel-header" style="color:#64748b; border-color:#e2e8f0;">現在の装備</div>
+                <div class="g-row" style="margin-bottom:15px;">
                     <span class="g-label">⚔️ 武装Lv</span>
                     <div class="stepper" style="width:100px;"><button onclick="gearStep('cWeapon', -1)">-</button><input id="cWeapon" value="20" readonly><button onclick="gearStep('cWeapon', 1)">+</button></div>
                 </div>
@@ -158,12 +154,12 @@
             </div>
 
             <div class="g-card">
-                <div class="panel-header" style="color:#c0392b; border-color:#fadbd8;">
+                <div class="panel-header" style="color:#b91c1c; border-color:#fecaca;">
                     目標の装備 <button class="reset-btn" onclick="resetGear()">クリア</button>
                 </div>
-                <div class="g-row" style="margin-bottom:12px;">
-                    <span class="g-label" style="color:#c0392b;">⚔️ 目標Lv</span>
-                    <div class="stepper" style="border-color:#fadbd8; width:100px;"><button onclick="gearStep('tWeapon', -1)">-</button><input id="tWeapon" value="20" readonly><button onclick="gearStep('tWeapon', 1)">+</button></div>
+                <div class="g-row" style="margin-bottom:15px;">
+                    <span class="g-label" style="color:#b91c1c;">⚔️ 目標Lv</span>
+                    <div class="stepper" style="border-color:#fecaca; width:100px;"><button onclick="gearStep('tWeapon', -1)">-</button><input id="tWeapon" value="20" readonly><button onclick="gearStep('tWeapon', 1)">+</button></div>
                 </div>
                 <div id="target-gear-rows"></div>
                 <div id="detail-tgt" class="buff-info"></div>
@@ -171,25 +167,33 @@
         </div>
         
         <div class="cost-panel">
-            <div style="font-weight:bold; color:#d35400; font-size:0.9rem; margin-bottom:5px;">🆙 不足している装備レシピ</div>
-            <div id="cost-list" style="margin-bottom:10px;"></div>
-            <div style="font-size:0.7rem; color:#888; background:#f9f9f9; padding:6px; border-radius:4px; text-align:center;">
+            <div style="font-weight:900; color:#d97706; font-size:0.95rem; margin-bottom:8px;">🆙 不足している装備レシピ</div>
+            <div id="cost-list" style="margin-bottom:12px;"></div>
+            <div style="font-size:0.75rem; color:#64748b; background:#f8fafc; padding:8px; border-radius:6px; text-align:center; font-weight:bold;">
                 ★0→1:5 / ★1→2:10 / ★2→3:15 / ★3→4:20 / ★4→5:赤10
             </div>
         </div>
     </div>
+
+    <div class="link-area">
+        <div style="margin-bottom: 10px; font-weight: 900; color:#475569;">💡 情報収集・参考サイト</div>
+        <a href="https://game8.jp/lastwar-survival" target="_blank" class="link-btn">📘 Game8 攻略Wiki</a>
+        <a href="https://cpt-hedge.com/" target="_blank" class="link-btn">🇺🇸 CPT HEDGE (海外データ)</a>
+        <a href="https://alliance-duel.pages.dev/" target="_blank" class="link-btn">🛠️ 連盟対決ツール (自作)</a>
+    </div>
+
 </div>
 
 <div id="footer-bar" class="footer" style="display:none;">
-    <div class="ft-main">今より <span id="growth-rate" style="font-size:1.3rem;">1.00</span> 倍!</div>
-    <div class="ft-sub">必要: <span style="color:#f39c12;">UR<span id="ft-ur">0</span></span> <span style="color:#c0392b;">MR<span id="ft-mr">0</span></span></div>
+    <div class="ft-main">今より <span id="growth-rate" style="font-size:1.4rem;">1.00</span> 倍!</div>
+    <div class="ft-sub">必要: <span style="color:#f59e0b;">UR<span id="ft-ur">0</span></span> <span style="color:#b91c1c;">MR<span id="ft-mr">0</span></span></div>
 </div>
 
 <script>
-// --- グローバル変数 ---
+// --- State ---
 window.currentBestSwap = null; 
 
-// --- データ定義 ---
+// --- Config ---
 const HEROES = {
     empty: {n:"- 未設定 -", t:"none", r:"none", ur:false},
     murphy: {n:"マーフィ", t:"tank", r:"wall", ur:false},
@@ -218,8 +222,9 @@ const GEAR_TYPES = ['Gun', 'Data', 'Armor', 'Radar'];
 const GEAR_NAMES = { 'Gun':'🔫レールガン', 'Data':'💾チップ', 'Armor':'🛡️装甲', 'Radar':'📡レーダー' };
 
 const getMaxP = (s) => s === 4 ? 10 : 5;
-const getSquadName = (s) => s === 4 ? "控え" : `第${s}部隊`;
+const getSquadName = (s) => s === 4 ? "控え室" : `第${s}部隊`;
 
+// --- Initialization ---
 window.onload = function() {
     initSquadHTML();
     initGearHTML();
@@ -228,8 +233,7 @@ window.onload = function() {
 };
 
 function showTab(id) {
-    document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(e => e.classList.remove('active'));
+    document.querySelectorAll('.tab-content, .tab-btn').forEach(e => e.classList.remove('active'));
     document.getElementById('tab-'+id).classList.add('active');
     event.currentTarget.classList.add('active');
     document.getElementById('footer-bar').style.display = (id === 'gear') ? 'flex' : 'none';
@@ -241,17 +245,20 @@ function initSquadHTML() {
         let isBench = s === 4;
         let openClass = s === 1 ? 'open' : '';
         let arrow = s === 1 ? '▼' : '▶';
-        let title = isBench ? '控え（未編成キャラ）' : `第${s}部隊`;
+        let title = isBench ? '控え室（未編成キャラ）' : `第${s}部隊`;
         
         html += `
         <div class="squad-section">
             <div class="squad-header" onclick="toggleSquad(${s}, this)">
-                <span>${title}</span><span>${arrow}</span>
+                <span id="sq-title-${s}" style="flex:1; line-height:1.3;">${title}</span>
+                <span style="margin-left:10px; color:#94a3b8;">${arrow}</span>
             </div>
             <div class="squad-body ${openClass}" id="sq-body-${s}">`;
             
         if(isBench) {
-            html += `<div style="font-size:0.75rem; color:#666; margin-bottom:10px;">部隊に入っていないが育成済みのキャラを登録しておくと、全パターンを計算し最適な入替候補を提示します。</div>`;
+            html += `<div style="font-size:0.75rem; color:#64748b; margin-bottom:12px; font-weight:bold;">部隊に入っていないが育成済みのキャラを登録しておくと、AIが全パターンを計算し最適な入替候補を提示します。</div>`;
+        } else {
+            html += `<div id="adv-${s}" class="advice" style="display:none; margin-top:0; margin-bottom:12px;"></div>`;
         }
 
         let maxP = getMaxP(s);
@@ -268,7 +275,7 @@ function initSquadHTML() {
                 <select class="hero-select" id="h-${s}-${p}" onchange="updateSquad(${s})"></select>
                 <div class="wp-wrap">
                     <span class="wp-label">Lv</span>
-                    <div class="stepper" id="wp-box-${s}-${p}" style="width:100px; height:32px;">
+                    <div class="stepper" id="wp-box-${s}-${p}" style="width:105px;">
                         <button onclick="stepWp(${s},${p},-1)">-</button>
                         <input type="text" id="w-${s}-${p}" value="0" readonly>
                         <button onclick="stepWp(${s},${p},1)">+</button>
@@ -279,54 +286,34 @@ function initSquadHTML() {
         html += slotsHtml.join('');
         
         if(!isBench) {
-            html += `
-            <div class="visual-area">
-                <span class="visual-label">配置イメージ</span>
-                <div id="vis-${s}" class="visual-grid"></div>
-            </div>
-            <div id="adv-${s}" class="advice" style="display:none;"></div>`;
+            html += `<div class="visual-area"><span class="visual-label">配置イメージ</span><div id="vis-${s}" class="visual-grid"></div></div>`;
         }
-        
         html += `</div></div>`;
     }
     document.getElementById('squad-container').innerHTML = html;
     
     let opts = '<option value="empty">- 未設定 -</option>';
-    let tankOpts = '<optgroup label="【戦車】">';
-    let airOpts = '<optgroup label="【航空機】">';
-    let misOpts = '<optgroup label="【ロケラン】">';
+    let groups = { tank: '<optgroup label="【戦車】">', air: '<optgroup label="【航空機】">', mis: '<optgroup label="【ロケラン】">' };
     
     for(let k in HEROES) {
         if(k === 'empty') continue;
-        let h = HEROES[k];
-        let name = h.n + (h.ur ? "(UR)" : "");
-        let optionHtml = `<option value="${k}">${name}</option>`;
-        
-        if(h.t === 'tank') tankOpts += optionHtml;
-        else if(h.t === 'air') airOpts += optionHtml;
-        else if(h.t === 'mis') misOpts += optionHtml;
+        groups[HEROES[k].t] += `<option value="${k}">${HEROES[k].n}${HEROES[k].ur ? "(UR)" : ""}</option>`;
     }
-    
-    opts += tankOpts + '</optgroup>' + airOpts + '</optgroup>' + misOpts + '</optgroup>';
+    opts += groups.tank + '</optgroup>' + groups.air + '</optgroup>' + groups.mis + '</optgroup>';
     document.querySelectorAll('.hero-select').forEach(sel => sel.innerHTML = opts);
 }
 
 function toggleSquad(s, header) {
     let body = document.getElementById(`sq-body-${s}`);
     let arrow = header.children[1];
-    if(body.classList.contains('open')) {
-        body.classList.remove('open'); arrow.innerText = '▶';
-    } else {
-        body.classList.add('open'); arrow.innerText = '▼';
-    }
+    body.classList.toggle('open');
+    arrow.innerText = body.classList.contains('open') ? '▼' : '▶';
 }
 
 function stepWp(s, p, d) {
     let el = document.getElementById(`w-${s}-${p}`);
-    let val = el.value === "未解放" || el.value === "未実装" ? 0 : parseInt(el.value);
-    let v = val || 0;
-    let newVal = Math.min(Math.max(v + d, 0), 30);
-    el.value = newVal;
+    let val = parseInt(el.value) || 0;
+    el.value = Math.min(Math.max(val + d, 0), 30);
     updateSquad(s);
 }
 
@@ -334,23 +321,17 @@ function updateSquad(s, skipAi = false) {
     lockDuplicateHeroes(s);
     let members = [];
     let counts = {tank:0, air:0, mis:0, none:0};
-    let maxP = getMaxP(s);
-
-    for(let p=1; p<=maxP; p++) {
+    
+    for(let p=1; p<=getMaxP(s); p++) {
         let hid = document.getElementById(`h-${s}-${p}`).value;
         let wpEl = document.getElementById(`w-${s}-${p}`);
         let wpBox = document.getElementById(`wp-box-${s}-${p}`);
         let h = HEROES[hid];
+        let currentVal = parseInt(wpEl.value) || 0;
 
-        let currentVal = wpEl.value === "未解放" || wpEl.value === "未実装" ? 0 : parseInt(wpEl.value) || 0;
-
-        if(h.ur) {
+        if(h.ur || hid === 'empty') {
             wpBox.classList.add('disabled');
-            wpEl.value = "未実装";
-            currentVal = 0;
-        } else if(hid === 'empty') {
-            wpBox.classList.add('disabled');
-            wpEl.value = "-";
+            wpEl.value = h.ur ? "未実装" : "-";
             currentVal = 0;
         } else {
             wpBox.classList.remove('disabled');
@@ -373,55 +354,65 @@ function updateSquad(s, skipAi = false) {
 }
 
 function lockDuplicateHeroes(s) {
-    let selected = [];
-    let maxP = getMaxP(s);
-    for(let p=1; p<=maxP; p++) {
-        let v = document.getElementById(`h-${s}-${p}`).value;
-        if(v !== 'empty') selected.push(v);
-    }
-    for(let p=1; p<=maxP; p++) {
+    let selected = Array.from(document.querySelectorAll(`#sq-body-${s} .hero-select`)).map(el => el.value).filter(v => v !== 'empty');
+    for(let p=1; p<=getMaxP(s); p++) {
         let sel = document.getElementById(`h-${s}-${p}`);
-        let myVal = sel.value;
-        for(let opt of sel.options) {
-            if(opt.value !== 'empty' && selected.includes(opt.value) && opt.value !== myVal) {
-                opt.disabled = true; opt.style.color = "#ccc";
-            } else {
-                opt.disabled = false; opt.style.color = "#333";
-            }
-        }
+        Array.from(sel.options).forEach(opt => {
+            opt.disabled = opt.value !== 'empty' && selected.includes(opt.value) && opt.value !== sel.value;
+            opt.style.color = opt.disabled ? "#cbd5e1" : "#1e293b";
+        });
     }
 }
 
+// ▼▼ 配置イメージにスキル名を表示するロジックを追加 ▼▼
 function renderVisual(s, m) {
     let html = m.map(h => {
         if(h.id === 'empty') return `<div class="hero-card card-none"><span style="font-size:0.7rem;">未設定</span></div>`;
         let cls = h.t === 'tank' ? 'card-tank' : h.t === 'air' ? 'card-air' : 'card-mis';
         let roleIcon = h.r === 'wall' ? '🛡️' : h.r === 'atk' ? '⚔️' : '🛠️';
-        let urTag = h.ur ? '<span style="color:#8e44ad;font-size:0.6rem;">(UR)</span>' : '';
+        let urTag = h.ur ? '<span style="color:#8b5cf6;font-size:0.6rem;">(UR)</span>' : '';
         let wpTxt = h.ur ? '未実装' : (h.wp === 0 ? '未解放' : `Lv${h.wp}`);
-        return `
-        <div class="hero-card ${cls}">
-            <div class="role-icon">${roleIcon}</div>
-            <div class="hc-name">${h.n}${urTag}</div>
-            <div class="hc-wp">${wpTxt}</div>
-        </div>`;
+        
+        let synName = "";
+        if (h.wp >= 30) {
+            if (h.id === 'williams') synName = "鋼鉄の心";
+            else if (h.id === 'kimberly') synName = "致命の花火";
+            else if (h.id === 'dva') synName = "超速起動";
+            else if (h.id === 'tesla') synName = "電磁誘導";
+            else if (h.id === 'carlie') synName = "ぺぺ、おねがい！";
+            else if (h.id === 'schuyler') synName = "超高出力電磁妨害";
+            else if (h.id === 'stetmann') synName = "電磁バリア";
+            else if (h.id === 'morrison') synName = "爆裂徹甲弾";
+            else synName = "専用武装";
+        }
+        
+        // スキル名がある場合だけ、はみ出さない（ellipsis）極小文字のHTMLを追加
+        let synHtml = synName ? `<div style="font-size:0.55rem; color:#d97706; font-weight:900; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:95%;">✨${synName}</div>` : "";
+        
+        return `<div class="hero-card ${cls}"><div class="role-icon">${roleIcon}</div><div class="hc-name">${h.n}${urTag}</div><div class="hc-wp">${wpTxt}</div>${synHtml}</div>`;
     });
     
-    let front = `<div class="v-row-front">${html[0]}${html[1]}</div>`;
-    let back = `<div class="v-row-back">${html[2]}${html[3]}${html[4]}</div>`;
-    document.getElementById(`vis-${s}`).innerHTML = front + back;
+    document.getElementById(`vis-${s}`).innerHTML = `<div class="v-row-front">${html[0]}${html[1]}</div><div class="v-row-back">${html[2]}${html[3]}${html[4]}</div>`;
 }
 
 function analyzeSquad(s, m, c) {
     let div = document.getElementById(`adv-${s}`);
-    if(c.none > 0) { div.style.display = 'none'; return; }
-    div.style.display = 'block';
+    let titleSpan = document.getElementById(`sq-title-${s}`);
+    let baseTitle = `第${s}部隊`;
+
+    if(c.none > 0) { 
+        div.style.display = 'none'; 
+        if(s !== 4) titleSpan.innerHTML = baseTitle;
+        return; 
+    }
 
     let maxC = Math.max(c.tank, c.air, c.mis);
     let buff = maxC===5?"+20%": maxC===4?"+15%": maxC===3?"+10%":"0%";
     let mainT = Object.keys(c).reduce((a,b)=> c[a]>c[b]?a:b);
     
-    let msgs = [`<b> 同種英雄${maxC}体 (戦闘中,体力,攻撃力,防御力${buff})</b>`];
+    titleSpan.innerHTML = `${baseTitle} <span style="font-size:0.7rem; font-weight:bold; color:#ea580c; display:inline-block; margin-left:6px; background:#fffbeb; padding:2px 6px; border-radius:10px; border:1px solid #fcd34d;">同種${maxC}体 (バフ${buff})</span>`;
+    
+    let msgs = [];
     let status = 'ok';
 
     if(['atk','sup'].includes(m[0].r) || ['atk','sup'].includes(m[1].r)) {
@@ -449,38 +440,34 @@ function analyzeSquad(s, m, c) {
         msgs.push("❌ バフが低いです。4体以上揃えましょう。"); status='ng';
     }
 
-    div.className = "advice " + (status==='ok'?'adv-ok':'adv-ng');
-    div.innerHTML = msgs.join('<br>');
+    if(msgs.length > 0) {
+        div.style.display = 'block';
+        div.className = "advice " + (status==='ok'?'adv-ok':'adv-ng');
+        div.innerHTML = msgs.join('<br>');
+    } else {
+        div.style.display = 'none';
+    }
 }
 
-// === 常時PvPメタ（最強）判定 ===
+// --- AI Logic ---
 function calcSquadScore(squadArr) {
     let score = 0;
     let counts = {tank:0, air:0, mis:0};
     let activeSynergies = [];
 
-    squadArr.forEach(c => {
-        score += c.pts;
-        counts[c.t]++;
-    });
+    squadArr.forEach(c => { score += c.pts; counts[c.t]++; });
 
     let maxC = Math.max(counts.tank, counts.air, counts.mis);
-    let factionBonus = maxC === 5 ? 80 : maxC === 4 ? 40 : maxC === 3 ? 15 : 0;
-    score += factionBonus;
+    score += maxC === 5 ? 80 : maxC === 4 ? 40 : maxC === 3 ? 15 : 0;
 
-    let hasMurphyFront = squadArr.some(c => c.id === 'murphy' && c.pos <= 2);
-    if (hasMurphyFront) {
-        score += 50; 
-        activeSynergies.push("マーフィー前列配置");
+    if (squadArr.some(c => c.id === 'murphy' && c.pos <= 2)) {
+        score += 50; activeSynergies.push("マーフィー前列配置");
+    }
+    if (squadArr.some(c => c.id === 'marshall')) {
+        score += 30; activeSynergies.push("マーシャルの全体バフ");
     }
 
-    let hasMarshall = squadArr.some(c => c.id === 'marshall');
-    if (hasMarshall) {
-        score += 30;
-        activeSynergies.push("マーシャルの全体バフ");
-    }
-
-    return { score, maxC, factionBonus, synergies: activeSynergies };
+    return { score, maxC, synergies: activeSynergies };
 }
 
 function applySwap() {
@@ -488,35 +475,18 @@ function applySwap() {
     
     document.querySelectorAll('.hero-select option').forEach(opt => opt.disabled = false);
 
-    let inArr = window.currentBestSwap.in;
-    let outArr = window.currentBestSwap.out;
-    
-    for(let i=0; i<inArr.length; i++) {
-        let cIn = inArr[i];
-        let cOut = outArr[i];
-        
+    window.currentBestSwap.in.forEach((cIn, i) => {
+        let cOut = window.currentBestSwap.out[i];
         let inSel = document.getElementById(`h-${cIn.squad}-${cIn.pos}`);
         let inWp = document.getElementById(`w-${cIn.squad}-${cIn.pos}`);
-        
         let outSel = document.getElementById(`h-${cOut.squad}-${cOut.pos}`);
         let outWp = document.getElementById(`w-${cOut.squad}-${cOut.pos}`);
         
-        let valInId = inSel.value;
-        let valInWp = inWp.value;
-        
-        let valOutId = outSel.value;
-        let valOutWp = outWp.value;
-        
-        inSel.value = valOutId;
-        inWp.value = valOutWp;
-        
-        outSel.value = valInId;
-        outWp.value = valInWp;
-    }
+        [inSel.value, outSel.value] = [outSel.value, inSel.value];
+        [inWp.value, outWp.value] = [outWp.value, inWp.value];
+    });
     
-    for(let s=1; s<=4; s++) {
-        updateSquad(s, true); 
-    }
+    for(let s=1; s<=4; s++) updateSquad(s, true); 
     saveData();
     generateAiSuggestion(); 
 }
@@ -526,264 +496,175 @@ function generateAiSuggestion() {
     let resultBox = document.getElementById('ai-result');
     let placeH = document.getElementById('ai-placeholder');
     
-    let allScores = { tank: 0, air: 0, mis: 0 };
-    let roster = [];
-    let mainSquad = [];
-    let squadScores = {1:0, 2:0, 3:0, 4:0};
+    let allScores = { tank: 0, air: 0, mis: 0 }, squadScores = {1:0, 2:0, 3:0, 4:0};
+    let roster = [], mainSquad = [];
 
-    const getEvalMark = (wp) => {
-        if(wp >= 30) return "👑"; 
-        if(wp >= 20) return "◎";
-        if(wp >= 10) return "〇";
-        return "×"; 
-    };
+    const getEvalMark = (wp) => wp >= 30 ? "👑" : wp >= 20 ? "◎" : wp >= 10 ? "〇" : "×"; 
 
     for(let s=1; s<=4; s++) {
-        let maxP = getMaxP(s);
-        for(let p=1; p<=maxP; p++) {
+        for(let p=1; p<=getMaxP(s); p++) {
             let hid = document.getElementById(`h-${s}-${p}`).value;
             if(hid === 'empty') continue;
 
             let h = HEROES[hid];
-            let el = document.getElementById(`w-${s}-${p}`);
-            let wp = el.value === "未解放" || el.value === "未実装" ? 0 : parseInt(el.value);
-
+            let wp = parseInt(document.getElementById(`w-${s}-${p}`).value) || 0;
             let points = (h.ur ? 15 : 10) + (wp * 5); 
             let charSyns = []; 
 
-            if (wp >= 10) { points += 5; }
-            if (wp >= 20) { points += 15; }
+            if (wp >= 10) points += 5;
+            if (wp >= 20) points += 15;
+            
             if (wp >= 30) {
                 points += 20; 
                 if (hid === 'williams') { points += 40; charSyns.push("鋼鉄の心"); } 
+                else if (hid === 'kimberly') { points += 35; charSyns.push("致命の花火"); } 
+                else if (hid === 'dva') { points += 35; charSyns.push("超速起動"); } 
+                else if (hid === 'tesla') { points += 35; charSyns.push("電磁誘導"); } 
+                else if (hid === 'carlie') { points += 35; charSyns.push("ぺぺ、おねがい！"); } 
+                else if (hid === 'schuyler') { points += 35; charSyns.push("超高出力電磁妨害"); } 
+                else if (hid === 'stetmann') { points += 30; charSyns.push("電磁バリア"); } 
                 else if (hid === 'morrison') { points += 25; charSyns.push("爆裂徹甲弾"); }
                 else { points += 25; charSyns.push("専用武装"); }
             }
 
-            allScores[h.t] += points;
-            squadScores[s] += points;
-
+            allScores[h.t] += points; squadScores[s] += points;
             let charData = { ...h, id: hid, squad: s, pos: p, wp: wp, pts: points, charSyns: charSyns };
             roster.push(charData);
-
             if(s === 1) mainSquad.push(charData); 
         }
     }
 
     if(roster.length === 0 || mainSquad.length === 0) {
-        resultBox.style.display = 'none';
-        placeH.style.display = 'block';
+        resultBox.style.display = 'none'; placeH.style.display = 'block';
         return;
     }
     
-    placeH.style.display = 'none';
-    resultBox.style.display = 'block';
+    placeH.style.display = 'none'; resultBox.style.display = 'block';
 
     let bench = roster.filter(c => c.squad !== 1);
     let currentEval = calcSquadScore(mainSquad); 
-    
-    let bestSwap = null;
-    let bestScore = currentEval.score + 5; 
+    let bestSwap = null, bestScore = currentEval.score + 5; 
 
+    // 1体入替
     bench.forEach(bChar => {
         mainSquad.forEach(mChar => {
-            let isSameRole = (bChar.r === 'wall' && mChar.r === 'wall') || (bChar.r !== 'wall' && mChar.r !== 'wall');
-            if(isSameRole) {
+            if((bChar.r === 'wall') === (mChar.r === 'wall')) {
                 let testSquad = mainSquad.map(c => c.pos === mChar.pos ? {...bChar, pos: mChar.pos} : c);
                 let testEval = calcSquadScore(testSquad);
-                if(testEval.score > bestScore) {
-                    bestScore = testEval.score;
-                    bestSwap = { in: [bChar], out: [mChar], eval: testEval };
-                }
+                if(testEval.score > bestScore) { bestScore = testEval.score; bestSwap = { in: [bChar], out: [mChar], eval: testEval }; }
             }
         });
     });
 
+    // 2体入替
     for(let i=0; i<bench.length; i++){
         for(let j=i+1; j<bench.length; j++){
             let b1 = bench[i], b2 = bench[j];
             if(b1.t !== b2.t) continue;
-            
             for(let m1=0; m1<mainSquad.length; m1++){
                 for(let m2=m1+1; m2<mainSquad.length; m2++){
                     let o1 = mainSquad[m1], o2 = mainSquad[m2];
-                    
                     let match1 = (b1.r==='wall' === o1.r==='wall') && (b2.r==='wall' === o2.r==='wall');
                     let match2 = (b1.r==='wall' === o2.r==='wall') && (b2.r==='wall' === o1.r==='wall');
-                    
                     if(match1 || match2) {
                         let testSquad = [...mainSquad];
-                        if(match1) {
-                            testSquad[m1] = {...b1, pos: o1.pos};
-                            testSquad[m2] = {...b2, pos: o2.pos};
-                        } else {
-                            testSquad[m1] = {...b2, pos: o1.pos};
-                            testSquad[m2] = {...b1, pos: o2.pos};
-                        }
-                        
+                        testSquad[m1] = match1 ? {...b1, pos: o1.pos} : {...b2, pos: o1.pos};
+                        testSquad[m2] = match1 ? {...b2, pos: o2.pos} : {...b1, pos: o2.pos};
                         let testEval = calcSquadScore(testSquad);
-                        if(testEval.score > bestScore) {
-                            bestScore = testEval.score;
-                            bestSwap = { in: [b1, b2], out: [o1, o2], eval: testEval };
-                        }
+                        if(testEval.score > bestScore) { bestScore = testEval.score; bestSwap = { in: [b1, b2], out: [o1, o2], eval: testEval }; }
                     }
                 }
             }
         }
     }
 
-    if (bestSwap) { window.currentBestSwap = bestSwap; }
+    if (bestSwap) window.currentBestSwap = bestSwap;
 
-    const makeCompareBox = (inArr, outArr) => {
-        const formatInChar = (c) => {
-            let wpTxt = (c.ur && c.wp === 0) ? "未実装" : `Lv${c.wp}`;
-            let synBadge = c.charSyns.length > 0 ? `<div style="font-size:0.65rem; color:#d35400; background:#fdebd0; padding:4px 8px; border-radius:12px; margin-top:8px; display:inline-block; font-weight:bold; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">✨ ${c.charSyns[c.charSyns.length-1]} 覚醒</div>` : "";
-            
-            return `
-            <div style="margin-top:4px;">
-                <div style="font-size:1.05rem; font-weight:900; color:#166534; line-height:1.2;">${c.n}</div>
-                <div style="font-size:0.75rem; color:#4b5563; margin-top:6px; line-height:1.4;">
-                    ${getSquadName(c.squad)}<br>${wpTxt} / ${getEvalMark(c.wp)}
-                </div>
-                ${synBadge}
-            </div>`;
-        };
-        const formatOutChar = (c) => {
-            let wpTxt = (c.ur && c.wp === 0) ? "未実装" : `Lv${c.wp}`;
-            return `
-            <div style="margin-top:4px;">
-                <div style="font-size:1.05rem; font-weight:900; color:#991b1b; line-height:1.2;">${c.n}</div>
-                <div style="font-size:0.75rem; color:#4b5563; margin-top:6px; line-height:1.4;">
-                    現在の編成<br>${wpTxt} / ${getEvalMark(c.wp)}
-                </div>
-            </div>`;
-        };
+    const formatChar = (c, isOut) => {
+        let wpTxt = (c.ur && c.wp === 0) ? "未実装" : `Lv${c.wp}`;
+        let sub = isOut ? "現在" : getSquadName(c.squad).replace('部隊', ''); 
+        let color = isOut ? "#b91c1c" : "#15803d";
+        let synBadge = (!isOut && c.charSyns.length > 0) ? `<div style="font-size:0.65rem; color:#d97706; background:#fef3c7; padding:2px 6px; border-radius:10px; margin-top:6px; display:inline-block; font-weight:bold; border:1px solid #fde68a;">✨ ${c.charSyns[c.charSyns.length-1]}</div>` : "";
         
-        return `
-        <div style="display:flex; justify-content:center; align-items:stretch; gap:10px; margin:15px 0;">
-            <div style="flex:1; min-width:0; background:#f0fdf4; border:2px solid #bbf7d0; border-radius:10px; padding:12px 6px; text-align:center; box-sizing:border-box; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                <div style="font-size:0.75rem; color:#15803d; font-weight:900; margin-bottom:8px; letter-spacing:0.5px;">🟢 IN </div>
-                ${inArr.map(formatInChar).join('')}
-            </div>
-            <div style="display:flex; align-items:center; justify-content:center; font-size:1.4rem; color:#bdc3c7;">
-                🔄
-            </div>
-            <div style="flex:1; min-width:0; background:#fef2f2; border:2px solid #fecaca; border-radius:10px; padding:12px 6px; text-align:center; box-sizing:border-box; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                <div style="font-size:0.75rem; color:#b91c1c; font-weight:900; margin-bottom:8px; letter-spacing:0.5px;">🔴 OUT </div>
-                ${outArr.map(formatOutChar).join('')}
-            </div>
-        </div>`;
+        return `<div style="margin-top:4px;"><div style="font-size:1.05rem; font-weight:900; color:${color}; line-height:1.2;">${c.n}</div><div style="font-size:0.75rem; color:#475569; margin-top:4px; line-height:1.3;">${sub}: ${wpTxt} / ${getEvalMark(c.wp)}</div>${synBadge}</div>`;
     };
 
-    const formatProsCons = (pro, con) => `
-        <div style="margin-top:10px; font-size:0.85rem; background:#fff; padding:12px; border-radius:8px; border:1px solid #e5e7eb;">
-            <div style="color:#27ae60; margin-bottom:6px; line-height:1.5;"><b>⭕ メリット:</b><br>${pro}</div>
-            <div style="color:#c0392b; line-height:1.5;"><b>⚠️ デメリット:</b><br>${con}</div>
-        </div>
-    `;
-
-    // バフ数値を％表記にするヘルパー関数
+    let adviceType = "", suggestionText = "", swapCandidateHtml = "";
     const getBuffText = (count) => count === 5 ? "20%" : count === 4 ? "15%" : count === 3 ? "10%" : "0%";
-
-    let adviceType = "";
-    let suggestionText = "";
-    let swapCandidateHtml = "";
 
     if (!bestSwap) {
         adviceType = "✨ 現在の編成がベストです";
-        suggestionText = `現状の第1部隊が、所持キャラの中で最も高いポテンシャルを発揮できる最適な編成です。`;
-        swapCandidateHtml = `<div class="swap-candidate" style="text-align:center; padding:20px;"><span class="swap-title" style="border:none; margin-bottom:5px;">${adviceType}</span><div style="font-size:0.85rem;">${suggestionText}</div></div>`;
+        suggestionText = `現状の第1部隊が最も高いポテンシャルを発揮できます。`;
+        swapCandidateHtml = `<div class="swap-candidate" style="text-align:center; padding:15px;"><span class="swap-title" style="border:none; margin-bottom:5px;">${adviceType}</span><div style="font-size:0.85rem;">${suggestionText}</div></div>`;
     } else {
-        let oldMaxC = currentEval.maxC;
-        let newMaxC = bestSwap.eval.maxC;
-        let merit = "";
-        let demerit = "";
-
+        let oMax = currentEval.maxC, nMax = bestSwap.eval.maxC, merit = "";
         let awakenedSkills = bestSwap.in.map(c => c.charSyns).flat();
-        let synText = awakenedSkills.length > 0 ? `<br>💡 <b>さらに、専用武装の覚醒効果（${awakenedSkills[awakenedSkills.length-1]}等）が戦局を大きく有利にします！</b>` : "";
+        let synText = awakenedSkills.length > 0 ? `<br><span style="color:#d97706; font-size:0.8rem; display:inline-block; margin-top:4px;">💡 <b>覚醒効果（${awakenedSkills[awakenedSkills.length-1]}等）でさらに有利に！</b></span>` : "";
 
-        if (newMaxC < oldMaxC) {
-            // ここで％表記を使用！
-            demerit = `兵種バフが低下します（${getBuffText(oldMaxC)} ➡ ${getBuffText(newMaxC)}）`;
+        if (nMax < oMax) {
+            let syns = [];
+            if(bestSwap.eval.synergies.includes('マーフィー前列配置') && !currentEval.synergies.includes('マーフィー前列配置')) syns.push("マーフィーの盾");
+            if(bestSwap.eval.synergies.includes('マーシャルの全体バフ') && !currentEval.synergies.includes('マーシャルの全体バフ')) syns.push("マーシャルのバフ");
             
-            let squadSynNames = [];
-            if(bestSwap.eval.synergies.includes('マーフィー前列配置') && !currentEval.synergies.includes('マーフィー前列配置')) squadSynNames.push("マーフィーの強固な物理盾");
-            if(bestSwap.eval.synergies.includes('マーシャルの全体バフ') && !currentEval.synergies.includes('マーシャルの全体バフ')) squadSynNames.push("マーシャルの全体バフ");
-            
-            if(squadSynNames.length > 0) {
-                merit = `兵種バフの低下を<b>【${squadSynNames.join('と')}】</b>で完全に相殺し、さらに総合戦力を高めます！${synText}`;
-            } else {
-                merit = `兵種バフの低下を、入れ替えたキャラの高レベル武装による圧倒的なステータス差で補って余りある火力を出せます！${synText}`;
-            }
-            
-            adviceType = "💡 メタ編成：強力な異種出張";
-            if (bestSwap.in.length === 2 && newMaxC === 3) adviceType = "🛩️ メタ移行ルート (3+2編成)";
-
-        } else if (newMaxC > oldMaxC) {
-            adviceType = "✨ 理想陣形への統一";
-            merit = `同兵種ボーナス（${getBuffText(newMaxC)}）が新たに発動し、部隊全体の基礎ステータスが大きく跳ね上がります！${synText}`;
-            demerit = "特になし（迷わず入れ替えることをおすすめします）。";
+            merit = syns.length > 0 
+                ? `陣形バフの低下（${getBuffText(oMax)}➡${getBuffText(nMax)}）を<b>【${syns.join('と')}】</b>で完全にカバーし、総合力がUPします！${synText}` 
+                : `陣形バフの低下（${getBuffText(oMax)}➡${getBuffText(nMax)}）を、高Lv武装の圧倒的なステータス差で完全にカバーします！${synText}`;
+            adviceType = bestSwap.in.length === 2 && nMax === 3 ? "🛩️ メタ移行ルート (3+2)" : "💡 強力な異種出張";
+        } else if (nMax > oMax) {
+            adviceType = "✨ 理想陣形への移行";
+            merit = `同兵種ボーナス（${getBuffText(nMax)}）が新たに発動し、部隊全体の基礎ステータスが大きく跳ね上がります！${synText}`;
         } else {
-            adviceType = "🚀 純粋な戦力アップ（上位互換への入れ替え）";
-            merit = `兵種ボーナスを維持したまま、キャラ単体のポテンシャルを大幅にアップグレードできます。${synText}`;
-            demerit = "特になし（完全な上位互換への入れ替えです）。";
+            adviceType = "🚀 上位互換への入れ替え";
+            merit = `陣形バフを維持したまま、キャラ単体のポテンシャルを大幅にアップグレードできます！${synText}`;
         }
 
-        suggestionText = `より高いポテンシャルを持つキャラがいます。`;
+        suggestionText = `以下の入れ替えで総合スコアがアップします。`;
         
-        let applyBtnHtml = `
-            <div style="text-align:center; margin-top:15px;">
-                <button class="apply-btn" onclick="applySwap()">🔄 この提案を自動で適用する</button>
-            </div>
-        `;
-
         swapCandidateHtml = `
         <div class="swap-candidate">
-            <span class="swap-title">${adviceType}</span>
-            <div style="font-size:0.85rem; margin-bottom:12px;">${suggestionText}</div>
-            ${makeCompareBox(bestSwap.in, bestSwap.out)}
-            ${formatProsCons(merit, demerit)}
-            ${applyBtnHtml}
+            <span class="swap-title" style="margin-bottom:8px;">${adviceType}</span>
+            <div style="font-size:0.85rem; margin-bottom:10px;">${suggestionText}</div>
+            <div style="display:flex; justify-content:center; align-items:stretch; gap:10px; margin:12px 0;">
+                <div style="flex:1; min-width:0; background:#f0fdf4; border:2px solid #bbf7d0; border-radius:10px; padding:10px 4px; text-align:center; box-sizing:border-box;">
+                    <div style="font-size:0.8rem; color:#166534; font-weight:900; margin-bottom:6px;">🟢 IN</div>
+                    ${bestSwap.in.map(c => formatChar(c, false)).join('')}
+                </div>
+                <div style="display:flex; align-items:center; justify-content:center; font-size:1.4rem; color:#cbd5e1;">🔄</div>
+                <div style="flex:1; min-width:0; background:#fef2f2; border:2px solid #fecaca; border-radius:10px; padding:10px 4px; text-align:center; box-sizing:border-box;">
+                    <div style="font-size:0.8rem; color:#991b1b; font-weight:900; margin-bottom:6px;">🔴 OUT</div>
+                    ${bestSwap.out.map(c => formatChar(c, true)).join('')}
+                </div>
+            </div>
+            <div style="margin-top:10px; font-size:0.85rem; background:#fff; padding:10px 12px; border-radius:8px; border:1px solid #e2e8f0;">
+                <div style="color:#15803d; line-height:1.4;"><b>💡 提案の理由:</b><br>${merit}</div>
+            </div>
+            <div style="text-align:center; margin-top:12px;"><button class="apply-btn" onclick="applySwap()">🔄 この提案を自動で適用する</button></div>
         </div>`;
     }
 
     let mainFaction = 'tank';
-    let s1Counts = { tank: 0, air: 0, mis: 0 };
-    mainSquad.forEach(c => s1Counts[c.t]++);
-    if(s1Counts.air >= s1Counts.tank && s1Counts.air >= s1Counts.mis) mainFaction = 'air';
-    if(s1Counts.mis >= s1Counts.tank && s1Counts.mis >= s1Counts.air) mainFaction = 'mis';
+    let s1C = { tank:0, air:0, mis:0 };
+    mainSquad.forEach(c => s1C[c.t]++);
+    if(s1C.air >= s1C.tank && s1C.air >= s1C.mis) mainFaction = 'air';
+    if(s1C.mis >= s1C.tank && s1C.mis >= s1C.air) mainFaction = 'mis';
 
     let bestFaction = Object.keys(allScores).reduce((a,b)=> allScores[a]>allScores[b]?a:b);
-    let factionName = bestFaction==='tank' ? '戦車' : bestFaction==='air' ? '航空機' : 'ロケラン';
-    let mainFactionName = mainFaction==='tank' ? '戦車' : mainFaction==='air' ? '航空機' : 'ロケラン';
+    let fNames = {tank:'戦車', air:'航空機', mis:'ロケラン'};
+    let topMessage = `💡 <b>${bestFaction === mainFaction ? `現状の総合戦力は「${fNames[bestFaction]}軸」が最強です` : `全体では「${fNames[bestFaction]}軸」が最強ですが、第1部隊を基準に「${fNames[mainFaction]}軸」の強化を提案します`}</b>`;
 
-    let topMessage = "";
-    if (bestFaction === mainFaction) {
-        topMessage = `💡 <b>現在の総合ポテンシャルは「${factionName}軸」が最強です</b>`;
-    } else {
-        topMessage = `💡 <b>全体では「${factionName}軸」が最強ですが、第1部隊を基準に「${mainFactionName}軸」の強化を提案します</b>`;
-    }
+    let bestSq = 1, maxSqScore = squadScores[1];
+    if (squadScores[2] > maxSqScore) { bestSq = 2; maxSqScore = squadScores[2]; }
+    if (squadScores[3] > maxSqScore) { bestSq = 3; maxSqScore = squadScores[3]; }
+    let squadWarning = bestSq !== 1 && maxSqScore > squadScores[1] + 15 ? `<div style="font-size:0.75rem; color:#b91c1c; background:#fef2f2; padding:8px; border-radius:6px; margin-top:10px; font-weight:bold; border:1px solid #fecaca;">⚠️ 第${bestSq}部隊の戦力が第1部隊を上回っています。メイン交代もおすすめです！</div>` : "";
 
-    let squadWarning = "";
-    let bestSquadNum = 1;
-    let maxSqScore = squadScores[1];
-    if (squadScores[2] > maxSqScore) { bestSquadNum = 2; maxSqScore = squadScores[2]; }
-    if (squadScores[3] > maxSqScore) { bestSquadNum = 3; maxSqScore = squadScores[3]; }
-    
-    if (bestSquadNum !== 1 && maxSqScore > squadScores[1] + 15) {
-        squadWarning = `<div style="font-size:0.75rem; color:#c0392b; background:#fadbd8; padding:6px; border-radius:4px; margin-top:8px; font-weight:bold;">⚠️ 第${bestSquadNum}部隊の戦力が第1部隊を大きく上回っています。メイン部隊の交代もおすすめです！</div>`;
-    }
-
-    let scoreTxt = `<div class="score-breakdown">第1部隊スコア: 現在 <b>${currentEval.score}</b> ➡ 入替後 <b><span style="color:#e74c3c">${bestSwap ? bestSwap.eval.score : currentEval.score}</span></b> </div>`;
-    
+    let scoreTxt = `<div class="score-breakdown">第1部隊スコア: 現在 <b>${currentEval.score}</b> ➡ 入替後 <b><span style="color:#b91c1c">${bestSwap ? bestSwap.eval.score : currentEval.score}</span></b> </div>`;
     resultBox.innerHTML = `${topMessage}${squadWarning}<br>${swapCandidateHtml}${scoreTxt}`;
 }
 
 function resetSquads() {
     if(confirm("編成をリセットしますか？")) {
         for(let s=1; s<=4; s++) {
-            let maxP = getMaxP(s);
-            for(let p=1; p<=maxP; p++) {
+            for(let p=1; p<=getMaxP(s); p++) {
                 document.getElementById(`h-${s}-${p}`).value = 'empty';
                 document.getElementById(`w-${s}-${p}`).value = 0;
             }
@@ -792,18 +673,14 @@ function resetSquads() {
     }
 }
 
-// --- 装備シミュレーター ---
+// --- Gear ---
 function initGearHTML() {
-    const makeRow = (prefix) => {
-        return GEAR_TYPES.map(g => `
-        <div class="g-row">
-            <span class="g-label">${GEAR_NAMES[g]}</span>
-            <div class="g-input-group">
-                <div class="stepper stepper-lv"><button onclick="gearStep('${prefix}${g}Lv', -1)">-</button><input id="${prefix}${g}Lv" value="40" readonly><button onclick="gearStep('${prefix}${g}Lv', 1)">+</button></div>
-                <div class="stepper stepper-star"><button onclick="gearStep('${prefix}${g}Star', -1)">-</button><input id="${prefix}${g}Star" data-val="0" value="☆☆☆☆☆" readonly><button onclick="gearStep('${prefix}${g}Star', 1)">+</button></div>
-            </div>
-        </div>`).join('');
-    };
+    const makeRow = (prefix) => GEAR_TYPES.map(g => `
+        <div class="g-row"><span class="g-label">${GEAR_NAMES[g]}</span>
+        <div class="g-input-group">
+            <div class="stepper stepper-lv"><button onclick="gearStep('${prefix}${g}Lv', -1)">-</button><input id="${prefix}${g}Lv" value="40" readonly><button onclick="gearStep('${prefix}${g}Lv', 1)">+</button></div>
+            <div class="stepper stepper-star"><button onclick="gearStep('${prefix}${g}Star', -1)">-</button><input id="${prefix}${g}Star" data-val="0" value="☆☆☆☆☆" readonly><button onclick="gearStep('${prefix}${g}Star', 1)">+</button></div>
+        </div></div>`).join('');
     document.getElementById('current-gear-rows').innerHTML = makeRow('c');
     document.getElementById('target-gear-rows').innerHTML = makeRow('t');
 }
@@ -811,117 +688,87 @@ function initGearHTML() {
 function gearStep(id, d) {
     let el = document.getElementById(id);
     let isStar = id.includes('Star');
-    let isWeapon = id.includes('Weapon');
-
     let v = isStar ? parseInt(el.getAttribute('data-val')) : parseInt(el.value);
-    let max = isStar ? 5 : (isWeapon ? 30 : 40); 
+    let max = isStar ? 5 : (id.includes('Weapon') ? 30 : 40); 
     let newVal = Math.min(Math.max(v + d, 0), max);
     
     if(isStar) {
         el.setAttribute('data-val', newVal);
         let s = ""; for(let i=0; i<5; i++) s += i<newVal ? "★":"☆";
         el.value = s;
-        el.style.color = newVal===5 ? "#e74c3c" : newVal>0 ? "#f39c12" : "#ccc";
-    } else {
-        el.value = newVal;
-    }
-    calculateGear();
-    saveData();
+        el.style.color = newVal===5 ? "#ef4444" : newVal>0 ? "#f59e0b" : "#cbd5e1";
+    } else { el.value = newVal; }
+    calculateGear(); saveData();
 }
 
 function calculateGear() {
     ['c', 't'].forEach(p => {
         GEAR_TYPES.forEach(g => {
-            let lvEl = document.getElementById(`${p}${g}Lv`);
-            let starEl = document.getElementById(`${p}${g}Star`);
-            let starWrap = starEl.closest('.stepper');
+            let lvEl = document.getElementById(`${p}${g}Lv`), starEl = document.getElementById(`${p}${g}Star`), wrap = starEl.closest('.stepper');
             if (parseInt(lvEl.value) < 40) {
-                starEl.setAttribute('data-val', 0);
-                starEl.value = "☆☆☆☆☆";
-                starEl.style.color = "#ccc";
-                starWrap.classList.add('disabled');
-            } else {
-                starWrap.classList.remove('disabled');
-            }
+                starEl.setAttribute('data-val', 0); starEl.value = "☆☆☆☆☆"; starEl.style.color = "#cbd5e1"; wrap.classList.add('disabled');
+            } else { wrap.classList.remove('disabled'); }
         });
     });
 
-    let costUr = 0, costMr = 0;
-    const urReq = [0, 5, 15, 30, 50, 50]; 
-    const mrReq = [0, 0, 0, 0, 0, 10];
+    const urReq = [0, 5, 15, 30, 50, 50], mrReq = [0, 0, 0, 0, 0, 10];
+    let costUr = 0, costMr = 0, listHtml = "";
     
-    let listHtml = "";
     GEAR_TYPES.forEach(g => {
         let cS = parseInt(document.getElementById(`c${g}Star`).getAttribute('data-val'));
         let tS = parseInt(document.getElementById(`t${g}Star`).getAttribute('data-val'));
         if(tS > cS) {
-            let u = urReq[tS] - urReq[cS];
-            let m = mrReq[tS] - mrReq[cS];
+            let u = urReq[tS] - urReq[cS], m = mrReq[tS] - mrReq[cS];
             costUr += u; costMr += m;
             let txt = [];
-            if(u>0) txt.push(`<span style="color:#f39c12">UR${u}</span>`);
-            if(m>0) txt.push(`<span style="color:#c0392b">MR${m}</span>`);
+            if(u>0) txt.push(`<span style="color:#f59e0b">UR${u}</span>`);
+            if(m>0) txt.push(`<span style="color:#b91c1c">MR${m}</span>`);
             listHtml += `<div class="cost-row"><span>${GEAR_NAMES[g]} ★${cS}→${tS}</span><span>${txt.join('+')}</span></div>`;
         }
     });
     
-    document.getElementById('cost-list').innerHTML = listHtml || "<span style='color:#ccc;'>追加コストなし</span>";
-    document.getElementById('ft-ur').innerText = costUr;
-    document.getElementById('ft-mr').innerText = costMr;
+    document.getElementById('cost-list').innerHTML = listHtml || "<span style='color:#94a3b8;'>追加コストなし</span>";
+    document.getElementById('ft-ur').innerText = costUr; document.getElementById('ft-mr').innerText = costMr;
 
     const calcP = (p) => {
-        let wp = parseInt(document.getElementById(`${p}Weapon`).value);
-        let m = 1.0;
-        let mythics = [];
-        
+        let wp = parseInt(document.getElementById(`${p}Weapon`).value), m = 1.0, myth = [];
         GEAR_TYPES.forEach(g => {
-            let lv = parseInt(document.getElementById(`${p}${g}Lv`).value);
-            let st = parseInt(document.getElementById(`${p}${g}Star`).getAttribute('data-val'));
+            let lv = parseInt(document.getElementById(`${p}${g}Lv`).value), st = parseInt(document.getElementById(`${p}${g}Star`).getAttribute('data-val'));
             let base = 1 + (lv * 0.005) + (st * 0.05); 
-            if(st===5) { 
-                base += 0.1; 
-                mythics.push(GEAR_NAMES[g].replace(/[\u231a-\u26ff]/g, ''));
-            }
+            if(st===5) { base += 0.1; myth.push(GEAR_NAMES[g].replace(/[\u231a-\u26ff]/g, '')); }
             m *= base;
         });
-        m *= (1 + wp * 0.02); 
-        return { val: m.toFixed(2), myth: mythics };
+        return { val: (m * (1 + wp * 0.02)).toFixed(2), myth };
     };
 
-    let resC = calcP('c');
-    let resT = calcP('t');
-    
+    let resC = calcP('c'), resT = calcP('t');
     document.getElementById('growth-rate').innerText = (resC.val > 0) ? (resT.val / resC.val).toFixed(2) : "1.00";
     
-    let dispBuff = (el, arr) => {
-        if(arr.length === 0) {
-            el.innerHTML = ""; el.classList.remove('active');
-        } else {
-            el.innerHTML = "<b>発動中:</b> " + arr.join(" / "); el.classList.add('active');
-        }
+    let dBuff = (id, arr) => {
+        let el = document.getElementById(id);
+        if(arr.length === 0) { el.innerHTML = ""; el.classList.remove('active'); } 
+        else { el.innerHTML = "<b>発動中:</b> " + arr.join(" / "); el.classList.add('active'); }
     };
-    dispBuff(document.getElementById('detail-curr'), resC.myth);
-    dispBuff(document.getElementById('detail-tgt'), resT.myth);
+    dBuff('detail-curr', resC.myth); dBuff('detail-tgt', resT.myth);
 }
 
+// --- Data Save/Load ---
 function saveData() {
-    let data = {};
+    let d = {};
     for(let s=1; s<=4; s++) {
-        let maxP = getMaxP(s);
-        for(let p=1; p<=maxP; p++) {
-            data[`h-${s}-${p}`] = document.getElementById(`h-${s}-${p}`).value;
-            data[`w-${s}-${p}`] = document.getElementById(`w-${s}-${p}`).value;
+        for(let p=1; p<=getMaxP(s); p++) {
+            d[`h-${s}-${p}`] = document.getElementById(`h-${s}-${p}`).value;
+            d[`w-${s}-${p}`] = document.getElementById(`w-${s}-${p}`).value;
         }
     }
     ['c','t'].forEach(p => {
-        data[`${p}Weapon`] = document.getElementById(`${p}Weapon`).value;
+        d[`${p}Weapon`] = document.getElementById(`${p}Weapon`).value;
         GEAR_TYPES.forEach(g => {
-            data[`${p}${g}Lv`] = document.getElementById(`${p}${g}Lv`).value;
-            data[`${p}${g}Star`] = document.getElementById(`${p}${g}Star`).getAttribute('data-val');
+            d[`${p}${g}Lv`] = document.getElementById(`${p}${g}Lv`).value;
+            d[`${p}${g}Star`] = document.getElementById(`${p}${g}Star`).getAttribute('data-val');
         });
     });
-
-    localStorage.setItem('lw_sim_final_layout_v9', JSON.stringify(data));
+    localStorage.setItem('lw_sim_final_layout_v9', JSON.stringify(d));
 }
 
 function loadAllData() {
@@ -929,11 +776,9 @@ function loadAllData() {
     if(saved) {
         let d = JSON.parse(saved);
         for(let s=1; s<=4; s++) {
-            let maxP = getMaxP(s);
-            for(let p=1; p<=maxP; p++) {
-                let h = d[`h-${s}-${p}`], w = d[`w-${s}-${p}`];
-                if(h) document.getElementById(`h-${s}-${p}`).value = h;
-                if(w) document.getElementById(`w-${s}-${p}`).value = w;
+            for(let p=1; p<=getMaxP(s); p++) {
+                if(d[`h-${s}-${p}`]) document.getElementById(`h-${s}-${p}`).value = d[`h-${s}-${p}`];
+                if(d[`w-${s}-${p}`]) document.getElementById(`w-${s}-${p}`).value = d[`w-${s}-${p}`];
             }
         }
         ['c','t'].forEach(p => {
@@ -956,8 +801,7 @@ function resetGear() {
             gearStep(`${p}${g}Star`, -5); 
         });
     });
-    calculateGear();
-    saveData();
+    calculateGear(); saveData();
 }
 </script>
 </body>
