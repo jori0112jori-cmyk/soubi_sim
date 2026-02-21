@@ -26,13 +26,20 @@
 
     /* === AI提案 === */
     .ai-panel { background: linear-gradient(135deg, #ffffff, #f8fafc); border-left: 5px solid #3b82f6; }
+    .route-panel { background: linear-gradient(135deg, #ffffff, #fdf4ff); border-left: 5px solid #c026d3; }
     .ai-title { color: #1d4ed8; font-weight: 900; display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 1.05rem; margin-bottom: 10px; flex-wrap: wrap; }
+    .route-title { color: #a21caf; font-weight: 900; display: flex; align-items: center; gap: 6px; font-size: 1.05rem; margin-bottom: 10px; }
     .suggestion-box { background: #fff; border-radius: 8px; padding: 15px; font-size: 0.9rem; line-height: 1.6; border: 1px solid #e2e8f0; color: #334155; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
     .swap-candidate { margin-top: 12px; padding-top: 12px; border-top: 1px dashed #cbd5e1; background: #fffbeb; padding: 15px; border-radius: 10px; border: 1px solid #fde68a; color: #475569; }
     .swap-title { font-weight: 900; color: #d97706; display: block; margin-bottom: 12px; font-size: 1rem; border-bottom: 2px dotted #fcd34d; padding-bottom: 8px; }
     .score-breakdown { font-size: 0.8rem; color: #64748b; margin-top: 12px; text-align: center; background: #f8fafc; padding: 8px 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-weight: bold;}
     .apply-btn { background: linear-gradient(to right, #2563eb, #1d4ed8); color: #fff; border: none; padding: 14px 20px; border-radius: 30px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(37,99,235,0.25); font-size: 0.95rem; width: 100%; max-width: 300px; transition: transform 0.1s, box-shadow 0.1s; display: block; margin: 18px auto 5px; letter-spacing: 0.5px;}
     .apply-btn:active { transform: translateY(2px); box-shadow: 0 2px 5px rgba(37,99,235,0.2); }
+    
+    /* 育成ルート用のスタイル追加 */
+    .route-badge-air { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 0.8rem; display: inline-block; margin-bottom: 8px; }
+    .route-badge-tank { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 0.8rem; display: inline-block; margin-bottom: 8px; }
+    .route-highlight { color: #c026d3; font-weight: 900; font-size: 0.95rem; }
 
     /* === 部隊編成 === */
     .squad-section { border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; margin-bottom: 15px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
@@ -69,7 +76,6 @@
     .visual-grid { display: flex; flex-direction: column; gap: 8px; }
     .v-row-front, .v-row-back { display: flex; justify-content: center; gap: 10px; }
     
-    /* ▼▼ 高さ（height）を可変にし、スキル名が表示されても潰れないように修正 ▼▼ */
     .hero-card { width: 30%; max-width: 90px; padding: 6px 2px; text-align: center; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.04); background: #fff; min-height: 54px; height: auto; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; }
     .card-tank { background: #fffbeb; border-color: #fde68a; color: #b45309; }
     .card-air { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
@@ -114,7 +120,7 @@
 <body>
 
 <div class="container">
-    <h1>育成シミュレーター <span style="font-size:0.7rem; color:#94a3b8; font-weight:normal;">v14.20 </span></h1>
+    <h1>育成シミュレーター <span style="font-size:0.7rem; color:#94a3b8; font-weight:normal;">v16.00 </span></h1>
 
     <div class="tabs">
         <div class="tab-btn active" onclick="showTab('squad')">⚔️ 部隊編成</div>
@@ -130,6 +136,16 @@
             <div id="ai-result" class="suggestion-box" style="display:none;"></div>
             <div id="ai-placeholder" style="font-size:0.85rem; color:#64748b; padding:10px; text-align:center; font-weight:bold;">
                 各部隊の武装Lvを入力してください。<br>全データから最適な組み合わせを分析します。
+            </div>
+        </div>
+
+        <div class="panel route-panel">
+            <div class="route-title">
+                <div><span>🎯 次の武装育成ターゲット</span></div>
+            </div>
+            <div id="route-result" class="suggestion-box" style="display:none;"></div>
+            <div id="route-placeholder" style="font-size:0.85rem; color:#64748b; padding:10px; text-align:center; font-weight:bold;">
+                キャラを配置して武装Lvを入力してください。
             </div>
         </div>
 
@@ -364,7 +380,6 @@ function lockDuplicateHeroes(s) {
     }
 }
 
-// ▼▼ 配置イメージにスキル名を表示するロジックを追加 ▼▼
 function renderVisual(s, m) {
     let html = m.map(h => {
         if(h.id === 'empty') return `<div class="hero-card card-none"><span style="font-size:0.7rem;">未設定</span></div>`;
@@ -386,7 +401,6 @@ function renderVisual(s, m) {
             else synName = "専用武装";
         }
         
-        // スキル名がある場合だけ、はみ出さない（ellipsis）極小文字のHTMLを追加
         let synHtml = synName ? `<div style="font-size:0.55rem; color:#d97706; font-weight:900; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:95%;">✨${synName}</div>` : "";
         
         return `<div class="hero-card ${cls}"><div class="role-icon">${roleIcon}</div><div class="hc-name">${h.n}${urTag}</div><div class="hc-wp">${wpTxt}</div>${synHtml}</div>`;
@@ -495,6 +509,8 @@ function generateAiSuggestion() {
     window.currentBestSwap = null; 
     let resultBox = document.getElementById('ai-result');
     let placeH = document.getElementById('ai-placeholder');
+    let routeResult = document.getElementById('route-result');
+    let routePlace = document.getElementById('route-placeholder');
     
     let allScores = { tank: 0, air: 0, mis: 0 }, squadScores = {1:0, 2:0, 3:0, 4:0};
     let roster = [], mainSquad = [];
@@ -534,6 +550,80 @@ function generateAiSuggestion() {
         }
     }
 
+    // --- 育成ルート＆兵種移行アドバイス ロジック ---
+    if(roster.length === 0) {
+        routeResult.style.display = 'none'; routePlace.style.display = 'block';
+    } else {
+        routePlace.style.display = 'none'; routeResult.style.display = 'block';
+        
+        const getWp = (id) => roster.find(h => h.id === id)?.wp || 0;
+        // 航空機
+        const dva = getWp('dva'), mor = getWp('morrison'), sky = getWp('schuyler'), luc = getWp('lucius'), car = getWp('carlie');
+        const airTotal = dva + mor + sky + luc + car;
+        // 戦車
+        const mur = getWp('murphy'), kim = getWp('kimberly'), stet = getWp('stetmann'), wil = getWp('williams');
+        const tankTotal = kim + mur + stet + wil;
+        // ミサイル
+        const tesla = getWp('tesla'), fiona = getWp('fiona'), swift = getWp('swift'), adam = getWp('adam'), mcg = getWp('mcgregor');
+        const misTotal = tesla + fiona + swift + adam + mcg;
+
+        // 3すくみのメイン軸判定
+        let mainAxis = 'tank';
+        if (tesla >= 20 || (misTotal > airTotal && misTotal > tankTotal)) {
+            mainAxis = 'mis';
+        } else if (airTotal >= tankTotal || (dva >= kim && dva > 0)) {
+            mainAxis = 'air';
+        }
+        
+        let targetHtml = "";
+        let axisBadge = "";
+
+        // 1. 次の育成ターゲット判定
+        if (mainAxis === 'mis') {
+            axisBadge = "<div class='route-badge-tank' style='background:#fef2f2; color:#b91c1c; border-color:#fecaca;'>🚀 現在のメイン：ミサイル編成</div>";
+            if (tesla < 30) targetHtml = "🔥 <span class='route-highlight' style='color:#b91c1c;'>テスラをLv.30へ</span><br>最強の矛！まずはテスラの火力を最大化してください。";
+            else if (fiona < 20) targetHtml = "💥 <span class='route-highlight' style='color:#b91c1c;'>フィオナをLv.20へ</span><br>圧倒的なスキル倍率を活かすためのサブアタッカー強化です。";
+            else if (mcg < 20) targetHtml = "🛡️ <span class='route-highlight' style='color:#b91c1c;'>マクレガーをLv.20へ</span><br>前列の耐久を安定させます。";
+            else targetHtml = "✨ <span class='route-highlight' style='color:#b91c1c;'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'>攻撃特化</b>：スウィフト (火力アップ)<br><b style='color:#3b82f6;'>防御安定</b>：アダム (耐久アップ)";
+        } else if (mainAxis === 'air') {
+            axisBadge = "<div class='route-badge-air'>✈️ 現在のメイン：航空機編成</div>";
+            if (dva < 30) targetHtml = "🔥 <span class='route-highlight'>DVAをLv.30へ</span><br>現在最優先！追加効果解放まで万能欠片を全集中させてください。";
+            else if (mur < 20) targetHtml = "🛡️ <span class='route-highlight'>マーフィーをLv.20へ</span><br>DVA完成後の出張パーツとして育成。ロケラン対策に必須です。";
+            else if (sky < 20) targetHtml = "⚡ <span class='route-highlight'>スカイラーをLv.20へ</span><br>スタンの回転率を上げ、相手のエースを封じます。";
+            else if (luc < 20) targetHtml = "🏰 <span class='route-highlight'>ルシウスをLv.20へ</span><br>航空ミラー戦で競り勝つために前列の耐久を強化します。";
+            else targetHtml = "✨ <span class='route-highlight'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'>攻撃特化</b>：モリソン (火力アップ)<br><b style='color:#3b82f6;'>防御安定</b>：カーリー (回避アップ)";
+        } else {
+            axisBadge = "<div class='route-badge-tank'>🚜 現在のメイン：戦車編成</div>";
+            if (kim < 30) targetHtml = "🔥 <span class='route-highlight'>キンバリーをLv.30へ</span><br>メイン火力として最優先です。";
+            else if (mur < 20) targetHtml = "🛡️ <span class='route-highlight'>マーフィーをLv.20へ</span><br>前列の耐久を確保します。";
+            else targetHtml = "✨ <span class='route-highlight'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'>攻撃特化</b>：ステッドマン (火力アップ)<br><b style='color:#3b82f6;'>防御安定</b>：ウィリアムズ (耐久アップ)";
+        }
+
+        // 2. 兵種移行アドバイス判定
+        let transitionHtml = "";
+        if (mainAxis === 'mis') {
+            transitionHtml = "🚀 <b>エンドコンテンツ到達：</b><br>現環境の頂点、ミサイル部隊への移行が進んでいます！航空機メタを完全に破壊できるので、このまま育成を極めましょう。";
+        } else if (mainAxis === 'air') {
+            if (dva >= 30 && luc >= 20 && sky >= 20) {
+                transitionHtml = "🔄 <b>最終メタへの準備：</b><br>航空機が極まってきました！サーバー内に航空機が増えてきたら、最強のアンチである<b>ミサイル（テスラ軸）</b>の育成を裏で進めるのがガチ勢の最終到達点です。";
+            } else {
+                transitionHtml = "✈️ <b>航空機シフト進行中：</b><br>対戦車メタへの移行が順調です。まずはDVAを軸としたこの編成を極め、アリーナで圧倒的有利を取りましょう！";
+            }
+        } else {
+            if (kim >= 30 && mur >= 20) {
+                transitionHtml = "🔄 <b>次世代への移行推奨：</b><br>戦車の必須基盤が完成しました！さらに上を目指すなら、王道の<b>航空機（DVA）</b>へ移行するか、茨の道ですが最終最強の<b>ミサイル（テスラ）</b>を目指すフェーズです。";
+            } else {
+                transitionHtml = "🚜 <b>戦車基盤の構築期：</b><br>兵種移行を考えるのはまだ早いです。まずは対人・PvE両方で腐らない『キンバリーLv30＋マーフィーLv20』の完成を一直線に目指しましょう。";
+            }
+        }
+        
+        routeResult.innerHTML = `${axisBadge}<div style="font-size:0.9rem; line-height:1.6; color:#334155;">${targetHtml}</div>
+        <div style="margin-top:12px; padding-top:10px; border-top:1px dashed #cbd5e1; font-size:0.85rem; color:#475569; background:#f8fafc; padding:10px; border-radius:8px;">
+            ${transitionHtml}
+        </div>`;
+    }
+
+    // --- 入替提案ロジック ---
     if(roster.length === 0 || mainSquad.length === 0) {
         resultBox.style.display = 'none'; placeH.style.display = 'block';
         return;
@@ -768,6 +858,7 @@ function saveData() {
             d[`${p}${g}Star`] = document.getElementById(`${p}${g}Star`).getAttribute('data-val');
         });
     });
+    // 既存の保存データを維持するためキーはそのまま
     localStorage.setItem('lw_sim_final_layout_v9', JSON.stringify(d));
 }
 
