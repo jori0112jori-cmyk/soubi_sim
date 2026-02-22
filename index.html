@@ -31,9 +31,9 @@
     .reset-btn { font-size: 0.75rem; background: #fff; color: #64748b; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
     .reset-btn:active { background: #f1f5f9; }
     
-    /* ▼▼ シェアボタンのスタイル強化 ▼▼ */
-    .share-btn { font-size: 0.85rem; padding: 8px 15px; background: linear-gradient(to right, #3b82f6, #2563eb); color: #fff; border: none; border-radius: 8px; box-shadow: 0 4px 10px rgba(37,99,235,0.3); letter-spacing: 0.5px; }
-    .share-btn:active { background: #1d4ed8; transform: translateY(2px); box-shadow: 0 1px 3px rgba(37,99,235,0.3); }
+    /* ▼▼ 広告ブロック回避用クラス名に変更 ▼▼ */
+    .export-url-btn { font-size: 0.85rem; padding: 8px 15px; background: linear-gradient(to right, #3b82f6, #2563eb); color: #fff; border: none; border-radius: 8px; box-shadow: 0 4px 10px rgba(37,99,235,0.3); letter-spacing: 0.5px; font-weight: bold; cursor: pointer;}
+    .export-url-btn:active { background: #1d4ed8; transform: translateY(2px); box-shadow: 0 1px 3px rgba(37,99,235,0.3); }
 
     /* === AI提案 === */
     .ai-panel { background: linear-gradient(135deg, #ffffff, #f8fafc); border-left: 5px solid #3b82f6; }
@@ -130,7 +130,7 @@
 <div id="toast"></div>
 
 <div class="container">
-    <h1>育成シミュレーター <span style="font-size:0.7rem; color:#94a3b8; font-weight:normal;">v18.62 </span></h1>
+    <h1>育成シミュレーター <span style="font-size:0.7rem; color:#94a3b8; font-weight:normal;">v18.63 </span></h1>
 
     <div class="tabs">
         <div class="tab-btn active" onclick="showTab('squad')">⚔️ 部隊編成</div>
@@ -161,7 +161,7 @@
 
         <div class="panel" style="background:transparent; padding:0; border:none; box-shadow:none;">
             <div style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:12px;">
-                <button class="share-btn" onclick="shareUrl()">🔗 編成URLをコピー</button>
+                <button class="export-url-btn" onclick="exportFormationUrl()">🔗 編成URLをコピー</button>
                 <button class="reset-btn" onclick="resetSquads()" style="padding:8px 12px;">🗑️ リセット</button>
             </div>
             <div id="squad-container"></div>
@@ -812,7 +812,25 @@ function resetSquads() {
 }
 
 // --- 超圧縮 URL Share ---
-function shareUrl() {
+function getSaveDataObject() {
+    let d = {};
+    for(let s=1; s<=4; s++) {
+        for(let p=1; p<=getMaxP(s); p++) {
+            d[`h-${s}-${p}`] = document.getElementById(`h-${s}-${p}`).value;
+            d[`w-${s}-${p}`] = document.getElementById(`w-${s}-${p}`).value;
+        }
+    }
+    ['c','t'].forEach(p => {
+        d[`${p}Weapon`] = document.getElementById(`${p}Weapon`).value;
+        GEAR_TYPES.forEach(g => {
+            d[`${p}${g}Lv`] = document.getElementById(`${p}${g}Lv`).value;
+            d[`${p}${g}Star`] = document.getElementById(`${p}${g}Star`).getAttribute('data-val');
+        });
+    });
+    return d;
+}
+
+function exportFormationUrl() {
     let compressedData = "";
     for(let s=1; s<=4; s++) {
         for(let p=1; p<=getMaxP(s); p++) {
@@ -918,24 +936,6 @@ function calculateGear() {
 }
 
 // --- Data Save/Load ---
-function getSaveDataObject() {
-    let d = {};
-    for(let s=1; s<=4; s++) {
-        for(let p=1; p<=getMaxP(s); p++) {
-            d[`h-${s}-${p}`] = document.getElementById(`h-${s}-${p}`).value;
-            d[`w-${s}-${p}`] = document.getElementById(`w-${s}-${p}`).value;
-        }
-    }
-    ['c','t'].forEach(p => {
-        d[`${p}Weapon`] = document.getElementById(`${p}Weapon`).value;
-        GEAR_TYPES.forEach(g => {
-            d[`${p}${g}Lv`] = document.getElementById(`${p}${g}Lv`).value;
-            d[`${p}${g}Star`] = document.getElementById(`${p}${g}Star`).getAttribute('data-val');
-        });
-    });
-    return d;
-}
-
 function saveData() {
     let d = getSaveDataObject();
     localStorage.setItem('lw_sim_final_layout_v9', JSON.stringify(d));
@@ -947,6 +947,7 @@ function loadAllData() {
     const urlParams = new URLSearchParams(window.location.search);
     const param = urlParams.get('d');
     
+    // 超圧縮URLからのロード
     if(param && param.length >= 40 && !param.includes('%')) {
         try {
             let idx = 0;
@@ -964,6 +965,7 @@ function loadAllData() {
             window.history.replaceState(null, null, window.location.pathname); 
         } catch(e) { console.error("URL解析エラー"); }
     } 
+    // 旧バージョンのBase64形式のフォールバック
     else if (param) {
         try {
             let decoded = JSON.parse(decodeURIComponent(atob(param)));
@@ -979,6 +981,7 @@ function loadAllData() {
         } catch(e) { console.error("URL解析エラー(旧形式)"); }
     }
     
+    // URLからの読み込みがなければ、ローカルから編成を復元
     if(!isShared) {
         let saved = localStorage.getItem('lw_sim_final_layout_v9');
         if(saved) {
@@ -992,6 +995,7 @@ function loadAllData() {
         }
     }
 
+    // 装備シミュのデータは、URLシェアに関わらず常に自分のローカルデータを表示
     let savedLocal = localStorage.getItem('lw_sim_final_layout_v9');
     if(savedLocal) {
         let dLocal = JSON.parse(savedLocal);
