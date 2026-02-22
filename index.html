@@ -635,19 +635,19 @@ function generateAiSuggestion() {
             if (tesla < 30) targetHtml = "🔥 <span class='route-highlight' style='color:#b91c1c;'>テスラをLv.30へ</span><br>最強の矛！まずはテスラの火力を最大化してください。";
             else if (fiona < 20) targetHtml = "💥 <span class='route-highlight' style='color:#b91c1c;'>フィオナをLv.20へ</span><br>圧倒的なスキル倍率を活かすためのサブアタッカー強化です。";
             else if (mcg < 20) targetHtml = "🛡️ <span class='route-highlight' style='color:#b91c1c;'>マクレガーをLv.20へ</span><br>前列の耐久を安定させます。";
-            else targetHtml = "✨ <span class='route-highlight' style='color:#b91c1c;'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'>〇 攻撃特化</b>：スウィフト (火力アップ)<br><b style='color:#3b82f6;'>△ 防御安定</b>：アダム (耐久アップ)";
+            else targetHtml = "✨ <span class='route-highlight' style='color:#b91c1c;'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'>攻撃特化</b>：スウィフト (火力アップ)<br><b style='color:#3b82f6;'>防御安定</b>：アダム (耐久アップ)";
         } else if (mainAxis === 'air') {
             axisBadge = "<div class='route-badge-air'>✈️ 現在のメイン：航空機編成</div>";
             if (dva < 30) targetHtml = "🔥 <span class='route-highlight'>DVAをLv.30へ</span><br>現在最優先！追加効果解放まで万能欠片を全集中させてください。";
             else if (mur < 20) targetHtml = "🛡️ <span class='route-highlight'>マーフィーをLv.20へ</span><br>DVA完成後の出張パーツとして育成。ロケラン対策に必須です。";
             else if (sky < 20) targetHtml = "⚡ <span class='route-highlight'>スカイラーをLv.20へ</span><br>スタンの回転率を上げ、相手のエースを封じます。";
             else if (luc < 20) targetHtml = "🏰 <span class='route-highlight'>ルシウスをLv.20へ</span><br>航空ミラー戦で競り勝つために前列の耐久を強化します。";
-            else targetHtml = "✨ <span class='route-highlight'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'>〇 攻撃特化</b>：モリソン (火力アップ)<br><b style='color:#3b82f6;'>△ 防御安定</b>：カーリー (回避アップ)";
+            else targetHtml = "✨ <span class='route-highlight'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'>攻撃特化</b>：モリソン (火力アップ)<br><b style='color:#3b82f6;'>防御安定</b>：カーリー (回避アップ)";
         } else {
             axisBadge = "<div class='route-badge-tank'>🚜 現在のメイン：戦車編成</div>";
             if (kim < 30) targetHtml = "🔥 <span class='route-highlight'>キンバリーをLv.30へ</span><br>メイン火力として最優先です。";
             else if (mur < 20) targetHtml = "🛡️ <span class='route-highlight'>マーフィーをLv.20へ</span><br>前列の耐久を確保します。";
-            else targetHtml = "✨ <span class='route-highlight'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'>〇 攻撃特化</b>：ステットマン (火力アップ)<br><b style='color:#3b82f6;'>△ 防御安定</b>：ウィリアムズ (耐久アップ)";
+            else targetHtml = "✨ <span class='route-highlight'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'>攻撃特化</b>：ステットマン (火力アップ)<br><b style='color:#3b82f6;'>防御安定</b>：ウィリアムズ (耐久アップ)";
         }
 
         let transitionHtml = "";
