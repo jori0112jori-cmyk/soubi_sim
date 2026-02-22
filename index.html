@@ -7,7 +7,7 @@
 <style>
     /* === ベース設定 === */
     body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background-color: #f4f6f8; color: #2c3e50; padding: 12px 10px 120px; margin: 0; font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
-    h1 { font-size: 1.25rem; text-align: center; color: #1a252f; margin: 5px 0 15px; font-weight: 900; letter-spacing: 0.5px; }
+    h1 { font-size: 1.25rem; text-align: left; color: #1a252f; margin: 0; font-weight: 900; letter-spacing: 0.5px; }
     .container { max-width: 900px; margin: 0 auto; }
     
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
@@ -17,6 +17,7 @@
     #toast.show { visibility: visible; opacity: 1; bottom: 80px; }
 
     /* === UIコンポーネント === */
+    .header-bar { display: flex; justify-content: space-between; align-items: flex-end; margin: 5px 0 15px; }
     .tabs { display: flex; background: #e2e8f0; border-radius: 10px; padding: 4px; margin-bottom: 18px; }
     .tab-btn { flex: 1; padding: 12px 0; text-align: center; font-size: 0.95rem; font-weight: bold; color: #64748b; cursor: pointer; border-radius: 8px; transition: all 0.2s ease; }
     .tab-btn.active { background: #fff; color: #2563eb; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
@@ -46,7 +47,7 @@
     .route-badge-tank { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 0.8rem; display: inline-block; margin-bottom: 8px; }
     .route-highlight { color: #c026d3; font-weight: 900; font-size: 0.95rem; }
 
-    /* === 部隊編成（UI統合版） === */
+    /* === 部隊編成 === */
     .squad-section { border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; margin-bottom: 15px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
     .squad-header { background: #f8fafc; padding: 12px 15px; font-weight: 900; color: #334155; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 0.95rem; border-bottom: 1px solid #e2e8f0; transition: background 0.2s; }
     .squad-header:active { background: #f1f5f9; }
@@ -62,17 +63,14 @@
     .interactive-card { width: 31%; max-width: 105px; padding: 8px 4px; text-align: center; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.4); background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(0,0,0,0.2)); backdrop-filter: blur(4px); display: flex; flex-direction: column; align-items: center; position: relative; border-top: 1px solid rgba(255,255,255,0.2); border-bottom: 4px solid #64748b; transition: all 0.2s; }
     .interactive-card:focus-within { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.6); border-color: #3b82f6; }
     
-    /* カード内横並びアイコン */
     .card-icon-wrap { display: flex; justify-content: center; gap: 8px; margin-top: 4px; height: 28px; width: 100%; }
     .icon-box { width: 28px; height: 28px; background: #1e293b; border-radius: 50%; padding: 2px; border: 1px solid #475569; box-shadow: 0 2px 4px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; box-sizing: border-box; overflow: hidden; }
 
-    /* ▼▼ セレクトボックスの押しやすさ改善 ▼▼ */
     .card-select { width: 95%; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 8px 2px; font-size: 0.85rem; font-weight: bold; margin-top: 6px; margin-bottom: 8px; appearance: none; -webkit-appearance: none; text-align: center; text-align-last: center; outline: none; text-overflow: ellipsis; }
     .card-select:focus { border-color: #3b82f6; background: rgba(0,0,0,0.6); }
     .card-select option { background: #1e293b; color: #fff; }
     .card-select optgroup { background: #0f172a; color: #94a3b8; }
 
-    /* ▼▼ ＋－ボタンの大型化（押しやすさ改善） ▼▼ */
     .card-stepper { display: flex; align-items: center; background: rgba(0,0,0,0.5); border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); width: 95%; margin-bottom: 4px; }
     .card-stepper button { flex: 1; background: rgba(255,255,255,0.05); border: none; color: #cbd5e1; font-size: 1.4rem; font-weight: bold; padding: 6px 0; cursor: pointer; touch-action: manipulation; display: flex; align-items: center; justify-content: center; }
     .card-stepper button:active { background: rgba(255,255,255,0.2); }
@@ -89,7 +87,7 @@
     .adv-ok { background: #f0fdf4; border-color: #22c55e; color: #166534; }
     .adv-ng { background: #fef2f2; border-color: #ef4444; color: #991b1b; }
 
-    /* === 装備シミュレーター用ステッパー === */
+    /* === 装備シミュレーター用 === */
     .stepper { display: flex; align-items: center; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; height: 36px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);}
     .stepper button { width: 30px; height: 100%; border: none; background: #f1f5f9; font-size: 1.1rem; font-weight: bold; color: #475569; cursor: pointer; padding: 0; flex-shrink: 0; transition: background 0.1s;}
     .stepper button:active { background: #e2e8f0; }
@@ -128,7 +126,10 @@
 <div id="toast"></div>
 
 <div class="container">
-    <h1>育成シミュレーター <span style="font-size:0.7rem; color:#94a3b8; font-weight:normal;">v18.50 </span></h1>
+    <div class="header-bar">
+        <h1>育成シミュレーター <span style="font-size:0.7rem; color:#94a3b8; font-weight:normal;">v18.60 </span></h1>
+        <button onclick="shareUrl()" class="reset-btn share-btn">🔗 編成URLをコピー</button>
+    </div>
 
     <div class="tabs">
         <div class="tab-btn active" onclick="showTab('squad')">⚔️ 部隊編成</div>
@@ -159,7 +160,6 @@
 
         <div class="panel" style="background:transparent; padding:0; border:none; box-shadow:none;">
             <div style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:8px;">
-                <button class="reset-btn share-btn" onclick="shareUrl()">🔗 編成URLをコピー</button>
                 <button class="reset-btn" onclick="resetSquads()">🗑️ 全リセット</button>
             </div>
             <div id="squad-container"></div>
@@ -248,6 +248,17 @@ const GEAR_NAMES = { 'Gun':'🔫レールガン', 'Data':'💾チップ', 'Armor
 
 const getMaxP = (s) => s === 4 ? 10 : 5;
 const getSquadName = (s) => s === 4 ? "控え室" : `第${s}部隊`;
+
+// --- URL共有機能（超圧縮エンコード用マップ） ---
+const HERO_COMPRESS_MAP = {
+    empty:'0', murphy:'1', williams:'2', scarlett:'3', violet:'4',
+    kimberly:'5', stetmann:'6', mason:'7', marshall:'8',
+    lucius:'9', carlie:'a', dva:'b', schuyler:'c', morrison:'d', sarah:'e',
+    mcgregor:'f', adam:'g', tesla:'h', fiona:'i', swift:'j', venom:'k'
+};
+const DECOMPRESS_MAP = Object.keys(HERO_COMPRESS_MAP).reduce((ret, key) => {
+    ret[HERO_COMPRESS_MAP[key]] = key; return ret;
+}, {});
 
 // --- Initialization ---
 window.onload = function() {
@@ -358,7 +369,6 @@ function stepWp(s, p, d) {
 }
 
 function updateSquad(s, skipAi = false) {
-    // 変更された直後に、重複がないかチェックして更新する
     lockDuplicateHeroes(s);
     
     let members = [];
@@ -437,23 +447,20 @@ function updateSquad(s, skipAi = false) {
     }
 }
 
-// ▼▼ 強力な重複防止システム ▼▼
 function lockDuplicateHeroes(s) {
     let selects = Array.from(document.querySelectorAll(`#sq-body-${s} .card-select`));
     let selectedVals = selects.map(el => el.value).filter(v => v !== 'empty');
     
     selects.forEach(sel => {
-        // もし変更された値がすでに他の枠で選ばれている場合（強制ロールバック）
         let prevVal = sel.getAttribute('data-prev') || 'empty';
         if (sel.value !== 'empty' && selectedVals.filter(v => v === sel.value).length > 1) {
             showToast("⚠️ 同一部隊内でキャラが重複しています");
-            sel.value = prevVal; // 直前の状態に戻す
-            selectedVals = selects.map(el => el.value).filter(v => v !== 'empty'); // リスト再取得
+            sel.value = prevVal; 
+            selectedVals = selects.map(el => el.value).filter(v => v !== 'empty'); 
         } else {
-            sel.setAttribute('data-prev', sel.value); // 正常なら履歴を更新
+            sel.setAttribute('data-prev', sel.value); 
         }
 
-        // 選択肢の表示を切り替え（選ばれているものは "(済)" と表示し暗くする）
         Array.from(sel.options).forEach(opt => {
             let isDup = opt.value !== 'empty' && selectedVals.includes(opt.value) && opt.value !== sel.value;
             opt.disabled = isDup;
@@ -635,19 +642,19 @@ function generateAiSuggestion() {
             if (tesla < 30) targetHtml = "🔥 <span class='route-highlight' style='color:#b91c1c;'>テスラをLv.30へ</span><br>最強の矛！まずはテスラの火力を最大化してください。";
             else if (fiona < 20) targetHtml = "💥 <span class='route-highlight' style='color:#b91c1c;'>フィオナをLv.20へ</span><br>圧倒的なスキル倍率を活かすためのサブアタッカー強化です。";
             else if (mcg < 20) targetHtml = "🛡️ <span class='route-highlight' style='color:#b91c1c;'>マクレガーをLv.20へ</span><br>前列の耐久を安定させます。";
-            else targetHtml = "✨ <span class='route-highlight' style='color:#b91c1c;'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'>攻撃特化</b>：スウィフト (火力アップ)<br><b style='color:#3b82f6;'>防御安定</b>：アダム (耐久アップ)";
+            else targetHtml = "✨ <span class='route-highlight' style='color:#b91c1c;'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'> 攻撃特化</b>：スウィフト (火力アップ)<br><b style='color:#3b82f6;'> 防御安定</b>：アダム (耐久アップ)";
         } else if (mainAxis === 'air') {
             axisBadge = "<div class='route-badge-air'>✈️ 現在のメイン：航空機編成</div>";
             if (dva < 30) targetHtml = "🔥 <span class='route-highlight'>DVAをLv.30へ</span><br>現在最優先！追加効果解放まで万能欠片を全集中させてください。";
             else if (mur < 20) targetHtml = "🛡️ <span class='route-highlight'>マーフィーをLv.20へ</span><br>DVA完成後の出張パーツとして育成。ロケラン対策に必須です。";
             else if (sky < 20) targetHtml = "⚡ <span class='route-highlight'>スカイラーをLv.20へ</span><br>スタンの回転率を上げ、相手のエースを封じます。";
             else if (luc < 20) targetHtml = "🏰 <span class='route-highlight'>ルシウスをLv.20へ</span><br>航空ミラー戦で競り勝つために前列の耐久を強化します。";
-            else targetHtml = "✨ <span class='route-highlight'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'>攻撃特化</b>：モリソン (火力アップ)<br><b style='color:#3b82f6;'>防御安定</b>：カーリー (回避アップ)";
+            else targetHtml = "✨ <span class='route-highlight'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'> 攻撃特化</b>：モリソン (火力アップ)<br><b style='color:#3b82f6;'> 防御安定</b>：カーリー (回避アップ)";
         } else {
             axisBadge = "<div class='route-badge-tank'>🚜 現在のメイン：戦車編成</div>";
             if (kim < 30) targetHtml = "🔥 <span class='route-highlight'>キンバリーをLv.30へ</span><br>メイン火力として最優先です。";
             else if (mur < 20) targetHtml = "🛡️ <span class='route-highlight'>マーフィーをLv.20へ</span><br>前列の耐久を確保します。";
-            else targetHtml = "✨ <span class='route-highlight'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'>攻撃特化</b>：ステットマン (火力アップ)<br><b style='color:#3b82f6;'>防御安定</b>：ウィリアムズ (耐久アップ)";
+            else targetHtml = "✨ <span class='route-highlight'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'> 攻撃特化</b>：ステットマン (火力アップ)<br><b style='color:#3b82f6;'> 防御安定</b>：ウィリアムズ (耐久アップ)";
         }
 
         let transitionHtml = "";
@@ -802,31 +809,28 @@ function resetSquads() {
     }
 }
 
-// --- URL Share ---
-function getSaveDataObject() {
-    let d = {};
+// --- 超圧縮 URL Share ---
+function shareUrl() {
+    let compressedData = "";
     for(let s=1; s<=4; s++) {
         for(let p=1; p<=getMaxP(s); p++) {
-            d[`h-${s}-${p}`] = document.getElementById(`h-${s}-${p}`).value;
-            d[`w-${s}-${p}`] = document.getElementById(`w-${s}-${p}`).value;
+            let hid = document.getElementById(`h-${s}-${p}`).value;
+            let wp = parseInt(document.getElementById(`w-${s}-${p}`).value) || 0;
+            
+            // キャラ名を1文字に変換
+            let charCode = HERO_COMPRESS_MAP[hid] || '0';
+            // 武装Lv(0〜30)を36進数(0〜z)の1文字に変換
+            let wpCode = wp.toString(36); 
+            
+            compressedData += charCode + wpCode;
         }
     }
-    ['c','t'].forEach(p => {
-        d[`${p}Weapon`] = document.getElementById(`${p}Weapon`).value;
-        GEAR_TYPES.forEach(g => {
-            d[`${p}${g}Lv`] = document.getElementById(`${p}${g}Lv`).value;
-            d[`${p}${g}Star`] = document.getElementById(`${p}${g}Star`).getAttribute('data-val');
-        });
-    });
-    return d;
-}
-
-function shareUrl() {
-    let d = getSaveDataObject();
-    let b64 = btoa(encodeURIComponent(JSON.stringify(d)));
-    let url = window.location.origin + window.location.pathname + "?d=" + b64;
+    
+    // URLのパラメータに付与
+    let url = window.location.origin + window.location.pathname + "?d=" + compressedData;
+    
     navigator.clipboard.writeText(url).then(() => {
-        showToast("📋 編成URLをコピーしました！");
+        showToast("📋 短縮URLをコピーしました！");
     }).catch(err => {
         showToast("❌ コピーに失敗しました");
     });
@@ -912,6 +916,24 @@ function calculateGear() {
 }
 
 // --- Data Save/Load ---
+function getSaveDataObject() {
+    let d = {};
+    for(let s=1; s<=4; s++) {
+        for(let p=1; p<=getMaxP(s); p++) {
+            d[`h-${s}-${p}`] = document.getElementById(`h-${s}-${p}`).value;
+            d[`w-${s}-${p}`] = document.getElementById(`w-${s}-${p}`).value;
+        }
+    }
+    ['c','t'].forEach(p => {
+        d[`${p}Weapon`] = document.getElementById(`${p}Weapon`).value;
+        GEAR_TYPES.forEach(g => {
+            d[`${p}${g}Lv`] = document.getElementById(`${p}${g}Lv`).value;
+            d[`${p}${g}Star`] = document.getElementById(`${p}${g}Star`).getAttribute('data-val');
+        });
+    });
+    return d;
+}
+
 function saveData() {
     let d = getSaveDataObject();
     localStorage.setItem('lw_sim_final_layout_v9', JSON.stringify(d));
@@ -919,32 +941,67 @@ function saveData() {
 
 function loadAllData() {
     let d = null;
+    let isShared = false;
     const urlParams = new URLSearchParams(window.location.search);
     const param = urlParams.get('d');
-    if(param) {
+    
+    // 超圧縮URLからのロード（40文字～50文字程度で、%を含まない）
+    if(param && param.length >= 40 && !param.includes('%')) {
         try {
-            d = JSON.parse(decodeURIComponent(atob(param)));
+            let idx = 0;
+            for(let s=1; s<=4; s++) {
+                for(let p=1; p<=getMaxP(s); p++) {
+                    let hid = DECOMPRESS_MAP[param.charAt(idx)] || 'empty';
+                    let wp = parseInt(param.charAt(idx + 1), 36) || 0;
+                    document.getElementById(`h-${s}-${p}`).value = hid;
+                    document.getElementById(`w-${s}-${p}`).value = wp;
+                    idx += 2;
+                }
+            }
+            isShared = true;
             showToast("🔗 シェアされた編成を読み込みました！");
+            window.history.replaceState(null, null, window.location.pathname); // URLクリーンアップ
         } catch(e) { console.error("URL解析エラー"); }
+    } 
+    // 旧バージョンのBase64形式のフォールバック
+    else if (param) {
+        try {
+            let decoded = JSON.parse(decodeURIComponent(atob(param)));
+            for(let s=1; s<=4; s++) {
+                for(let p=1; p<=getMaxP(s); p++) {
+                    if(decoded[`h-${s}-${p}`]) document.getElementById(`h-${s}-${p}`).value = decoded[`h-${s}-${p}`];
+                    if(decoded[`w-${s}-${p}`]) document.getElementById(`w-${s}-${p}`).value = decoded[`w-${s}-${p}`];
+                }
+            }
+            isShared = true;
+            showToast("🔗 シェアされた編成を読み込みました！");
+            window.history.replaceState(null, null, window.location.pathname);
+        } catch(e) { console.error("URL解析エラー(旧形式)"); }
     }
     
-    if(!d) {
+    // URLからの読み込みがなければ、ローカルから編成を復元
+    if(!isShared) {
         let saved = localStorage.getItem('lw_sim_final_layout_v9');
-        if(saved) d = JSON.parse(saved);
-    }
-
-    if(d) {
-        for(let s=1; s<=4; s++) {
-            for(let p=1; p<=getMaxP(s); p++) {
-                if(d[`h-${s}-${p}`]) document.getElementById(`h-${s}-${p}`).value = d[`h-${s}-${p}`];
-                if(d[`w-${s}-${p}`]) document.getElementById(`w-${s}-${p}`).value = d[`w-${s}-${p}`];
+        if(saved) {
+            d = JSON.parse(saved);
+            for(let s=1; s<=4; s++) {
+                for(let p=1; p<=getMaxP(s); p++) {
+                    if(d[`h-${s}-${p}`]) document.getElementById(`h-${s}-${p}`).value = d[`h-${s}-${p}`];
+                    if(d[`w-${s}-${p}`]) document.getElementById(`w-${s}-${p}`).value = d[`w-${s}-${p}`];
+                }
             }
         }
+    }
+
+    // 装備シミュのデータは、URLシェアに関わらず常に自分のローカルデータを表示
+    let savedLocal = localStorage.getItem('lw_sim_final_layout_v9');
+    if(savedLocal) {
+        let dLocal = JSON.parse(savedLocal);
         ['c','t'].forEach(p => {
-            if(d[`${p}Weapon`]) document.getElementById(`${p}Weapon`).value = d[`${p}Weapon`];
+            if(dLocal[`${p}Weapon`]) document.getElementById(`${p}Weapon`).value = dLocal[`${p}Weapon`];
             GEAR_TYPES.forEach(g => {
-                if(d[`${p}${g}Lv`]) document.getElementById(`${p}${g}Lv`).value = d[`${p}${g}Lv`];
-                if(d[`${p}${g}Star`]) gearStep(`${p}${g}Star`, parseInt(d[`${p}${g}Star`])); 
+                if(dLocal[`${p}${g}Lv`]) document.getElementById(`${p}${g}Lv`).value = dLocal[`${p}${g}Lv`];
+                if(dLocal[`${p}${g}Star`]) gearStep(`${p}${g}Star`, parseInt(dLocal[`${p}${g}Star`])); 
             });
         });
     }
