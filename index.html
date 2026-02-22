@@ -7,9 +7,11 @@
 <style>
     /* === ベース設定 === */
     body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background-color: #f4f6f8; color: #2c3e50; padding: 12px 10px 120px; margin: 0; font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
-    h1 { font-size: 1.25rem; text-align: left; color: #1a252f; margin: 0; font-weight: 900; letter-spacing: 0.5px; }
-    .container { max-width: 900px; margin: 0 auto; }
+    h1 { font-size: 1.25rem; text-align: left; color: #1a252f; margin: 0 0 15px 0; font-weight: 900; letter-spacing: 0.5px; }
     
+    /* ▼▼ チラつき防止 ▼▼ */
+    .container { max-width: 900px; margin: 0 auto; animation: appStart 0.4s ease-out forwards; }
+    @keyframes appStart { 0% { opacity: 0; } 30% { opacity: 0; } 100% { opacity: 1; } }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
     /* === トースト通知 === */
@@ -17,7 +19,6 @@
     #toast.show { visibility: visible; opacity: 1; bottom: 80px; }
 
     /* === UIコンポーネント === */
-    .header-bar { display: flex; justify-content: space-between; align-items: flex-end; margin: 5px 0 15px; }
     .tabs { display: flex; background: #e2e8f0; border-radius: 10px; padding: 4px; margin-bottom: 18px; }
     .tab-btn { flex: 1; padding: 12px 0; text-align: center; font-size: 0.95rem; font-weight: bold; color: #64748b; cursor: pointer; border-radius: 8px; transition: all 0.2s ease; }
     .tab-btn.active { background: #fff; color: #2563eb; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
@@ -26,10 +27,13 @@
 
     .panel { background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); margin-bottom: 15px; border: 1px solid #edf2f7; }
     .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f8fafc; padding-bottom: 10px; margin-bottom: 12px; font-size: 1rem; font-weight: 900; color: #1e293b; }
-    .reset-btn { font-size: 0.75rem; background: #fff; color: #64748b; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; display: inline-flex; align-items: center; gap: 4px; }
+    
+    .reset-btn { font-size: 0.75rem; background: #fff; color: #64748b; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
     .reset-btn:active { background: #f1f5f9; }
-    .share-btn { color: #2563eb; border-color: #bfdbfe; background: #eff6ff; }
-    .share-btn:active { background: #dbeafe; }
+    
+    /* ▼▼ シェアボタンのスタイル強化 ▼▼ */
+    .share-btn { font-size: 0.85rem; padding: 8px 15px; background: linear-gradient(to right, #3b82f6, #2563eb); color: #fff; border: none; border-radius: 8px; box-shadow: 0 4px 10px rgba(37,99,235,0.3); letter-spacing: 0.5px; }
+    .share-btn:active { background: #1d4ed8; transform: translateY(2px); box-shadow: 0 1px 3px rgba(37,99,235,0.3); }
 
     /* === AI提案 === */
     .ai-panel { background: linear-gradient(135deg, #ffffff, #f8fafc); border-left: 5px solid #3b82f6; }
@@ -126,10 +130,7 @@
 <div id="toast"></div>
 
 <div class="container">
-    <div class="header-bar">
-        <h1>育成シミュレーター <span style="font-size:0.7rem; color:#94a3b8; font-weight:normal;">v18.60 </span></h1>
-        <button onclick="shareUrl()" class="reset-btn share-btn">🔗 編成URLをコピー</button>
-    </div>
+    <h1>育成シミュレーター <span style="font-size:0.7rem; color:#94a3b8; font-weight:normal;">v18.62 </span></h1>
 
     <div class="tabs">
         <div class="tab-btn active" onclick="showTab('squad')">⚔️ 部隊編成</div>
@@ -159,8 +160,9 @@
         </div>
 
         <div class="panel" style="background:transparent; padding:0; border:none; box-shadow:none;">
-            <div style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:8px;">
-                <button class="reset-btn" onclick="resetSquads()">🗑️ 全リセット</button>
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:12px;">
+                <button class="share-btn" onclick="shareUrl()">🔗 編成URLをコピー</button>
+                <button class="reset-btn" onclick="resetSquads()" style="padding:8px 12px;">🗑️ リセット</button>
             </div>
             <div id="squad-container"></div>
         </div>
@@ -642,19 +644,19 @@ function generateAiSuggestion() {
             if (tesla < 30) targetHtml = "🔥 <span class='route-highlight' style='color:#b91c1c;'>テスラをLv.30へ</span><br>最強の矛！まずはテスラの火力を最大化してください。";
             else if (fiona < 20) targetHtml = "💥 <span class='route-highlight' style='color:#b91c1c;'>フィオナをLv.20へ</span><br>圧倒的なスキル倍率を活かすためのサブアタッカー強化です。";
             else if (mcg < 20) targetHtml = "🛡️ <span class='route-highlight' style='color:#b91c1c;'>マクレガーをLv.20へ</span><br>前列の耐久を安定させます。";
-            else targetHtml = "✨ <span class='route-highlight' style='color:#b91c1c;'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'>〇 攻撃特化</b>：スウィフト (火力アップ)<br><b style='color:#3b82f6;'>△ 防御安定</b>：アダム (耐久アップ)";
+            else targetHtml = "✨ <span class='route-highlight' style='color:#b91c1c;'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'>攻撃特化</b>：スウィフト (火力アップ)<br><b style='color:#3b82f6;'>防御安定</b>：アダム (耐久アップ)";
         } else if (mainAxis === 'air') {
             axisBadge = "<div class='route-badge-air'>✈️ 現在のメイン：航空機編成</div>";
             if (dva < 30) targetHtml = "🔥 <span class='route-highlight'>DVAをLv.30へ</span><br>現在最優先！追加効果解放まで万能欠片を全集中させてください。";
             else if (mur < 20) targetHtml = "🛡️ <span class='route-highlight'>マーフィーをLv.20へ</span><br>DVA完成後の出張パーツとして育成。ロケラン対策に必須です。";
             else if (sky < 20) targetHtml = "⚡ <span class='route-highlight'>スカイラーをLv.20へ</span><br>スタンの回転率を上げ、相手のエースを封じます。";
             else if (luc < 20) targetHtml = "🏰 <span class='route-highlight'>ルシウスをLv.20へ</span><br>航空ミラー戦で競り勝つために前列の耐久を強化します。";
-            else targetHtml = "✨ <span class='route-highlight'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'>〇 攻撃特化</b>：モリソン (火力アップ)<br><b style='color:#3b82f6;'>△ 防御安定</b>：カーリー (回避アップ)";
+            else targetHtml = "✨ <span class='route-highlight'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'>攻撃特化</b>：モリソン (火力アップ)<br><b style='color:#3b82f6;'>防御安定</b>：カーリー (回避アップ)";
         } else {
             axisBadge = "<div class='route-badge-tank'>🚜 現在のメイン：戦車編成</div>";
             if (kim < 30) targetHtml = "🔥 <span class='route-highlight'>キンバリーをLv.30へ</span><br>メイン火力として最優先です。";
             else if (mur < 20) targetHtml = "🛡️ <span class='route-highlight'>マーフィーをLv.20へ</span><br>前列の耐久を確保します。";
-            else targetHtml = "✨ <span class='route-highlight'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'>〇 攻撃特化</b>：ステットマン (火力アップ)<br><b style='color:#3b82f6;'>△ 防御安定</b>：ウィリアムズ (耐久アップ)";
+            else targetHtml = "✨ <span class='route-highlight'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'>攻撃特化</b>：ステットマン (火力アップ)<br><b style='color:#3b82f6;'>防御安定</b>：ウィリアムズ (耐久アップ)";
         }
 
         let transitionHtml = "";
@@ -830,7 +832,7 @@ function shareUrl() {
     let url = window.location.origin + window.location.pathname + "?d=" + compressedData;
     
     navigator.clipboard.writeText(url).then(() => {
-        showToast("📋 短縮URL(約40文字)をコピーしました！");
+        showToast("📋 共有URLをコピーしました！");
     }).catch(err => {
         showToast("❌ コピーに失敗しました");
     });
@@ -945,7 +947,6 @@ function loadAllData() {
     const urlParams = new URLSearchParams(window.location.search);
     const param = urlParams.get('d');
     
-    // 超圧縮URLからのロード（40文字～50文字程度で、%を含まない）
     if(param && param.length >= 40 && !param.includes('%')) {
         try {
             let idx = 0;
@@ -960,10 +961,9 @@ function loadAllData() {
             }
             isShared = true;
             showToast("🔗 シェアされた編成を読み込みました！");
-            window.history.replaceState(null, null, window.location.pathname); // URLクリーンアップ
+            window.history.replaceState(null, null, window.location.pathname); 
         } catch(e) { console.error("URL解析エラー"); }
     } 
-    // 旧バージョンのBase64形式のフォールバック
     else if (param) {
         try {
             let decoded = JSON.parse(decodeURIComponent(atob(param)));
@@ -979,7 +979,6 @@ function loadAllData() {
         } catch(e) { console.error("URL解析エラー(旧形式)"); }
     }
     
-    // URLからの読み込みがなければ、ローカルから編成を復元
     if(!isShared) {
         let saved = localStorage.getItem('lw_sim_final_layout_v9');
         if(saved) {
@@ -993,7 +992,6 @@ function loadAllData() {
         }
     }
 
-    // 装備シミュのデータは、URLシェアに関わらず常に自分のローカルデータを表示
     let savedLocal = localStorage.getItem('lw_sim_final_layout_v9');
     if(savedLocal) {
         let dLocal = JSON.parse(savedLocal);
