@@ -12,6 +12,10 @@
     
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
+    /* === トースト通知 === */
+    #toast { visibility: hidden; min-width: 250px; background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(8px); color: #fff; text-align: center; border-radius: 50px; padding: 12px 20px; position: fixed; z-index: 9999; left: 50%; transform: translateX(-50%); bottom: 30px; font-size: 0.95rem; font-weight: bold; opacity: 0; transition: opacity 0.3s, bottom 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 1px solid #475569; }
+    #toast.show { visibility: visible; opacity: 1; bottom: 80px; }
+
     /* === UIコンポーネント === */
     .tabs { display: flex; background: #e2e8f0; border-radius: 10px; padding: 4px; margin-bottom: 18px; }
     .tab-btn { flex: 1; padding: 12px 0; text-align: center; font-size: 0.95rem; font-weight: bold; color: #64748b; cursor: pointer; border-radius: 8px; transition: all 0.2s ease; }
@@ -21,8 +25,10 @@
 
     .panel { background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); margin-bottom: 15px; border: 1px solid #edf2f7; }
     .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f8fafc; padding-bottom: 10px; margin-bottom: 12px; font-size: 1rem; font-weight: 900; color: #1e293b; }
-    .reset-btn { font-size: 0.75rem; background: #fff; color: #64748b; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+    .reset-btn { font-size: 0.75rem; background: #fff; color: #64748b; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; display: inline-flex; align-items: center; gap: 4px; }
     .reset-btn:active { background: #f1f5f9; }
+    .share-btn { color: #2563eb; border-color: #bfdbfe; background: #eff6ff; }
+    .share-btn:active { background: #dbeafe; }
 
     /* === AI提案 === */
     .ai-panel { background: linear-gradient(135deg, #ffffff, #f8fafc); border-left: 5px solid #3b82f6; }
@@ -36,33 +42,52 @@
     .apply-btn { background: linear-gradient(to right, #2563eb, #1d4ed8); color: #fff; border: none; padding: 14px 20px; border-radius: 30px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(37,99,235,0.25); font-size: 0.95rem; width: 100%; max-width: 300px; transition: transform 0.1s, box-shadow 0.1s; display: block; margin: 18px auto 5px; letter-spacing: 0.5px;}
     .apply-btn:active { transform: translateY(2px); box-shadow: 0 2px 5px rgba(37,99,235,0.2); }
     
-    /* 育成ルート用のスタイル追加 */
     .route-badge-air { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 0.8rem; display: inline-block; margin-bottom: 8px; }
     .route-badge-tank { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 0.8rem; display: inline-block; margin-bottom: 8px; }
     .route-highlight { color: #c026d3; font-weight: 900; font-size: 0.95rem; }
 
-    /* === 部隊編成 === */
+    /* === 部隊編成（UI統合版） === */
     .squad-section { border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; margin-bottom: 15px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
     .squad-header { background: #f8fafc; padding: 12px 15px; font-weight: 900; color: #334155; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 0.95rem; border-bottom: 1px solid #e2e8f0; transition: background 0.2s; }
     .squad-header:active { background: #f1f5f9; }
     .squad-body { padding: 15px; display: none; background: #fff; }
     .squad-body.open { display: block; animation: fadeIn 0.2s ease-out; }
     
-    .hero-slot { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0; background: #fafafa;}
-    .slot-front { background-color: #fffbeb; border-left: 4px solid #f59e0b; }
-    .slot-back { background-color: #eff6ff; border-left: 4px solid #3b82f6; }
-    .slot-bench { background-color: #f8fafc; border-left: 4px solid #94a3b8; }
-    .pos-badge { font-size: 0.7rem; font-weight: bold; padding: 4px 0; width: 36px; text-align: center; border-radius: 4px; color: #fff; flex-shrink: 0; }
-    .badge-front { background-color: #f59e0b; }
-    .badge-back { background-color: #3b82f6; }
-    .badge-bench { background-color: #94a3b8; }
-
-    .hero-select { flex: 1; min-width: 110px; padding: 10px 6px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.95rem; font-weight: bold; color: #1e293b; background: #fff; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 8px center; background-size: 14px; padding-right: 24px; transition: border-color 0.2s;}
-    .hero-select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
-    optgroup { font-weight: bold; background: #f8fafc; color: #475569; }
+    .squad-grid { background: linear-gradient(180deg, #334155 0%, #1e293b 100%); border-radius: 12px; padding: 18px 12px; box-shadow: inset 0 4px 8px rgba(0,0,0,0.2); border: 2px solid #475569; position: relative; overflow: hidden; }
+    .squad-grid::before { content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 15px 15px; pointer-events: none; }
     
-    .wp-wrap { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
-    .wp-label { font-size: 0.7rem; color: #64748b; font-weight: bold; }
+    .v-row { display: flex; justify-content: center; gap: 10px; margin-bottom: 14px; position: relative; z-index: 1; }
+    .v-row.bench { flex-wrap: wrap; justify-content: flex-start; }
+    
+    .interactive-card { width: 31%; max-width: 105px; padding: 8px 4px; text-align: center; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.4); background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(0,0,0,0.2)); backdrop-filter: blur(4px); display: flex; flex-direction: column; align-items: center; position: relative; border-top: 1px solid rgba(255,255,255,0.2); border-bottom: 4px solid #64748b; transition: all 0.2s; }
+    .interactive-card:focus-within { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.6); border-color: #3b82f6; }
+    
+    /* === 新しいアイコン配置スタイル（カード内横並び） === */
+    .card-icon-wrap { display: flex; justify-content: center; gap: 8px; margin-top: 4px; height: 28px; width: 100%; }
+    .icon-box { width: 28px; height: 28px; background: #1e293b; border-radius: 50%; padding: 2px; border: 1px solid #475569; box-shadow: 0 2px 4px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; box-sizing: border-box; overflow: hidden; }
+
+    .card-select { width: 95%; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 6px 2px; font-size: 0.8rem; font-weight: bold; margin-top: 6px; margin-bottom: 6px; appearance: none; -webkit-appearance: none; text-align: center; text-align-last: center; outline: none; text-overflow: ellipsis; }
+    .card-select:focus { border-color: #3b82f6; background: rgba(0,0,0,0.6); }
+    .card-select option { background: #1e293b; color: #fff; }
+    .card-select optgroup { background: #0f172a; color: #94a3b8; }
+
+    .card-stepper { display: flex; align-items: center; background: rgba(0,0,0,0.5); border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); width: 90%; }
+    .card-stepper button { flex: 1; background: transparent; border: none; color: #cbd5e1; font-size: 1.1rem; font-weight: bold; padding: 2px 0; cursor: pointer; touch-action: manipulation; }
+    .card-stepper button:active { background: rgba(255,255,255,0.2); }
+    .card-stepper input { width: 30px; background: transparent; border: none; color: #fff; font-size: 0.85rem; font-weight: bold; text-align: center; pointer-events: none; padding: 0; }
+
+    .card-ur { box-shadow: 0 0 12px rgba(168, 85, 247, 0.4), inset 0 0 8px rgba(168, 85, 247, 0.2); border-color: #a855f7; border-bottom-color: #a855f7; }
+    .card-tank { border-bottom-color: #f59e0b; }
+    .card-air { border-bottom-color: #3b82f6; }
+    .card-mis { border-bottom-color: #ef4444; }
+    
+    .card-syn { font-size: 0.6rem; color: #fbbf24; font-weight: 900; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; text-shadow: 0 0 3px rgba(217, 119, 6, 0.8); height: 14px; line-height: 1.2;}
+
+    .advice { font-size: 0.85rem; padding: 10px 15px; border-radius: 8px; line-height: 1.5; background: #fffbeb; border-left: 4px solid #f59e0b; color: #475569; font-weight: bold;}
+    .adv-ok { background: #f0fdf4; border-color: #22c55e; color: #166534; }
+    .adv-ng { background: #fef2f2; border-color: #ef4444; color: #991b1b; }
+
+    /* === 装備シミュレーター用ステッパー === */
     .stepper { display: flex; align-items: center; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; height: 36px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);}
     .stepper button { width: 30px; height: 100%; border: none; background: #f1f5f9; font-size: 1.1rem; font-weight: bold; color: #475569; cursor: pointer; padding: 0; flex-shrink: 0; transition: background 0.1s;}
     .stepper button:active { background: #e2e8f0; }
@@ -70,27 +95,6 @@
     .stepper.disabled { background: #e2e8f0; opacity: 0.6; pointer-events: none; }
     .stepper.disabled input { color: #94a3b8; font-size: 0.85rem; }
 
-    /* === 陣形ビジュアル === */
-    .visual-area { margin-top: 15px; padding-top: 15px; border-top: 1px dashed #cbd5e1; background: #f8fafc; border-radius: 8px; padding: 12px; }
-    .visual-label { font-size: 0.75rem; color: #64748b; text-align: center; margin-bottom: 8px; font-weight: bold; display: block; letter-spacing: 0.5px;}
-    .visual-grid { display: flex; flex-direction: column; gap: 8px; }
-    .v-row-front, .v-row-back { display: flex; justify-content: center; gap: 10px; }
-    
-    .hero-card { width: 30%; max-width: 90px; padding: 6px 2px; text-align: center; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.04); background: #fff; min-height: 54px; height: auto; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; }
-    .card-tank { background: #fffbeb; border-color: #fde68a; color: #b45309; }
-    .card-air { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
-    .card-mis { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
-    .card-none { background: #f8fafc; border-color: #e2e8f0; color: #94a3b8; }
-    
-    .role-icon { position: absolute; top: 3px; right: 3px; font-size: 0.75rem; }
-    .hc-name { font-weight: 900; font-size: 0.7rem; width: 95%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; line-height: 1.2; margin-top: 2px; }
-    .hc-wp { font-size: 0.65rem; font-weight: bold; opacity: 0.85; margin-top: 2px; }
-
-    .advice { font-size: 0.85rem; padding: 10px 15px; border-radius: 8px; line-height: 1.5; background: #fffbeb; border-left: 4px solid #f59e0b; color: #475569; font-weight: bold;}
-    .adv-ok { background: #f0fdf4; border-color: #22c55e; color: #166534; }
-    .adv-ng { background: #fef2f2; border-color: #ef4444; color: #991b1b; }
-
-    /* === 装備シミュレーター === */
     .gear-container { display: flex; flex-wrap: wrap; gap: 12px; }
     .g-card { flex: 1; min-width: 100%; background: #fff; padding: 15px 12px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 10px rgba(0,0,0,0.03); box-sizing: border-box; }
     @media (min-width: 700px) { .g-card { min-width: 48%; } }
@@ -119,8 +123,10 @@
 </head>
 <body>
 
+<div id="toast"></div>
+
 <div class="container">
-    <h1>育成シミュレーター <span style="font-size:0.7rem; color:#94a3b8; font-weight:normal;">v16.00 </span></h1>
+    <h1>育成シミュレーター <span style="font-size:0.7rem; color:#94a3b8; font-weight:normal;">v18.40 </span></h1>
 
     <div class="tabs">
         <div class="tab-btn active" onclick="showTab('squad')">⚔️ 部隊編成</div>
@@ -131,7 +137,7 @@
         <div class="panel ai-panel">
             <div class="ai-title">
                 <div><span>🤖 編成提案 & 入替候補</span></div>
-                <button class="reset-btn" onclick="generateAiSuggestion()">再分析</button>
+                <button class="reset-btn" onclick="generateAiSuggestion()">🔄 再分析</button>
             </div>
             <div id="ai-result" class="suggestion-box" style="display:none;"></div>
             <div id="ai-placeholder" style="font-size:0.85rem; color:#64748b; padding:10px; text-align:center; font-weight:bold;">
@@ -141,7 +147,7 @@
 
         <div class="panel route-panel">
             <div class="route-title">
-                <div><span>🎯 次の武装育成ターゲット</span></div>
+                <div><span>🎯 次の専武育成ターゲット</span></div>
             </div>
             <div id="route-result" class="suggestion-box" style="display:none;"></div>
             <div id="route-placeholder" style="font-size:0.85rem; color:#64748b; padding:10px; text-align:center; font-weight:bold;">
@@ -150,8 +156,9 @@
         </div>
 
         <div class="panel" style="background:transparent; padding:0; border:none; box-shadow:none;">
-            <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
-                <button class="reset-btn" onclick="resetSquads()" style="background:#fff; border-color:#cbd5e1; padding:8px 12px;">🗑️ 全編成リセット</button>
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:8px;">
+                <button class="reset-btn share-btn" onclick="shareUrl()">🔗 編成URLをコピー</button>
+                <button class="reset-btn" onclick="resetSquads()">🗑️ 全リセット</button>
             </div>
             <div id="squad-container"></div>
         </div>
@@ -211,7 +218,7 @@ window.currentBestSwap = null;
 
 // --- Config ---
 const HEROES = {
-    empty: {n:"- 未設定 -", t:"none", r:"none", ur:false},
+    empty: {n:"未設定", t:"none", r:"none", ur:false},
     murphy: {n:"マーフィ", t:"tank", r:"wall", ur:false},
     williams: {n:"ウィリアムズ", t:"tank", r:"wall", ur:false},
     scarlett: {n:"スカーレット", t:"tank", r:"wall", ur:true},
@@ -255,6 +262,13 @@ function showTab(id) {
     document.getElementById('footer-bar').style.display = (id === 'gear') ? 'flex' : 'none';
 }
 
+function showToast(msg) {
+    let x = document.getElementById("toast");
+    x.innerText = msg;
+    x.className = "show";
+    setTimeout(function(){ x.className = x.className.replace("show", ""); }, 2500);
+}
+
 function initSquadHTML() {
     let html = '';
     for(let s=1; s<=4; s++) {
@@ -272,51 +286,58 @@ function initSquadHTML() {
             <div class="squad-body ${openClass}" id="sq-body-${s}">`;
             
         if(isBench) {
-            html += `<div style="font-size:0.75rem; color:#64748b; margin-bottom:12px; font-weight:bold;">部隊に入っていないが育成済みのキャラを登録しておくと、AIが全パターンを計算し最適な入替候補を提示します。</div>`;
+            html += `<div style="font-size:0.75rem; color:#64748b; margin-bottom:12px; font-weight:bold;">育成済みのキャラを登録しておくと、最適な入替候補をAIが分析します。</div>`;
         } else {
             html += `<div id="adv-${s}" class="advice" style="display:none; margin-top:0; margin-bottom:12px;"></div>`;
         }
 
         let maxP = getMaxP(s);
         let slotsHtml = [];
+        
         for(let p=1; p<=maxP; p++) {
-            let isFront = p<=2;
-            let slotClass = isBench ? "slot-bench" : (isFront ? "slot-front" : "slot-back");
-            let badgeClass = isBench ? "badge-bench" : (isFront ? "badge-front" : "badge-back");
-            let label = isBench ? "控え" : (isFront ? "前衛" : "後衛");
-            
             slotsHtml.push(`
-            <div class="hero-slot ${slotClass}">
-                <div class="pos-badge ${badgeClass}">${label}</div>
-                <select class="hero-select" id="h-${s}-${p}" onchange="updateSquad(${s})"></select>
-                <div class="wp-wrap">
-                    <span class="wp-label">Lv</span>
-                    <div class="stepper" id="wp-box-${s}-${p}" style="width:105px;">
-                        <button onclick="stepWp(${s},${p},-1)">-</button>
-                        <input type="text" id="w-${s}-${p}" value="0" readonly>
-                        <button onclick="stepWp(${s},${p},1)">+</button>
-                    </div>
+            <div class="interactive-card" id="card-${s}-${p}">
+                
+                <div class="card-icon-wrap">
+                    <div class="icon-box" id="f-icon-${s}-${p}" style="display:none;"></div>
+                    <div class="icon-box" id="r-icon-${s}-${p}" style="display:none;"></div>
                 </div>
+                
+                <select class="card-select" id="h-${s}-${p}" onchange="updateSquad(${s})"></select>
+                
+                <div class="card-stepper" id="wp-box-${s}-${p}">
+                    <button onclick="stepWp(${s},${p},-1)">-</button>
+                    <input type="text" id="w-${s}-${p}" value="0" readonly>
+                    <button onclick="stepWp(${s},${p},1)">+</button>
+                </div>
+                
+                <div class="card-syn" id="syn-${s}-${p}"></div>
             </div>`);
         }
-        html += slotsHtml.join('');
         
-        if(!isBench) {
-            html += `<div class="visual-area"><span class="visual-label">配置イメージ</span><div id="vis-${s}" class="visual-grid"></div></div>`;
+        if (isBench) {
+            html += `<div class="squad-grid"><div class="v-row bench">${slotsHtml.join('')}</div></div>`;
+        } else {
+            html += `
+            <div class="squad-grid">
+                <div class="v-row" style="margin-bottom:18px;">${slotsHtml[0]}${slotsHtml[1]}</div>
+                <div class="v-row" style="margin-bottom:0;">${slotsHtml[2]}${slotsHtml[3]}${slotsHtml[4]}</div>
+            </div>`;
         }
         html += `</div></div>`;
     }
+    
     document.getElementById('squad-container').innerHTML = html;
     
-    let opts = '<option value="empty">- 未設定 -</option>';
-    let groups = { tank: '<optgroup label="【戦車】">', air: '<optgroup label="【航空機】">', mis: '<optgroup label="【ロケラン】">' };
-    
+    let opts = '<option value="empty">未設定</option>';
+    let groups = { tank: '<optgroup label="戦車">', air: '<optgroup label="航空">', mis: '<optgroup label="ロケラン">' };
     for(let k in HEROES) {
         if(k === 'empty') continue;
-        groups[HEROES[k].t] += `<option value="${k}">${HEROES[k].n}${HEROES[k].ur ? "(UR)" : ""}</option>`;
+        let urTxt = HEROES[k].ur ? "(UR)" : "";
+        groups[HEROES[k].t] += `<option value="${k}">${HEROES[k].n}${urTxt}</option>`;
     }
     opts += groups.tank + '</optgroup>' + groups.air + '</optgroup>' + groups.mis + '</optgroup>';
-    document.querySelectorAll('.hero-select').forEach(sel => sel.innerHTML = opts);
+    document.querySelectorAll('.card-select').forEach(sel => sel.innerHTML = opts);
 }
 
 function toggleSquad(s, header) {
@@ -328,6 +349,7 @@ function toggleSquad(s, header) {
 
 function stepWp(s, p, d) {
     let el = document.getElementById(`w-${s}-${p}`);
+    if(el.value === "未") return; 
     let val = parseInt(el.value) || 0;
     el.value = Math.min(Math.max(val + d, 0), 30);
     updateSquad(s);
@@ -342,16 +364,59 @@ function updateSquad(s, skipAi = false) {
         let hid = document.getElementById(`h-${s}-${p}`).value;
         let wpEl = document.getElementById(`w-${s}-${p}`);
         let wpBox = document.getElementById(`wp-box-${s}-${p}`);
+        
+        let card = document.getElementById(`card-${s}-${p}`);
+        let fIcon = document.getElementById(`f-icon-${s}-${p}`);
+        let rIcon = document.getElementById(`r-icon-${s}-${p}`);
+        let synEl = document.getElementById(`syn-${s}-${p}`);
+        
         let h = HEROES[hid];
         let currentVal = parseInt(wpEl.value) || 0;
 
         if(h.ur || hid === 'empty') {
-            wpBox.classList.add('disabled');
-            wpEl.value = h.ur ? "未実装" : "-";
+            wpBox.style.opacity = '0.3';
+            wpBox.style.pointerEvents = 'none';
+            wpEl.value = h.ur ? "未" : "-";
             currentVal = 0;
         } else {
-            wpBox.classList.remove('disabled');
-            wpEl.value = currentVal === 0 ? "未解放" : currentVal;
+            wpBox.style.opacity = '1';
+            wpBox.style.pointerEvents = 'auto';
+            wpEl.value = currentVal;
+        }
+
+        card.className = 'interactive-card';
+        synEl.innerHTML = '';
+        
+        if (hid === 'empty') {
+            fIcon.style.display = 'none';
+            rIcon.style.display = 'none';
+        } else {
+            if(h.ur) card.classList.add('card-ur');
+            if(h.t === 'tank') card.classList.add('card-tank');
+            if(h.t === 'air') card.classList.add('card-air');
+            if(h.t === 'mis') card.classList.add('card-mis');
+            
+            fIcon.style.display = 'flex';
+            rIcon.style.display = 'flex';
+            
+            let fImg = h.t === 'tank' ? 'tank.png' : h.t === 'air' ? 'air.png' : 'misile.png';
+            let rImg = h.r === 'wall' ? 'tateyaku.png' : h.r === 'atk' ? 'karyoku.png' : 'support.png';
+            
+            fIcon.innerHTML = `<img src="${fImg}" style="width:100%; height:100%; object-fit:contain; border-radius:50%;">`;
+            rIcon.innerHTML = `<img src="${rImg}" style="width:100%; height:100%; object-fit:contain; border-radius:50%;">`;
+            
+            if (currentVal >= 30) {
+                let synName = "専用武装";
+                if (hid === 'williams') synName = "鋼鉄の心";
+                else if (hid === 'kimberly') synName = "致命の花火";
+                else if (hid === 'dva') synName = "超速起動";
+                else if (hid === 'tesla') synName = "電磁誘導";
+                else if (hid === 'carlie') synName = "ぺぺおねがい";
+                else if (hid === 'schuyler') synName = "電磁妨害";
+                else if (hid === 'stetmann') synName = "電磁バリア";
+                else if (hid === 'morrison') synName = "爆裂徹甲弾";
+                synEl.innerHTML = `✨${synName}`;
+            }
         }
 
         members.push({ ...h, id:hid, wp:currentVal, pos:p });
@@ -359,7 +424,6 @@ function updateSquad(s, skipAi = false) {
     }
 
     if(s !== 4) {
-        renderVisual(s, members);
         analyzeSquad(s, members, counts);
     }
     
@@ -370,43 +434,13 @@ function updateSquad(s, skipAi = false) {
 }
 
 function lockDuplicateHeroes(s) {
-    let selected = Array.from(document.querySelectorAll(`#sq-body-${s} .hero-select`)).map(el => el.value).filter(v => v !== 'empty');
+    let selected = Array.from(document.querySelectorAll(`#sq-body-${s} .card-select`)).map(el => el.value).filter(v => v !== 'empty');
     for(let p=1; p<=getMaxP(s); p++) {
         let sel = document.getElementById(`h-${s}-${p}`);
         Array.from(sel.options).forEach(opt => {
             opt.disabled = opt.value !== 'empty' && selected.includes(opt.value) && opt.value !== sel.value;
-            opt.style.color = opt.disabled ? "#cbd5e1" : "#1e293b";
         });
     }
-}
-
-function renderVisual(s, m) {
-    let html = m.map(h => {
-        if(h.id === 'empty') return `<div class="hero-card card-none"><span style="font-size:0.7rem;">未設定</span></div>`;
-        let cls = h.t === 'tank' ? 'card-tank' : h.t === 'air' ? 'card-air' : 'card-mis';
-        let roleIcon = h.r === 'wall' ? '🛡️' : h.r === 'atk' ? '⚔️' : '🛠️';
-        let urTag = h.ur ? '<span style="color:#8b5cf6;font-size:0.6rem;">(UR)</span>' : '';
-        let wpTxt = h.ur ? '未実装' : (h.wp === 0 ? '未解放' : `Lv${h.wp}`);
-        
-        let synName = "";
-        if (h.wp >= 30) {
-            if (h.id === 'williams') synName = "鋼鉄の心";
-            else if (h.id === 'kimberly') synName = "致命の花火";
-            else if (h.id === 'dva') synName = "超速起動";
-            else if (h.id === 'tesla') synName = "電磁誘導";
-            else if (h.id === 'carlie') synName = "ぺぺ、おねがい！";
-            else if (h.id === 'schuyler') synName = "超高出力電磁妨害";
-            else if (h.id === 'stetmann') synName = "電磁バリア";
-            else if (h.id === 'morrison') synName = "爆裂徹甲弾";
-            else synName = "専用武装";
-        }
-        
-        let synHtml = synName ? `<div style="font-size:0.55rem; color:#d97706; font-weight:900; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:95%;">✨${synName}</div>` : "";
-        
-        return `<div class="hero-card ${cls}"><div class="role-icon">${roleIcon}</div><div class="hc-name">${h.n}${urTag}</div><div class="hc-wp">${wpTxt}</div>${synHtml}</div>`;
-    });
-    
-    document.getElementById(`vis-${s}`).innerHTML = `<div class="v-row-front">${html[0]}${html[1]}</div><div class="v-row-back">${html[2]}${html[3]}${html[4]}</div>`;
 }
 
 function analyzeSquad(s, m, c) {
@@ -487,7 +521,7 @@ function calcSquadScore(squadArr) {
 function applySwap() {
     if(!window.currentBestSwap) return;
     
-    document.querySelectorAll('.hero-select option').forEach(opt => opt.disabled = false);
+    document.querySelectorAll('.card-select option').forEach(opt => opt.disabled = false);
 
     window.currentBestSwap.in.forEach((cIn, i) => {
         let cOut = window.currentBestSwap.out[i];
@@ -503,6 +537,7 @@ function applySwap() {
     for(let s=1; s<=4; s++) updateSquad(s, true); 
     saveData();
     generateAiSuggestion(); 
+    showToast("🔄 提案を適用しました！");
 }
 
 function generateAiSuggestion() {
@@ -557,70 +592,52 @@ function generateAiSuggestion() {
         routePlace.style.display = 'none'; routeResult.style.display = 'block';
         
         const getWp = (id) => roster.find(h => h.id === id)?.wp || 0;
-        // 航空機
         const dva = getWp('dva'), mor = getWp('morrison'), sky = getWp('schuyler'), luc = getWp('lucius'), car = getWp('carlie');
         const airTotal = dva + mor + sky + luc + car;
-        // 戦車
         const mur = getWp('murphy'), kim = getWp('kimberly'), stet = getWp('stetmann'), wil = getWp('williams');
         const tankTotal = kim + mur + stet + wil;
-        // ミサイル
         const tesla = getWp('tesla'), fiona = getWp('fiona'), swift = getWp('swift'), adam = getWp('adam'), mcg = getWp('mcgregor');
         const misTotal = tesla + fiona + swift + adam + mcg;
 
-        // 3すくみのメイン軸判定
         let mainAxis = 'tank';
-        if (tesla >= 20 || (misTotal > airTotal && misTotal > tankTotal)) {
-            mainAxis = 'mis';
-        } else if (airTotal >= tankTotal || (dva >= kim && dva > 0)) {
-            mainAxis = 'air';
-        }
+        if (tesla >= 20 || (misTotal > airTotal && misTotal > tankTotal)) mainAxis = 'mis';
+        else if (airTotal >= tankTotal || (dva >= kim && dva > 0)) mainAxis = 'air';
         
-        let targetHtml = "";
-        let axisBadge = "";
+        let targetHtml = "", axisBadge = "";
 
-        // 1. 次の育成ターゲット判定
         if (mainAxis === 'mis') {
             axisBadge = "<div class='route-badge-tank' style='background:#fef2f2; color:#b91c1c; border-color:#fecaca;'>🚀 現在のメイン：ミサイル編成</div>";
             if (tesla < 30) targetHtml = "🔥 <span class='route-highlight' style='color:#b91c1c;'>テスラをLv.30へ</span><br>最強の矛！まずはテスラの火力を最大化してください。";
             else if (fiona < 20) targetHtml = "💥 <span class='route-highlight' style='color:#b91c1c;'>フィオナをLv.20へ</span><br>圧倒的なスキル倍率を活かすためのサブアタッカー強化です。";
             else if (mcg < 20) targetHtml = "🛡️ <span class='route-highlight' style='color:#b91c1c;'>マクレガーをLv.20へ</span><br>前列の耐久を安定させます。";
-            else targetHtml = "✨ <span class='route-highlight' style='color:#b91c1c;'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'>攻撃特化</b>：スウィフト (火力アップ)<br><b style='color:#3b82f6;'>防御安定</b>：アダム (耐久アップ)";
+            else targetHtml = "✨ <span class='route-highlight' style='color:#b91c1c;'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'>〇 攻撃特化</b>：スウィフト (火力アップ)<br><b style='color:#3b82f6;'>△ 防御安定</b>：アダム (耐久アップ)";
         } else if (mainAxis === 'air') {
             axisBadge = "<div class='route-badge-air'>✈️ 現在のメイン：航空機編成</div>";
             if (dva < 30) targetHtml = "🔥 <span class='route-highlight'>DVAをLv.30へ</span><br>現在最優先！追加効果解放まで万能欠片を全集中させてください。";
             else if (mur < 20) targetHtml = "🛡️ <span class='route-highlight'>マーフィーをLv.20へ</span><br>DVA完成後の出張パーツとして育成。ロケラン対策に必須です。";
             else if (sky < 20) targetHtml = "⚡ <span class='route-highlight'>スカイラーをLv.20へ</span><br>スタンの回転率を上げ、相手のエースを封じます。";
             else if (luc < 20) targetHtml = "🏰 <span class='route-highlight'>ルシウスをLv.20へ</span><br>航空ミラー戦で競り勝つために前列の耐久を強化します。";
-            else targetHtml = "✨ <span class='route-highlight'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'>攻撃特化</b>：モリソン (火力アップ)<br><b style='color:#3b82f6;'>防御安定</b>：カーリー (回避アップ)";
+            else targetHtml = "✨ <span class='route-highlight'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'>〇 攻撃特化</b>：モリソン (火力アップ)<br><b style='color:#3b82f6;'>△ 防御安定</b>：カーリー (回避アップ)";
         } else {
             axisBadge = "<div class='route-badge-tank'>🚜 現在のメイン：戦車編成</div>";
             if (kim < 30) targetHtml = "🔥 <span class='route-highlight'>キンバリーをLv.30へ</span><br>メイン火力として最優先です。";
             else if (mur < 20) targetHtml = "🛡️ <span class='route-highlight'>マーフィーをLv.20へ</span><br>前列の耐久を確保します。";
-            else targetHtml = "✨ <span class='route-highlight'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'>攻撃特化</b>：ステッドマン (火力アップ)<br><b style='color:#3b82f6;'>防御安定</b>：ウィリアムズ (耐久アップ)";
+            else targetHtml = "✨ <span class='route-highlight'>基盤完成！目的に合わせて選択</span><br><b style='color:#ea580c;'>〇 攻撃特化</b>：ステットマン (火力アップ)<br><b style='color:#3b82f6;'>△ 防御安定</b>：ウィリアムズ (耐久アップ)";
         }
 
-        // 2. 兵種移行アドバイス判定
         let transitionHtml = "";
         if (mainAxis === 'mis') {
             transitionHtml = "🚀 <b>エンドコンテンツ到達：</b><br>現環境の頂点、ミサイル部隊への移行が進んでいます！航空機メタを完全に破壊できるので、このまま育成を極めましょう。";
         } else if (mainAxis === 'air') {
-            if (dva >= 30 && luc >= 20 && sky >= 20) {
-                transitionHtml = "🔄 <b>最終メタへの準備：</b><br>航空機が極まってきました！サーバー内に航空機が増えてきたら、最強のアンチである<b>ミサイル（テスラ軸）</b>の育成を裏で進めるのがガチ勢の最終到達点です。";
-            } else {
-                transitionHtml = "✈️ <b>航空機シフト進行中：</b><br>対戦車メタへの移行が順調です。まずはDVAを軸としたこの編成を極め、アリーナで圧倒的有利を取りましょう！";
-            }
+            if (dva >= 30 && luc >= 20 && sky >= 20) transitionHtml = "🔄 <b>最終メタへの準備：</b><br>航空機が極まってきました！サーバー内に航空機が増えてきたら、最強のアンチである<b>ミサイル（テスラ軸）</b>の育成を裏で進めるのがガチ勢の最終到達点です。";
+            else transitionHtml = "✈️ <b>航空機シフト進行中：</b><br>対戦車メタへの移行が順調です。まずはDVAを軸としたこの編成を極め、アリーナで圧倒的有利を取りましょう！";
         } else {
-            if (kim >= 30 && mur >= 20) {
-                transitionHtml = "🔄 <b>次世代への移行推奨：</b><br>戦車の必須基盤が完成しました！さらに上を目指すなら、王道の<b>航空機（DVA）</b>へ移行するか、茨の道ですが最終最強の<b>ミサイル（テスラ）</b>を目指すフェーズです。";
-            } else {
-                transitionHtml = "🚜 <b>戦車基盤の構築期：</b><br>兵種移行を考えるのはまだ早いです。まずは対人・PvE両方で腐らない『キンバリーLv30＋マーフィーLv20』の完成を一直線に目指しましょう。";
-            }
+            if (kim >= 30 && mur >= 20) transitionHtml = "🔄 <b>次世代への移行推奨：</b><br>戦車の必須基盤が完成しました！さらに上を目指すなら、王道の<b>航空機（DVA）</b>へ移行するか、茨の道ですが最終最強の<b>ミサイル（テスラ）</b>を目指すフェーズです。";
+            else transitionHtml = "🚜 <b>戦車基盤の構築期：</b><br>兵種移行を考えるのはまだ早いです。まずは対人・PvE両方で腐らない『キンバリーLv30＋マーフィーLv20』の完成を一直線に目指しましょう。";
         }
         
         routeResult.innerHTML = `${axisBadge}<div style="font-size:0.9rem; line-height:1.6; color:#334155;">${targetHtml}</div>
-        <div style="margin-top:12px; padding-top:10px; border-top:1px dashed #cbd5e1; font-size:0.85rem; color:#475569; background:#f8fafc; padding:10px; border-radius:8px;">
-            ${transitionHtml}
-        </div>`;
+        <div style="margin-top:12px; padding-top:10px; border-top:1px dashed #cbd5e1; font-size:0.85rem; color:#475569; background:#f8fafc; padding:10px; border-radius:8px;">${transitionHtml}</div>`;
     }
 
     // --- 入替提案ロジック ---
@@ -635,7 +652,6 @@ function generateAiSuggestion() {
     let currentEval = calcSquadScore(mainSquad); 
     let bestSwap = null, bestScore = currentEval.score + 5; 
 
-    // 1体入替
     bench.forEach(bChar => {
         mainSquad.forEach(mChar => {
             if((bChar.r === 'wall') === (mChar.r === 'wall')) {
@@ -646,7 +662,6 @@ function generateAiSuggestion() {
         });
     });
 
-    // 2体入替
     for(let i=0; i<bench.length; i++){
         for(let j=i+1; j<bench.length; j++){
             let b1 = bench[i], b2 = bench[j];
@@ -675,7 +690,6 @@ function generateAiSuggestion() {
         let sub = isOut ? "現在" : getSquadName(c.squad).replace('部隊', ''); 
         let color = isOut ? "#b91c1c" : "#15803d";
         let synBadge = (!isOut && c.charSyns.length > 0) ? `<div style="font-size:0.65rem; color:#d97706; background:#fef3c7; padding:2px 6px; border-radius:10px; margin-top:6px; display:inline-block; font-weight:bold; border:1px solid #fde68a;">✨ ${c.charSyns[c.charSyns.length-1]}</div>` : "";
-        
         return `<div style="margin-top:4px;"><div style="font-size:1.05rem; font-weight:900; color:${color}; line-height:1.2;">${c.n}</div><div style="font-size:0.75rem; color:#475569; margin-top:4px; line-height:1.3;">${sub}: ${wpTxt} / ${getEvalMark(c.wp)}</div>${synBadge}</div>`;
     };
 
@@ -709,7 +723,6 @@ function generateAiSuggestion() {
         }
 
         suggestionText = `以下の入れ替えで総合スコアがアップします。`;
-        
         swapCandidateHtml = `
         <div class="swap-candidate">
             <span class="swap-title" style="margin-bottom:8px;">${adviceType}</span>
@@ -760,7 +773,38 @@ function resetSquads() {
             }
             updateSquad(s);
         }
+        showToast("🗑️ 全編成をリセットしました");
     }
+}
+
+// --- URL Share ---
+function getSaveDataObject() {
+    let d = {};
+    for(let s=1; s<=4; s++) {
+        for(let p=1; p<=getMaxP(s); p++) {
+            d[`h-${s}-${p}`] = document.getElementById(`h-${s}-${p}`).value;
+            d[`w-${s}-${p}`] = document.getElementById(`w-${s}-${p}`).value;
+        }
+    }
+    ['c','t'].forEach(p => {
+        d[`${p}Weapon`] = document.getElementById(`${p}Weapon`).value;
+        GEAR_TYPES.forEach(g => {
+            d[`${p}${g}Lv`] = document.getElementById(`${p}${g}Lv`).value;
+            d[`${p}${g}Star`] = document.getElementById(`${p}${g}Star`).getAttribute('data-val');
+        });
+    });
+    return d;
+}
+
+function shareUrl() {
+    let d = getSaveDataObject();
+    let b64 = btoa(encodeURIComponent(JSON.stringify(d)));
+    let url = window.location.origin + window.location.pathname + "?d=" + b64;
+    navigator.clipboard.writeText(url).then(() => {
+        showToast("📋 編成URLをコピーしました！");
+    }).catch(err => {
+        showToast("❌ コピーに失敗しました");
+    });
 }
 
 // --- Gear ---
@@ -844,28 +888,27 @@ function calculateGear() {
 
 // --- Data Save/Load ---
 function saveData() {
-    let d = {};
-    for(let s=1; s<=4; s++) {
-        for(let p=1; p<=getMaxP(s); p++) {
-            d[`h-${s}-${p}`] = document.getElementById(`h-${s}-${p}`).value;
-            d[`w-${s}-${p}`] = document.getElementById(`w-${s}-${p}`).value;
-        }
-    }
-    ['c','t'].forEach(p => {
-        d[`${p}Weapon`] = document.getElementById(`${p}Weapon`).value;
-        GEAR_TYPES.forEach(g => {
-            d[`${p}${g}Lv`] = document.getElementById(`${p}${g}Lv`).value;
-            d[`${p}${g}Star`] = document.getElementById(`${p}${g}Star`).getAttribute('data-val');
-        });
-    });
-    // 既存の保存データを維持するためキーはそのまま
+    let d = getSaveDataObject();
     localStorage.setItem('lw_sim_final_layout_v9', JSON.stringify(d));
 }
 
 function loadAllData() {
-    let saved = localStorage.getItem('lw_sim_final_layout_v9');
-    if(saved) {
-        let d = JSON.parse(saved);
+    let d = null;
+    const urlParams = new URLSearchParams(window.location.search);
+    const param = urlParams.get('d');
+    if(param) {
+        try {
+            d = JSON.parse(decodeURIComponent(atob(param)));
+            showToast("🔗 シェアされた編成を読み込みました！");
+        } catch(e) { console.error("URL解析エラー"); }
+    }
+    
+    if(!d) {
+        let saved = localStorage.getItem('lw_sim_final_layout_v9');
+        if(saved) d = JSON.parse(saved);
+    }
+
+    if(d) {
         for(let s=1; s<=4; s++) {
             for(let p=1; p<=getMaxP(s); p++) {
                 if(d[`h-${s}-${p}`]) document.getElementById(`h-${s}-${p}`).value = d[`h-${s}-${p}`];
@@ -880,6 +923,7 @@ function loadAllData() {
             });
         });
     }
+    
     for(let s=1; s<=4; s++) updateSquad(s, true);
     generateAiSuggestion();
 }
