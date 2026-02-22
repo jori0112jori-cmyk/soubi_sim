@@ -62,19 +62,21 @@
     .interactive-card { width: 31%; max-width: 105px; padding: 8px 4px; text-align: center; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.4); background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(0,0,0,0.2)); backdrop-filter: blur(4px); display: flex; flex-direction: column; align-items: center; position: relative; border-top: 1px solid rgba(255,255,255,0.2); border-bottom: 4px solid #64748b; transition: all 0.2s; }
     .interactive-card:focus-within { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.6); border-color: #3b82f6; }
     
-    /* === 新しいアイコン配置スタイル（カード内横並び） === */
+    /* カード内横並びアイコン */
     .card-icon-wrap { display: flex; justify-content: center; gap: 8px; margin-top: 4px; height: 28px; width: 100%; }
     .icon-box { width: 28px; height: 28px; background: #1e293b; border-radius: 50%; padding: 2px; border: 1px solid #475569; box-shadow: 0 2px 4px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; box-sizing: border-box; overflow: hidden; }
 
-    .card-select { width: 95%; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 6px 2px; font-size: 0.8rem; font-weight: bold; margin-top: 6px; margin-bottom: 6px; appearance: none; -webkit-appearance: none; text-align: center; text-align-last: center; outline: none; text-overflow: ellipsis; }
+    /* ▼▼ セレクトボックスの押しやすさ改善 ▼▼ */
+    .card-select { width: 95%; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 8px 2px; font-size: 0.85rem; font-weight: bold; margin-top: 6px; margin-bottom: 8px; appearance: none; -webkit-appearance: none; text-align: center; text-align-last: center; outline: none; text-overflow: ellipsis; }
     .card-select:focus { border-color: #3b82f6; background: rgba(0,0,0,0.6); }
     .card-select option { background: #1e293b; color: #fff; }
     .card-select optgroup { background: #0f172a; color: #94a3b8; }
 
-    .card-stepper { display: flex; align-items: center; background: rgba(0,0,0,0.5); border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); width: 90%; }
-    .card-stepper button { flex: 1; background: transparent; border: none; color: #cbd5e1; font-size: 1.1rem; font-weight: bold; padding: 2px 0; cursor: pointer; touch-action: manipulation; }
+    /* ▼▼ ＋－ボタンの大型化（押しやすさ改善） ▼▼ */
+    .card-stepper { display: flex; align-items: center; background: rgba(0,0,0,0.5); border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); width: 95%; margin-bottom: 4px; }
+    .card-stepper button { flex: 1; background: rgba(255,255,255,0.05); border: none; color: #cbd5e1; font-size: 1.4rem; font-weight: bold; padding: 6px 0; cursor: pointer; touch-action: manipulation; display: flex; align-items: center; justify-content: center; }
     .card-stepper button:active { background: rgba(255,255,255,0.2); }
-    .card-stepper input { width: 30px; background: transparent; border: none; color: #fff; font-size: 0.85rem; font-weight: bold; text-align: center; pointer-events: none; padding: 0; }
+    .card-stepper input { width: 34px; background: transparent; border: none; color: #fff; font-size: 0.95rem; font-weight: bold; text-align: center; pointer-events: none; padding: 0; }
 
     .card-ur { box-shadow: 0 0 12px rgba(168, 85, 247, 0.4), inset 0 0 8px rgba(168, 85, 247, 0.2); border-color: #a855f7; border-bottom-color: #a855f7; }
     .card-tank { border-bottom-color: #f59e0b; }
@@ -126,7 +128,7 @@
 <div id="toast"></div>
 
 <div class="container">
-    <h1>育成シミュレーター <span style="font-size:0.7rem; color:#94a3b8; font-weight:normal;">v18.40 </span></h1>
+    <h1>育成シミュレーター <span style="font-size:0.7rem; color:#94a3b8; font-weight:normal;">v18.50 </span></h1>
 
     <div class="tabs">
         <div class="tab-btn active" onclick="showTab('squad')">⚔️ 部隊編成</div>
@@ -356,7 +358,9 @@ function stepWp(s, p, d) {
 }
 
 function updateSquad(s, skipAi = false) {
+    // 変更された直後に、重複がないかチェックして更新する
     lockDuplicateHeroes(s);
+    
     let members = [];
     let counts = {tank:0, air:0, mis:0, none:0};
     
@@ -433,14 +437,35 @@ function updateSquad(s, skipAi = false) {
     }
 }
 
+// ▼▼ 強力な重複防止システム ▼▼
 function lockDuplicateHeroes(s) {
-    let selected = Array.from(document.querySelectorAll(`#sq-body-${s} .card-select`)).map(el => el.value).filter(v => v !== 'empty');
-    for(let p=1; p<=getMaxP(s); p++) {
-        let sel = document.getElementById(`h-${s}-${p}`);
+    let selects = Array.from(document.querySelectorAll(`#sq-body-${s} .card-select`));
+    let selectedVals = selects.map(el => el.value).filter(v => v !== 'empty');
+    
+    selects.forEach(sel => {
+        // もし変更された値がすでに他の枠で選ばれている場合（強制ロールバック）
+        let prevVal = sel.getAttribute('data-prev') || 'empty';
+        if (sel.value !== 'empty' && selectedVals.filter(v => v === sel.value).length > 1) {
+            showToast("⚠️ 同一部隊内でキャラが重複しています");
+            sel.value = prevVal; // 直前の状態に戻す
+            selectedVals = selects.map(el => el.value).filter(v => v !== 'empty'); // リスト再取得
+        } else {
+            sel.setAttribute('data-prev', sel.value); // 正常なら履歴を更新
+        }
+
+        // 選択肢の表示を切り替え（選ばれているものは "(済)" と表示し暗くする）
         Array.from(sel.options).forEach(opt => {
-            opt.disabled = opt.value !== 'empty' && selected.includes(opt.value) && opt.value !== sel.value;
+            let isDup = opt.value !== 'empty' && selectedVals.includes(opt.value) && opt.value !== sel.value;
+            opt.disabled = isDup;
+            if (isDup) {
+                if (!opt.text.includes('済')) opt.text = opt.text + " (済)";
+                opt.style.color = "rgba(255,255,255,0.3)";
+            } else {
+                opt.text = opt.text.replace(" (済)", "");
+                opt.style.color = "#fff";
+            }
         });
-    }
+    });
 }
 
 function analyzeSquad(s, m, c) {
