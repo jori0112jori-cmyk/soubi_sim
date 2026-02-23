@@ -4,24 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ラストウォー育成シミュレーター</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
     /* === ベース設定 === */
-    body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background-color: #f4f6f8; color: #2c3e50; padding: 12px 10px 120px; margin: 0; font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
-    h1 { font-size: 1.25rem; text-align: left; color: #1a252f; margin: 0 0 15px 0; font-weight: 900; letter-spacing: 0.5px; }
+    body { font-family: "Helvetica Neue", Arial, sans-serif; background-color: #f4f6f8; color: #2c3e50; padding: 12px 10px 120px; margin: 0; font-size: 14px; line-height: 1.5; }
+    h1 { font-size: 1.25rem; text-align: left; color: #1a252f; margin: 0 0 15px 0; font-weight: 900; }
     .version-badge { font-size: 0.65rem; color: #fff; background: linear-gradient(135deg, #10b981, #059669); font-weight: bold; padding: 2px 8px; border-radius: 12px; vertical-align: middle; margin-left: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: inline-block; }
-    
-    /* ▼▼ チラつき防止 ▼▼ */
     .container { max-width: 900px; margin: 0 auto; animation: appStart 0.4s ease-out forwards; }
-    @keyframes appStart { 0% { opacity: 0; } 30% { opacity: 0; } 100% { opacity: 1; } }
+    @keyframes appStart { 0%, 30% { opacity: 0; } 100% { opacity: 1; } }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
     /* === トースト通知 === */
-    #toast { visibility: hidden; min-width: 250px; background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(8px); color: #fff; text-align: center; border-radius: 50px; padding: 12px 20px; position: fixed; z-index: 9999; left: 50%; transform: translateX(-50%); bottom: 30px; font-size: 0.95rem; font-weight: bold; opacity: 0; transition: opacity 0.3s, bottom 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 1px solid #475569; }
+    #toast { visibility: hidden; min-width: 250px; background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(8px); color: #fff; text-align: center; border-radius: 50px; padding: 12px 20px; position: fixed; z-index: 9999; left: 50%; transform: translateX(-50%); bottom: 30px; font-size: 0.95rem; font-weight: bold; opacity: 0; transition: opacity 0.3s, bottom 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
     #toast.show { visibility: visible; opacity: 1; bottom: 80px; }
 
     /* === UIコンポーネント === */
     .tabs { display: flex; background: #e2e8f0; border-radius: 10px; padding: 4px; margin-bottom: 18px; }
-    .tab-btn { flex: 1; padding: 12px 0; text-align: center; font-size: 0.95rem; font-weight: bold; color: #64748b; cursor: pointer; border-radius: 8px; transition: all 0.2s ease; }
+    .tab-btn { flex: 1; padding: 12px 0; text-align: center; font-size: 0.95rem; font-weight: bold; color: #64748b; cursor: pointer; border-radius: 8px; transition: all 0.2s; }
     .tab-btn.active { background: #fff; color: #2563eb; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
     .tab-content { display: none; }
     .tab-content.active { display: block; animation: fadeIn 0.3s ease-out; }
@@ -31,115 +30,89 @@
     
     .reset-btn { font-size: 0.75rem; background: #fff; color: #64748b; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
     .reset-btn:active { background: #f1f5f9; }
-    
-    .export-url-btn { font-size: 0.85rem; padding: 8px 15px; background: linear-gradient(to right, #3b82f6, #2563eb); color: #fff; border: none; border-radius: 8px; box-shadow: 0 4px 10px rgba(37,99,235,0.3); letter-spacing: 0.5px; font-weight: bold; cursor: pointer;}
-    .export-url-btn:active { background: #1d4ed8; transform: translateY(2px); box-shadow: 0 1px 3px rgba(37,99,235,0.3); }
+    .export-url-btn { font-size: 0.85rem; padding: 8px 15px; background: linear-gradient(to right, #10b981, #059669); color: #fff; border: none; border-radius: 8px; box-shadow: 0 4px 10px rgba(16,185,129,0.3); font-weight: bold; cursor: pointer; }
+    .export-url-btn:active { background: #047857; transform: translateY(2px); box-shadow: 0 1px 3px rgba(16,185,129,0.3); }
 
     /* === AI提案 === */
     .ai-panel { background: linear-gradient(135deg, #ffffff, #f8fafc); border-left: 5px solid #3b82f6; }
     .route-panel { background: linear-gradient(135deg, #ffffff, #fdf4ff); border-left: 5px solid #c026d3; }
-    .ai-title { color: #1d4ed8; font-weight: 900; display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 1.05rem; margin-bottom: 10px; flex-wrap: wrap; }
+    .ai-title { color: #1d4ed8; font-weight: 900; display: flex; align-items: center; justify-content: space-between; font-size: 1.05rem; margin-bottom: 10px; }
     .route-title { color: #a21caf; font-weight: 900; display: flex; align-items: center; gap: 6px; font-size: 1.05rem; margin-bottom: 10px; }
-    .suggestion-box { background: #fff; border-radius: 8px; padding: 15px; font-size: 0.9rem; line-height: 1.6; border: 1px solid #e2e8f0; color: #334155; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-    .swap-candidate { margin-top: 12px; padding-top: 12px; border-top: 1px dashed #cbd5e1; background: #fffbeb; padding: 15px; border-radius: 10px; border: 1px solid #fde68a; color: #475569; }
+    .suggestion-box { background: #fff; border-radius: 8px; padding: 15px; font-size: 0.9rem; line-height: 1.6; border: 1px solid #e2e8f0; color: #334155; }
+    .swap-candidate { margin-top: 12px; padding-top: 12px; border-top: 1px dashed #cbd5e1; background: #fffbeb; padding: 15px; border-radius: 10px; border: 1px solid #fde68a; }
     .swap-title { font-weight: 900; color: #d97706; display: block; margin-bottom: 12px; font-size: 1rem; border-bottom: 2px dotted #fcd34d; padding-bottom: 8px; }
-    .score-breakdown { font-size: 0.8rem; color: #64748b; margin-top: 12px; text-align: center; background: #f8fafc; padding: 8px 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-weight: bold;}
-    .apply-btn { background: linear-gradient(to right, #2563eb, #1d4ed8); color: #fff; border: none; padding: 14px 20px; border-radius: 30px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(37,99,235,0.25); font-size: 0.95rem; width: 100%; max-width: 300px; transition: transform 0.1s, box-shadow 0.1s; display: block; margin: 18px auto 5px; letter-spacing: 0.5px;}
-    .apply-btn:active { transform: translateY(2px); box-shadow: 0 2px 5px rgba(37,99,235,0.2); }
-    
+    .score-breakdown { font-size: 0.8rem; color: #64748b; margin-top: 12px; text-align: center; background: #f8fafc; padding: 8px 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-weight: bold; }
+    .apply-btn { background: linear-gradient(to right, #2563eb, #1d4ed8); color: #fff; border: none; padding: 14px 20px; border-radius: 30px; font-weight: bold; cursor: pointer; width: 100%; max-width: 300px; display: block; margin: 18px auto 5px; }
     .route-badge-air { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 0.8rem; display: inline-block; margin-bottom: 8px; }
     .route-badge-tank { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 0.8rem; display: inline-block; margin-bottom: 8px; }
     .route-highlight { color: #c026d3; font-weight: 900; font-size: 0.95rem; }
 
     /* === 部隊編成 === */
-    .squad-section { border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; margin-bottom: 15px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
-    .squad-header { background: #f8fafc; padding: 12px 15px; font-weight: 900; color: #334155; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 0.95rem; border-bottom: 1px solid #e2e8f0; transition: background 0.2s; }
-    .squad-header:active { background: #f1f5f9; }
-    .squad-body { padding: 15px; display: none; background: #fff; }
-    .squad-body.open { display: block; animation: fadeIn 0.2s ease-out; }
-    
-    .squad-grid { background: linear-gradient(180deg, #334155 0%, #1e293b 100%); border-radius: 12px; padding: 18px 12px; box-shadow: inset 0 4px 8px rgba(0,0,0,0.2); border: 2px solid #475569; position: relative; overflow: hidden; }
-    .squad-grid::before { content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 15px 15px; pointer-events: none; }
-    
-    .v-row { display: flex; justify-content: center; gap: 10px; margin-bottom: 14px; position: relative; z-index: 1; }
+    .squad-section { border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 15px; background: #fff; }
+    .squad-header { background: #f8fafc; padding: 12px 15px; font-weight: 900; color: #334155; display: flex; justify-content: space-between; cursor: pointer; border-bottom: 1px solid #e2e8f0; }
+    .squad-body { padding: 15px; display: none; }
+    .squad-body.open { display: block; animation: fadeIn 0.2s; }
+    .squad-grid { background: linear-gradient(180deg, #334155 0%, #1e293b 100%); border-radius: 12px; padding: 18px 12px; border: 2px solid #475569; position: relative; }
+    .v-row { display: flex; justify-content: center; gap: 10px; margin-bottom: 14px; }
     .v-row.bench { flex-wrap: wrap; justify-content: flex-start; }
+    .interactive-card { width: 31%; max-width: 105px; padding: 8px 4px; text-align: center; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.4); background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(0,0,0,0.2)); display: flex; flex-direction: column; align-items: center; position: relative; border-top: 1px solid rgba(255,255,255,0.2); border-bottom: 4px solid #64748b; }
+    .interactive-card:focus-within { transform: translateY(-2px); border-color: #3b82f6; z-index: 5; }
     
-    .interactive-card { width: 31%; max-width: 105px; padding: 8px 4px; text-align: center; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.4); background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(0,0,0,0.2)); backdrop-filter: blur(4px); display: flex; flex-direction: column; align-items: center; position: relative; border-top: 1px solid rgba(255,255,255,0.2); border-bottom: 4px solid #64748b; transition: all 0.2s; }
-    .interactive-card:focus-within { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.6); border-color: #3b82f6; z-index: 5; }
+    /* 優先度バッジと覚醒 */
+    .prio-badge { position: absolute; top: -8px; left: -8px; font-size: 0.75rem; font-weight: 900; color: #fff; padding: 3px 6px; border-radius: 8px; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.5); display: none; }
+    .prio-1 { background: linear-gradient(135deg, #f59e0b, #d97706); border: 1px solid #fde68a; } 
+    .prio-2 { background: linear-gradient(135deg, #3b82f6, #1d4ed8); border: 1px solid #bfdbfe; } 
+    .prio-3 { background: linear-gradient(135deg, #ef4444, #b91c1c); border: 1px solid #fecaca; } 
+    .prio-4 { background: linear-gradient(135deg, #64748b, #334155); border: 1px solid #cbd5e1; } 
+    .prio-5 { background: linear-gradient(135deg, #10b981, #047857); border: 1px solid #a7f3d0; } 
+    .card-empty { background: rgba(0,0,0,0.2) !important; border: 2px dashed #475569 !important; opacity: 0.7; border-bottom: 2px dashed #475569 !important; }
+    .card-awakened { border-color: #fbbf24 !important; border-bottom: 4px solid #f59e0b !important; box-shadow: 0 0 15px rgba(251, 191, 36, 0.5) !important; }
+    .awaken-badge { display: inline-flex; background: linear-gradient(135deg, #b45309, #f59e0b); color: #fff; font-size: 0.75rem; font-weight: 900; padding: 2px 8px; border-radius: 15px; margin-top: 5px; border: 1px solid #fde68a; }
     
-    /* ▼▼ 育成優先度バッジのスタイル ▼▼ */
-    .prio-badge { position: absolute; top: -8px; left: -8px; font-size: 0.75rem; font-weight: 900; color: #fff; padding: 3px 6px; border-radius: 8px; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.5); text-shadow: 1px 1px 0 rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.4); display: none; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-    @keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
-    .prio-1 { background: linear-gradient(135deg, #f59e0b, #d97706); border-color: #fde68a; } 
-    .prio-2 { background: linear-gradient(135deg, #3b82f6, #1d4ed8); border-color: #bfdbfe; } 
-    .prio-3 { background: linear-gradient(135deg, #ef4444, #b91c1c); border-color: #fecaca; } 
-    .prio-4 { background: linear-gradient(135deg, #64748b, #334155); border-color: #cbd5e1; } 
-    .prio-5 { background: linear-gradient(135deg, #10b981, #047857); border-color: #a7f3d0; } 
+    .card-icon-wrap { display: flex; justify-content: center; gap: 8px; margin-top: 4px; height: 28px; width: 100%; position: relative;}
+    .icon-box { width: 28px; height: 28px; background: #1e293b; border-radius: 50%; padding: 2px; border: 1px solid #475569; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.5); overflow: hidden; }
 
-    .card-empty { background: rgba(0,0,0,0.2) !important; border: 2px dashed #475569 !important; box-shadow: none !important; opacity: 0.7; border-bottom: 2px dashed #475569 !important; }
-    
-    .card-awakened { border-color: #fbbf24 !important; border-bottom: 4px solid #f59e0b !important; box-shadow: 0 0 15px rgba(251, 191, 36, 0.5), inset 0 0 12px rgba(251, 191, 36, 0.2) !important; }
-    .card-awakened::before { content: ''; position: absolute; top: -5%; left: -5%; right: -5%; bottom: -5%; background: radial-gradient(circle, rgba(251,191,36,0.3) 0%, transparent 60%); animation: pulseAura 2s infinite ease-in-out; pointer-events: none; border-radius: 12px; z-index: -1; }
-    @keyframes pulseAura { 0% { opacity: 0.2; transform: scale(0.95); } 50% { opacity: 1; transform: scale(1.05); } 100% { opacity: 0.2; transform: scale(0.95); } }
-    
-    .awaken-badge { display: inline-flex; align-items: center; justify-content: center; gap: 4px; background: linear-gradient(135deg, #b45309, #f59e0b); color: #fff; font-size: 0.75rem; font-weight: 900; padding: 2px 8px; border-radius: 15px; margin-top: 5px; box-shadow: 0 2px 6px rgba(0,0,0,0.6); text-shadow: 1px 1px 0 rgba(0,0,0,0.4); border: 1px solid #fde68a; letter-spacing: 0.5px; z-index: 2; }
-    
-    .card-icon-wrap { display: flex; justify-content: center; gap: 8px; margin-top: 4px; height: 28px; width: 100%; z-index: 1; position: relative;}
-    .icon-box { width: 28px; height: 28px; background: #1e293b; border-radius: 50%; padding: 2px; border: 1px solid #475569; box-shadow: 0 2px 4px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; box-sizing: border-box; overflow: hidden; }
-
-    .card-select { width: 95%; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 8px 2px; font-size: 0.85rem; font-weight: bold; margin-top: 6px; margin-bottom: 8px; appearance: none; -webkit-appearance: none; text-align: center; text-align-last: center; outline: none; text-overflow: ellipsis; z-index: 1; position: relative;}
-    .card-select:focus { border-color: #3b82f6; background: rgba(0,0,0,0.6); }
+    .card-select { width: 95%; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 8px 2px; font-size: 0.85rem; font-weight: bold; margin-top: 6px; margin-bottom: 8px; text-align: center; text-align-last: center; outline: none; appearance: none; -webkit-appearance: none; }
     .card-select option { background: #1e293b; color: #fff; }
     .card-select optgroup { background: #0f172a; color: #94a3b8; }
-
-    .card-stepper { display: flex; align-items: center; background: rgba(15, 23, 42, 0.6); border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.2); width: 95%; margin-bottom: 4px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); z-index: 1; position: relative;}
-    .card-stepper button { flex: 1; background: rgba(255,255,255,0.08); border: none; color: #f8fafc; font-size: 1.4rem; font-weight: bold; padding: 6px 0; cursor: pointer; touch-action: manipulation; display: flex; align-items: center; justify-content: center; transition: background 0.1s; }
-    .card-stepper button:active { background: rgba(59, 130, 246, 0.5); color: #fff; }
+    .card-stepper { display: flex; align-items: center; background: rgba(15, 23, 42, 0.6); border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); width: 95%; margin-bottom: 4px; }
+    .card-stepper button { flex: 1; background: rgba(255,255,255,0.08); border: none; color: #fff; font-size: 1.4rem; font-weight: bold; padding: 6px 0; cursor: pointer; }
     .card-stepper input { width: 34px; background: transparent; border: none; color: #fff; font-size: 0.95rem; font-weight: bold; text-align: center; pointer-events: none; padding: 0; }
 
-    .card-ur { box-shadow: 0 0 12px rgba(168, 85, 247, 0.4), inset 0 0 8px rgba(168, 85, 247, 0.2); border-color: #a855f7; border-bottom-color: #a855f7; }
+    .card-ur { border-bottom-color: #a855f7; box-shadow: 0 0 12px rgba(168, 85, 247, 0.4); }
     .card-tank { border-bottom-color: #f59e0b; }
     .card-air { border-bottom-color: #3b82f6; }
     .card-mis { border-bottom-color: #ef4444; }
-
     .card-syn { width: 100%; min-height: 22px; display: flex; justify-content: center; align-items: center; }
 
-    .advice { font-size: 0.85rem; padding: 10px 15px; border-radius: 8px; line-height: 1.5; background: #fffbeb; border-left: 4px solid #f59e0b; color: #475569; font-weight: bold;}
-    .adv-ok { background: #f0fdf4; border-color: #22c55e; color: #166534; }
-    .adv-ng { background: #fef2f2; border-color: #ef4444; color: #991b1b; }
+    .advice { font-size: 0.85rem; padding: 10px 15px; border-radius: 8px; margin-bottom: 12px; font-weight: bold; }
+    .adv-ok { background: #f0fdf4; border-left: 4px solid #22c55e; color: #166534; }
+    .adv-ng { background: #fef2f2; border-left: 4px solid #ef4444; color: #991b1b; }
 
     /* === 装備シミュレーター用 === */
-    .stepper { display: flex; align-items: center; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; height: 36px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);}
-    .stepper button { width: 30px; height: 100%; border: none; background: #f1f5f9; font-size: 1.1rem; font-weight: bold; color: #475569; cursor: pointer; padding: 0; flex-shrink: 0; transition: background 0.1s;}
-    .stepper button:active { background: #e2e8f0; }
-    .stepper input { flex: 1; width: 100%; min-width: 0; text-align: center; border: none; font-size: 0.95rem; font-weight: 900; padding: 0; background: transparent; color: #1e293b;}
-    .stepper.disabled { background: #e2e8f0; opacity: 0.6; pointer-events: none; }
-    .stepper.disabled input { color: #94a3b8; font-size: 0.85rem; }
-
+    .stepper { display: flex; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; height: 36px; align-items: center; }
+    .stepper button { width: 30px; border: none; background: #f1f5f9; font-weight: bold; font-size: 1.1rem; color: #475569; cursor: pointer; height: 100%; }
+    .stepper input { flex: 1; width: 100%; text-align: center; border: none; font-size: 0.95rem; font-weight: 900; }
+    .stepper.disabled { opacity: 0.6; pointer-events: none; background: #e2e8f0; }
+    
     .gear-container { display: flex; flex-wrap: wrap; gap: 12px; }
-    .g-card { flex: 1; min-width: 100%; background: #fff; padding: 15px 12px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 10px rgba(0,0,0,0.03); box-sizing: border-box; }
+    .g-card { flex: 1; min-width: 100%; background: #fff; padding: 15px 12px; border-radius: 12px; border: 1px solid #e2e8f0; }
     @media (min-width: 700px) { .g-card { min-width: 48%; } }
     .g-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-    .g-label { font-weight: bold; font-size: 0.85rem; color: #475569; display: flex; align-items: center; gap: 4px; min-width: 45px; }
-    .g-input-group { display: flex; gap: 6px; justify-content: flex-end; flex: 1; min-width: 0; }
-    
+    .g-label { font-weight: bold; font-size: 0.85rem; color: #475569; }
+    .g-input-group { display: flex; gap: 6px; }
     .stepper-lv { width: 100px; } 
     .stepper-star { width: 130px; } 
     .stepper-star input { font-size: 13px; letter-spacing: -2px; padding-left: 2px; }
 
-    .buff-info { font-size: 0.75rem; color: #d97706; background: #fffbeb; padding: 8px; border-radius: 6px; margin-top: 12px; text-align: center; border: 1px dashed #fbbf24; display: none; font-weight: bold;}
-    .buff-info.active { display: block; animation: fadeIn 0.3s; }
-    .cost-panel { margin-top: 15px; background: #fff; padding: 15px; border-radius: 10px; border-top: 4px solid #f59e0b; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    .cost-row { display: flex; justify-content: space-between; font-size: 0.9rem; border-bottom: 1px dashed #e2e8f0; padding: 6px 0; font-weight: bold; color: #475569;}
-    .cost-row:last-child { border-bottom: none; }
-
-    .footer { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 500px; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); padding: 10px 15px; border-radius: 50px; border: 1px solid #fecaca; text-align: center; box-shadow: 0 8px 25px rgba(0,0,0,0.15); z-index: 999; font-weight: 900; color: #b91c1c; display: flex; justify-content: space-between; align-items: center; }
-    .ft-main { font-size: 1.1rem; }
-    .ft-sub { font-size: 0.8rem; color: #4b5563; background: #f8fafc; padding: 4px 10px; border-radius: 12px; border: 1px solid #e2e8f0; }
+    .buff-info { font-size: 0.75rem; color: #d97706; background: #fffbeb; padding: 8px; border-radius: 6px; margin-top: 12px; text-align: center; display: none; font-weight: bold; }
+    .buff-info.active { display: block; }
+    .cost-panel { margin-top: 15px; background: #fff; padding: 15px; border-radius: 10px; border-top: 4px solid #f59e0b; }
+    .cost-row { display: flex; justify-content: space-between; font-size: 0.9rem; border-bottom: 1px dashed #e2e8f0; padding: 6px 0; font-weight: bold; color: #475569; }
     
+    .footer { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 500px; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); padding: 10px 15px; border-radius: 50px; border: 1px solid #fecaca; display: flex; justify-content: space-between; align-items: center; z-index: 999; box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
     .link-area { text-align: center; font-size: 0.85rem; margin-top: 25px; padding: 15px; border-top: 2px dashed #cbd5e1; color: #64748b; }
-    .link-btn { display: inline-block; background: #fff; border: 1px solid #cbd5e1; padding: 8px 15px; border-radius: 20px; color: #2563eb; text-decoration: none; font-weight: bold; margin: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.03); transition: all 0.2s; }
-    .link-btn:hover { background: #eff6ff; border-color: #3b82f6; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.05);}
+    .link-btn { display: inline-block; background: #fff; border: 1px solid #cbd5e1; padding: 8px 15px; border-radius: 20px; text-decoration: none; font-weight: bold; margin: 5px; color: #2563eb; }
 </style>
 </head>
 <body>
@@ -147,7 +120,7 @@
 <div id="toast"></div>
 
 <div class="container">
-    <h1>　　　　 育成シミュレーター <span class="version-badge">v19.0</span></h1>
+    <h1>育成シミュレーター <span class="version-badge">v18.95</span></h1>
 
     <div class="tabs">
         <div class="tab-btn active" onclick="showTab('squad')">⚔️ 部隊編成</div>
@@ -178,7 +151,7 @@
 
         <div class="panel" style="background:transparent; padding:0; border:none; box-shadow:none;">
             <div style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:12px;">
-                <button class="export-url-btn" onclick="exportFormationUrl()">🔗 編成URLをコピー</button>
+                <button class="export-url-btn" onclick="exportAsImage()">📸 画像で保存</button>
                 <button class="reset-btn" onclick="resetSquads()" style="padding:8px 12px;">🗑️ リセット</button>
             </div>
             <div id="squad-container"></div>
@@ -229,14 +202,11 @@
 </div>
 
 <div id="footer-bar" class="footer" style="display:none;">
-    <div class="ft-main">今より <span id="growth-rate" style="font-size:1.4rem;">1.00</span> 倍!</div>
-    <div class="ft-sub">必要: <span style="color:#f59e0b;">UR<span id="ft-ur">0</span></span> <span style="color:#b91c1c;">MR<span id="ft-mr">0</span></span></div>
+    <div style="font-size: 1.1rem; font-weight:900; color:#b91c1c;">今より <span id="growth-rate" style="font-size:1.4rem;">1.00</span> 倍!</div>
+    <div style="font-size:0.8rem; color:#4b5563; background:#f8fafc; padding:4px 10px; border-radius:12px; border:1px solid #e2e8f0; font-weight:bold;">必要: <span style="color:#f59e0b;">UR<span id="ft-ur">0</span></span> <span style="color:#b91c1c;">MR<span id="ft-mr">0</span></span></div>
 </div>
 
 <script>
-// --- State ---
-window.currentBestSwap = null; 
-
 // --- Config ---
 const HEROES = {
     empty: {n:"未設定", t:"none", r:"none", ur:false, pr:0},
@@ -268,18 +238,6 @@ const GEAR_NAMES = { 'Gun':'🔫レールガン', 'Data':'💾チップ', 'Armor
 const getMaxP = (s) => s === 4 ? 10 : 5;
 const getSquadName = (s) => s === 4 ? "控え室" : `第${s}部隊`;
 
-// --- URL共有機能 ---
-const HERO_COMPRESS_MAP = {
-    empty:'0', murphy:'1', williams:'2', scarlett:'3', violet:'4',
-    kimberly:'5', stetmann:'6', mason:'7', marshall:'8',
-    lucius:'9', carlie:'a', dva:'b', schuyler:'c', morrison:'d', sarah:'e',
-    mcgregor:'f', adam:'g', tesla:'h', fiona:'i', swift:'j', venom:'k'
-};
-const DECOMPRESS_MAP = Object.keys(HERO_COMPRESS_MAP).reduce((ret, key) => {
-    ret[HERO_COMPRESS_MAP[key]] = key; return ret;
-}, {});
-
-// --- Initialization ---
 window.onload = function() {
     initSquadHTML();
     initGearHTML();
@@ -301,21 +259,27 @@ function showToast(msg) {
     setTimeout(function(){ x.className = x.className.replace("show", ""); }, 2500);
 }
 
+// --- Squad Logic (18.94の安全な生成方式) ---
 function initSquadHTML() {
     let html = '';
+    let opts = '<option value="empty">未設定</option>';
+    let groups = { tank: '<optgroup label="戦車">', air: '<optgroup label="航空">', mis: '<optgroup label="ロケラン">' };
+    for(let k in HEROES) {
+        if(k === 'empty') continue;
+        groups[HEROES[k].t] += `<option value="${k}">${HEROES[k].n}${HEROES[k].ur ? "(UR)" : ""}</option>`;
+    }
+    opts += groups.tank + '</optgroup>' + groups.air + '</optgroup>' + groups.mis + '</optgroup>';
+
     for(let s=1; s<=4; s++) {
         let isBench = s === 4;
-        let openClass = s === 1 ? 'open' : '';
-        let arrow = s === 1 ? '▼' : '▶';
         let title = isBench ? '控え室（未編成キャラ）' : `第${s}部隊`;
-        
         html += `
         <div class="squad-section">
             <div class="squad-header" onclick="toggleSquad(${s}, this)">
-                <span id="sq-title-${s}" style="flex:1; line-height:1.3;">${title}</span>
-                <span style="margin-left:10px; color:#94a3b8;">${arrow}</span>
+                <span id="sq-title-${s}" style="flex:1;">${title}</span>
+                <span style="color:#94a3b8;">${s===1?'▼':'▶'}</span>
             </div>
-            <div class="squad-body ${openClass}" id="sq-body-${s}">`;
+            <div class="squad-body ${s===1?'open':''}" id="sq-body-${s}">`;
             
         if(isBench) {
             html += `<div style="font-size:0.75rem; color:#64748b; margin-bottom:12px; font-weight:bold;">育成済みのキャラを登録しておくと、最適な入替候補をAIが分析します。</div>`;
@@ -330,20 +294,16 @@ function initSquadHTML() {
             slotsHtml.push(`
             <div class="interactive-card" id="card-${s}-${p}">
                 <div class="prio-badge" id="prio-${s}-${p}"></div>
-                
                 <div class="card-icon-wrap">
                     <div class="icon-box" id="f-icon-${s}-${p}" style="display:none;"></div>
                     <div class="icon-box" id="r-icon-${s}-${p}" style="display:none;"></div>
                 </div>
-                
-                <select class="card-select" id="h-${s}-${p}" onchange="updateSquad(${s})"></select>
-                
+                <select class="card-select" id="h-${s}-${p}" onchange="updateSquad(${s})">${opts}</select>
                 <div class="card-stepper" id="wp-box-${s}-${p}">
                     <button onclick="stepWp(${s},${p},-1)">-</button>
                     <input type="text" id="w-${s}-${p}" value="0" readonly>
                     <button onclick="stepWp(${s},${p},1)">+</button>
                 </div>
-                
                 <div class="card-syn" id="syn-${s}-${p}"></div>
             </div>`);
         }
@@ -359,25 +319,13 @@ function initSquadHTML() {
         }
         html += `</div></div>`;
     }
-    
     document.getElementById('squad-container').innerHTML = html;
-    
-    let opts = '<option value="empty">未設定</option>';
-    let groups = { tank: '<optgroup label="戦車">', air: '<optgroup label="航空">', mis: '<optgroup label="ロケラン">' };
-    for(let k in HEROES) {
-        if(k === 'empty') continue;
-        let urTxt = HEROES[k].ur ? "(UR)" : "";
-        groups[HEROES[k].t] += `<option value="${k}">${HEROES[k].n}${urTxt}</option>`;
-    }
-    opts += groups.tank + '</optgroup>' + groups.air + '</optgroup>' + groups.mis + '</optgroup>';
-    document.querySelectorAll('.card-select').forEach(sel => sel.innerHTML = opts);
 }
 
 function toggleSquad(s, header) {
     let body = document.getElementById(`sq-body-${s}`);
-    let arrow = header.children[1];
     body.classList.toggle('open');
-    arrow.innerText = body.classList.contains('open') ? '▼' : '▶';
+    header.children[1].innerText = body.classList.contains('open') ? '▼' : '▶';
 }
 
 function stepWp(s, p, d) {
@@ -388,6 +336,7 @@ function stepWp(s, p, d) {
     updateSquad(s);
 }
 
+// ▼▼ 同一部隊内での重複禁止機能 ▼▼
 function lockDuplicateHeroes(s) {
     let selects = Array.from(document.querySelectorAll(`#sq-body-${s} .card-select`));
     let selectedVals = selects.map(el => el.value).filter(v => v !== 'empty');
@@ -467,12 +416,14 @@ function updateSquad(s, skipAi = false) {
             fIcon.style.display = 'flex';
             rIcon.style.display = 'flex';
             
+            // ▼▼ 画像の読み込み（18.94仕様） ▼▼
             let fImg = h.t === 'tank' ? 'tank.png' : h.t === 'air' ? 'air.png' : 'misile.png';
             let rImg = h.r === 'wall' ? 'tateyaku.png' : h.r === 'atk' ? 'karyoku.png' : 'support.png';
             
             fIcon.innerHTML = `<img src="${fImg}" style="width:100%; height:100%; object-fit:contain; border-radius:50%;">`;
             rIcon.innerHTML = `<img src="${rImg}" style="width:100%; height:100%; object-fit:contain; border-radius:50%;">`;
             
+            // ▼▼ 優先度バッジの処理 ▼▼
             if (currentVal >= 30) {
                 card.classList.add('card-awakened');
                 synEl.innerHTML = `<div class="awaken-badge">👑 覚醒</div>`;
@@ -570,7 +521,7 @@ function analyzeSquad(s, m, c) {
     }
 }
 
-// --- AI Logic ---
+// --- AI Suggestion Logic ---
 function calcSquadScore(squadArr) {
     let score = 0;
     let counts = {tank:0, air:0, mis:0};
@@ -701,7 +652,6 @@ function generateAiSuggestion() {
         }
 
         let transitionHtml = "";
-        // ▼▼ ここを「目的に合わせて誰と交代するか」が分かるように書き換えました ▼▼
         if (mainAxis === 'mis') {
             transitionHtml = "🚀 <b>エンドコンテンツ到達：</b><br>現環境の頂点、ミサイル部隊への移行が進んでいます！航空機メタを完全に破壊できるので、このまま育成を極めましょう。";
         } else if (mainAxis === 'air') {
@@ -852,7 +802,31 @@ function resetSquads() {
     }
 }
 
-// --- 超圧縮 URL Share ---
+// ▼▼ 画像保存機能 ▼▼
+function exportAsImage() {
+    showToast("📸 画像を生成中...");
+    // 撮影対象を編成枠全体（squad-container）に指定
+    let target = document.getElementById('squad-container');
+    
+    html2canvas(target, { 
+        backgroundColor: '#f4f6f8', 
+        scale: 2, 
+        useCORS: true // ローカル画像の読み込みを許可
+    }).then(canvas => {
+        let link = document.createElement('a');
+        let date = new Date();
+        let ds = `${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2,'0')}${date.getDate().toString().padStart(2,'0')}`;
+        link.download = `ラストウォー編成_${ds}.png`; 
+        link.href = canvas.toDataURL('image/png');
+        link.click(); 
+        showToast("✨ 画像を保存しました！");
+    }).catch(err => {
+        showToast("❌ 画像の保存に失敗しました");
+        console.error(err);
+    });
+}
+
+// --- Save & Load ---
 function getSaveDataObject() {
     let d = {};
     for(let s=1; s<=4; s++) {
@@ -871,30 +845,35 @@ function getSaveDataObject() {
     return d;
 }
 
-function exportFormationUrl() {
-    let compressedData = "";
-    for(let s=1; s<=4; s++) {
-        for(let p=1; p<=getMaxP(s); p++) {
-            let hid = document.getElementById(`h-${s}-${p}`).value;
-            let wp = parseInt(document.getElementById(`w-${s}-${p}`).value) || 0;
-            
-            let charCode = HERO_COMPRESS_MAP[hid] || '0';
-            let wpCode = wp.toString(36); 
-            
-            compressedData += charCode + wpCode;
-        }
-    }
-    
-    let url = window.location.origin + window.location.pathname + "?d=" + compressedData;
-    
-    navigator.clipboard.writeText(url).then(() => {
-        showToast("📋 短縮URL(約40文字)をコピーしました！");
-    }).catch(err => {
-        showToast("❌ コピーに失敗しました");
-    });
+function saveData() {
+    let d = getSaveDataObject();
+    localStorage.setItem('lw_sim_final_layout_v9', JSON.stringify(d));
 }
 
-// --- Gear ---
+function loadAllData() {
+    let savedLocal = localStorage.getItem('lw_sim_final_layout_v9');
+    if(savedLocal) {
+        let dLocal = JSON.parse(savedLocal);
+        for(let s=1; s<=4; s++) {
+            for(let p=1; p<=getMaxP(s); p++) {
+                if(dLocal[`h-${s}-${p}`]) document.getElementById(`h-${s}-${p}`).value = dLocal[`h-${s}-${p}`];
+                if(dLocal[`w-${s}-${p}`]) document.getElementById(`w-${s}-${p}`).value = dLocal[`w-${s}-${p}`];
+            }
+        }
+        ['c','t'].forEach(p => {
+            if(dLocal[`${p}Weapon`]) document.getElementById(`${p}Weapon`).value = dLocal[`${p}Weapon`];
+            GEAR_TYPES.forEach(g => {
+                if(dLocal[`${p}${g}Lv`]) document.getElementById(`${p}${g}Lv`).value = dLocal[`${p}${g}Lv`];
+                if(dLocal[`${p}${g}Star`]) gearStep(`${p}${g}Star`, parseInt(dLocal[`${p}${g}Star`])); 
+            });
+        });
+    }
+    
+    for(let s=1; s<=4; s++) updateSquad(s, true);
+    generateAiSuggestion();
+}
+
+// --- Gear Logic ---
 function initGearHTML() {
     const makeRow = (prefix) => GEAR_TYPES.map(g => `
         <div class="g-row"><span class="g-label">${GEAR_NAMES[g]}</span>
@@ -971,79 +950,6 @@ function calculateGear() {
         else { el.innerHTML = "<b>発動中:</b> " + arr.join(" / "); el.classList.add('active'); }
     };
     dBuff('detail-curr', resC.myth); dBuff('detail-tgt', resT.myth);
-}
-
-// --- Data Save/Load ---
-function saveData() {
-    let d = getSaveDataObject();
-    localStorage.setItem('lw_sim_final_layout_v9', JSON.stringify(d));
-}
-
-function loadAllData() {
-    let d = null;
-    let isShared = false;
-    const urlParams = new URLSearchParams(window.location.search);
-    const param = urlParams.get('d');
-    
-    if(param && param.length >= 40 && !param.includes('%')) {
-        try {
-            let idx = 0;
-            for(let s=1; s<=4; s++) {
-                for(let p=1; p<=getMaxP(s); p++) {
-                    let hid = DECOMPRESS_MAP[param.charAt(idx)] || 'empty';
-                    let wp = parseInt(param.charAt(idx + 1), 36) || 0;
-                    document.getElementById(`h-${s}-${p}`).value = hid;
-                    document.getElementById(`w-${s}-${p}`).value = wp;
-                    idx += 2;
-                }
-            }
-            isShared = true;
-            showToast("🔗 シェアされた編成を読み込みました！");
-            window.history.replaceState(null, null, window.location.pathname); 
-        } catch(e) { console.error("URL解析エラー"); }
-    } 
-    else if (param) {
-        try {
-            let decoded = JSON.parse(decodeURIComponent(atob(param)));
-            for(let s=1; s<=4; s++) {
-                for(let p=1; p<=getMaxP(s); p++) {
-                    if(decoded[`h-${s}-${p}`]) document.getElementById(`h-${s}-${p}`).value = decoded[`h-${s}-${p}`];
-                    if(decoded[`w-${s}-${p}`]) document.getElementById(`w-${s}-${p}`).value = decoded[`w-${s}-${p}`];
-                }
-            }
-            isShared = true;
-            showToast("🔗 シェアされた編成を読み込みました！");
-            window.history.replaceState(null, null, window.location.pathname);
-        } catch(e) { console.error("URL解析エラー(旧形式)"); }
-    }
-    
-    if(!isShared) {
-        let saved = localStorage.getItem('lw_sim_final_layout_v9');
-        if(saved) {
-            d = JSON.parse(saved);
-            for(let s=1; s<=4; s++) {
-                for(let p=1; p<=getMaxP(s); p++) {
-                    if(d[`h-${s}-${p}`]) document.getElementById(`h-${s}-${p}`).value = d[`h-${s}-${p}`];
-                    if(d[`w-${s}-${p}`]) document.getElementById(`w-${s}-${p}`).value = d[`w-${s}-${p}`];
-                }
-            }
-        }
-    }
-
-    let savedLocal = localStorage.getItem('lw_sim_final_layout_v9');
-    if(savedLocal) {
-        let dLocal = JSON.parse(savedLocal);
-        ['c','t'].forEach(p => {
-            if(dLocal[`${p}Weapon`]) document.getElementById(`${p}Weapon`).value = dLocal[`${p}Weapon`];
-            GEAR_TYPES.forEach(g => {
-                if(dLocal[`${p}${g}Lv`]) document.getElementById(`${p}${g}Lv`).value = dLocal[`${p}${g}Lv`];
-                if(dLocal[`${p}${g}Star`]) gearStep(`${p}${g}Star`, parseInt(dLocal[`${p}${g}Star`])); 
-            });
-        });
-    }
-    
-    for(let s=1; s<=4; s++) updateSquad(s, true);
-    generateAiSuggestion();
 }
 
 function resetGear() {
