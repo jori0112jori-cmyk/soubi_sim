@@ -8,6 +8,7 @@
     /* === ベース設定 === */
     body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background-color: #f4f6f8; color: #2c3e50; padding: 12px 10px 120px; margin: 0; font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
     h1 { font-size: 1.25rem; text-align: left; color: #1a252f; margin: 0 0 15px 0; font-weight: 900; letter-spacing: 0.5px; }
+    .version-badge { font-size: 0.65rem; color: #fff; background: linear-gradient(135deg, #10b981, #059669); font-weight: bold; padding: 2px 8px; border-radius: 12px; vertical-align: middle; margin-left: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: inline-block; }
     
     /* ▼▼ チラつき防止 ▼▼ */
     .container { max-width: 900px; margin: 0 auto; animation: appStart 0.4s ease-out forwards; }
@@ -31,7 +32,6 @@
     .reset-btn { font-size: 0.75rem; background: #fff; color: #64748b; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
     .reset-btn:active { background: #f1f5f9; }
     
-    /* ▼▼ 広告ブロック回避用クラス名に変更 ▼▼ */
     .export-url-btn { font-size: 0.85rem; padding: 8px 15px; background: linear-gradient(to right, #3b82f6, #2563eb); color: #fff; border: none; border-radius: 8px; box-shadow: 0 4px 10px rgba(37,99,235,0.3); letter-spacing: 0.5px; font-weight: bold; cursor: pointer;}
     .export-url-btn:active { background: #1d4ed8; transform: translateY(2px); box-shadow: 0 1px 3px rgba(37,99,235,0.3); }
 
@@ -65,27 +65,44 @@
     .v-row.bench { flex-wrap: wrap; justify-content: flex-start; }
     
     .interactive-card { width: 31%; max-width: 105px; padding: 8px 4px; text-align: center; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.4); background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(0,0,0,0.2)); backdrop-filter: blur(4px); display: flex; flex-direction: column; align-items: center; position: relative; border-top: 1px solid rgba(255,255,255,0.2); border-bottom: 4px solid #64748b; transition: all 0.2s; }
-    .interactive-card:focus-within { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.6); border-color: #3b82f6; }
+    .interactive-card:focus-within { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.6); border-color: #3b82f6; z-index: 5; }
     
-    .card-icon-wrap { display: flex; justify-content: center; gap: 8px; margin-top: 4px; height: 28px; width: 100%; }
+    /* ▼▼ 育成優先度バッジのスタイル ▼▼ */
+    .prio-badge { position: absolute; top: -8px; left: -8px; font-size: 0.75rem; font-weight: 900; color: #fff; padding: 3px 6px; border-radius: 8px; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.5); text-shadow: 1px 1px 0 rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.4); display: none; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    @keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+    .prio-1 { background: linear-gradient(135deg, #f59e0b, #d97706); border-color: #fde68a; } 
+    .prio-2 { background: linear-gradient(135deg, #3b82f6, #1d4ed8); border-color: #bfdbfe; } 
+    .prio-3 { background: linear-gradient(135deg, #ef4444, #b91c1c); border-color: #fecaca; } 
+    .prio-4 { background: linear-gradient(135deg, #64748b, #334155); border-color: #cbd5e1; } 
+    .prio-5 { background: linear-gradient(135deg, #10b981, #047857); border-color: #a7f3d0; } 
+
+    .card-empty { background: rgba(0,0,0,0.2) !important; border: 2px dashed #475569 !important; box-shadow: none !important; opacity: 0.7; border-bottom: 2px dashed #475569 !important; }
+    
+    .card-awakened { border-color: #fbbf24 !important; border-bottom: 4px solid #f59e0b !important; box-shadow: 0 0 15px rgba(251, 191, 36, 0.5), inset 0 0 12px rgba(251, 191, 36, 0.2) !important; }
+    .card-awakened::before { content: ''; position: absolute; top: -5%; left: -5%; right: -5%; bottom: -5%; background: radial-gradient(circle, rgba(251,191,36,0.3) 0%, transparent 60%); animation: pulseAura 2s infinite ease-in-out; pointer-events: none; border-radius: 12px; z-index: -1; }
+    @keyframes pulseAura { 0% { opacity: 0.2; transform: scale(0.95); } 50% { opacity: 1; transform: scale(1.05); } 100% { opacity: 0.2; transform: scale(0.95); } }
+    
+    .awaken-badge { display: inline-flex; align-items: center; justify-content: center; gap: 4px; background: linear-gradient(135deg, #b45309, #f59e0b); color: #fff; font-size: 0.75rem; font-weight: 900; padding: 2px 8px; border-radius: 15px; margin-top: 5px; box-shadow: 0 2px 6px rgba(0,0,0,0.6); text-shadow: 1px 1px 0 rgba(0,0,0,0.4); border: 1px solid #fde68a; letter-spacing: 0.5px; z-index: 2; }
+    
+    .card-icon-wrap { display: flex; justify-content: center; gap: 8px; margin-top: 4px; height: 28px; width: 100%; z-index: 1; position: relative;}
     .icon-box { width: 28px; height: 28px; background: #1e293b; border-radius: 50%; padding: 2px; border: 1px solid #475569; box-shadow: 0 2px 4px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; box-sizing: border-box; overflow: hidden; }
 
-    .card-select { width: 95%; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 8px 2px; font-size: 0.85rem; font-weight: bold; margin-top: 6px; margin-bottom: 8px; appearance: none; -webkit-appearance: none; text-align: center; text-align-last: center; outline: none; text-overflow: ellipsis; }
+    .card-select { width: 95%; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 8px 2px; font-size: 0.85rem; font-weight: bold; margin-top: 6px; margin-bottom: 8px; appearance: none; -webkit-appearance: none; text-align: center; text-align-last: center; outline: none; text-overflow: ellipsis; z-index: 1; position: relative;}
     .card-select:focus { border-color: #3b82f6; background: rgba(0,0,0,0.6); }
     .card-select option { background: #1e293b; color: #fff; }
     .card-select optgroup { background: #0f172a; color: #94a3b8; }
 
-    .card-stepper { display: flex; align-items: center; background: rgba(0,0,0,0.5); border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); width: 95%; margin-bottom: 4px; }
-    .card-stepper button { flex: 1; background: rgba(255,255,255,0.05); border: none; color: #cbd5e1; font-size: 1.4rem; font-weight: bold; padding: 6px 0; cursor: pointer; touch-action: manipulation; display: flex; align-items: center; justify-content: center; }
-    .card-stepper button:active { background: rgba(255,255,255,0.2); }
+    .card-stepper { display: flex; align-items: center; background: rgba(15, 23, 42, 0.6); border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.2); width: 95%; margin-bottom: 4px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); z-index: 1; position: relative;}
+    .card-stepper button { flex: 1; background: rgba(255,255,255,0.08); border: none; color: #f8fafc; font-size: 1.4rem; font-weight: bold; padding: 6px 0; cursor: pointer; touch-action: manipulation; display: flex; align-items: center; justify-content: center; transition: background 0.1s; }
+    .card-stepper button:active { background: rgba(59, 130, 246, 0.5); color: #fff; }
     .card-stepper input { width: 34px; background: transparent; border: none; color: #fff; font-size: 0.95rem; font-weight: bold; text-align: center; pointer-events: none; padding: 0; }
 
     .card-ur { box-shadow: 0 0 12px rgba(168, 85, 247, 0.4), inset 0 0 8px rgba(168, 85, 247, 0.2); border-color: #a855f7; border-bottom-color: #a855f7; }
     .card-tank { border-bottom-color: #f59e0b; }
     .card-air { border-bottom-color: #3b82f6; }
     .card-mis { border-bottom-color: #ef4444; }
-    
-    .card-syn { font-size: 0.6rem; color: #fbbf24; font-weight: 900; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; text-shadow: 0 0 3px rgba(217, 119, 6, 0.8); height: 14px; line-height: 1.2;}
+
+    .card-syn { width: 100%; min-height: 22px; display: flex; justify-content: center; align-items: center; }
 
     .advice { font-size: 0.85rem; padding: 10px 15px; border-radius: 8px; line-height: 1.5; background: #fffbeb; border-left: 4px solid #f59e0b; color: #475569; font-weight: bold;}
     .adv-ok { background: #f0fdf4; border-color: #22c55e; color: #166534; }
@@ -130,7 +147,7 @@
 <div id="toast"></div>
 
 <div class="container">
-    <h1>育成シミュレーター <span style="font-size:0.7rem; color:#94a3b8; font-weight:normal;">v18.63 </span></h1>
+    <h1>　　　　 育成シミュレーター <span class="version-badge">v19.0</span></h1>
 
     <div class="tabs">
         <div class="tab-btn active" onclick="showTab('squad')">⚔️ 部隊編成</div>
@@ -222,27 +239,27 @@ window.currentBestSwap = null;
 
 // --- Config ---
 const HEROES = {
-    empty: {n:"未設定", t:"none", r:"none", ur:false},
-    murphy: {n:"マーフィ", t:"tank", r:"wall", ur:false},
-    williams: {n:"ウィリアムズ", t:"tank", r:"wall", ur:false},
-    scarlett: {n:"スカーレット", t:"tank", r:"wall", ur:true},
-    violet: {n:"ヴィオラ", t:"tank", r:"wall", ur:true},
-    kimberly: {n:"キンバリー", t:"tank", r:"atk", ur:false},
-    stetmann: {n:"ステッドマン", t:"tank", r:"atk", ur:false},
-    mason: {n:"メイソン", t:"tank", r:"atk", ur:true},
-    marshall: {n:"マーシャル", t:"tank", r:"sup", ur:false},
-    lucius: {n:"ルシウス", t:"air", r:"wall", ur:false},
-    carlie: {n:"カーリー", t:"air", r:"wall", ur:false},
-    dva: {n:"DVA", t:"air", r:"atk", ur:false},
-    schuyler: {n:"スカイラー", t:"air", r:"atk", ur:false},
-    morrison: {n:"モリソン", t:"air", r:"atk", ur:false},
-    sarah: {n:"サラ", t:"air", r:"atk", ur:true},
-    mcgregor: {n:"マクレガー", t:"mis", r:"wall", ur:false},
-    adam: {n:"アダム", t:"mis", r:"wall", ur:false},
-    tesla: {n:"テスラ", t:"mis", r:"atk", ur:false},
-    fiona: {n:"フィオナ", t:"mis", r:"atk", ur:false},
-    swift: {n:"スウィフト", t:"mis", r:"atk", ur:false},
-    venom: {n:"ベノム", t:"mis", r:"atk", ur:true}
+    empty: {n:"未設定", t:"none", r:"none", ur:false, pr:0},
+    kimberly: {n:"キンバリー", t:"tank", r:"atk", ur:false, pr:100},
+    dva: {n:"DVA", t:"air", r:"atk", ur:false, pr:100},
+    tesla: {n:"テスラ", t:"mis", r:"atk", ur:false, pr:100},
+    murphy: {n:"マーフィ", t:"tank", r:"wall", ur:false, pr:90},
+    lucius: {n:"ルシウス", t:"air", r:"wall", ur:false, pr:90},
+    mcgregor: {n:"マクレガー", t:"mis", r:"wall", ur:false, pr:90},
+    stetmann: {n:"ステッドマン", t:"tank", r:"atk", ur:false, pr:80},
+    schuyler: {n:"スカイラー", t:"air", r:"atk", ur:false, pr:80},
+    fiona: {n:"フィオナ", t:"mis", r:"atk", ur:false, pr:80},
+    morrison: {n:"モリソン", t:"air", r:"atk", ur:false, pr:75},
+    swift: {n:"スウィフト", t:"mis", r:"atk", ur:false, pr:75},
+    mason: {n:"メイソン", t:"tank", r:"atk", ur:true, pr:70},
+    sarah: {n:"サラ", t:"air", r:"atk", ur:true, pr:70},
+    venom: {n:"ベノム", t:"mis", r:"atk", ur:true, pr:70},
+    williams: {n:"ウィリアムズ", t:"tank", r:"wall", ur:false, pr:60},
+    carlie: {n:"カーリー", t:"air", r:"wall", ur:false, pr:60},
+    adam: {n:"アダム", t:"mis", r:"wall", ur:false, pr:60},
+    scarlett: {n:"スカーレット", t:"tank", r:"wall", ur:true, pr:55},
+    violet: {n:"ヴィオラ", t:"tank", r:"wall", ur:true, pr:55},
+    marshall: {n:"マーシャル", t:"tank", r:"sup", ur:false, pr:50}
 };
 
 const GEAR_TYPES = ['Gun', 'Data', 'Armor', 'Radar'];
@@ -251,7 +268,7 @@ const GEAR_NAMES = { 'Gun':'🔫レールガン', 'Data':'💾チップ', 'Armor
 const getMaxP = (s) => s === 4 ? 10 : 5;
 const getSquadName = (s) => s === 4 ? "控え室" : `第${s}部隊`;
 
-// --- URL共有機能（超圧縮エンコード用マップ） ---
+// --- URL共有機能 ---
 const HERO_COMPRESS_MAP = {
     empty:'0', murphy:'1', williams:'2', scarlett:'3', violet:'4',
     kimberly:'5', stetmann:'6', mason:'7', marshall:'8',
@@ -312,6 +329,7 @@ function initSquadHTML() {
         for(let p=1; p<=maxP; p++) {
             slotsHtml.push(`
             <div class="interactive-card" id="card-${s}-${p}">
+                <div class="prio-badge" id="prio-${s}-${p}"></div>
                 
                 <div class="card-icon-wrap">
                     <div class="icon-box" id="f-icon-${s}-${p}" style="display:none;"></div>
@@ -370,85 +388,6 @@ function stepWp(s, p, d) {
     updateSquad(s);
 }
 
-function updateSquad(s, skipAi = false) {
-    lockDuplicateHeroes(s);
-    
-    let members = [];
-    let counts = {tank:0, air:0, mis:0, none:0};
-    
-    for(let p=1; p<=getMaxP(s); p++) {
-        let hid = document.getElementById(`h-${s}-${p}`).value;
-        let wpEl = document.getElementById(`w-${s}-${p}`);
-        let wpBox = document.getElementById(`wp-box-${s}-${p}`);
-        
-        let card = document.getElementById(`card-${s}-${p}`);
-        let fIcon = document.getElementById(`f-icon-${s}-${p}`);
-        let rIcon = document.getElementById(`r-icon-${s}-${p}`);
-        let synEl = document.getElementById(`syn-${s}-${p}`);
-        
-        let h = HEROES[hid];
-        let currentVal = parseInt(wpEl.value) || 0;
-
-        if(h.ur || hid === 'empty') {
-            wpBox.style.opacity = '0.3';
-            wpBox.style.pointerEvents = 'none';
-            wpEl.value = h.ur ? "未" : "-";
-            currentVal = 0;
-        } else {
-            wpBox.style.opacity = '1';
-            wpBox.style.pointerEvents = 'auto';
-            wpEl.value = currentVal;
-        }
-
-        card.className = 'interactive-card';
-        synEl.innerHTML = '';
-        
-        if (hid === 'empty') {
-            fIcon.style.display = 'none';
-            rIcon.style.display = 'none';
-        } else {
-            if(h.ur) card.classList.add('card-ur');
-            if(h.t === 'tank') card.classList.add('card-tank');
-            if(h.t === 'air') card.classList.add('card-air');
-            if(h.t === 'mis') card.classList.add('card-mis');
-            
-            fIcon.style.display = 'flex';
-            rIcon.style.display = 'flex';
-            
-            let fImg = h.t === 'tank' ? 'tank.png' : h.t === 'air' ? 'air.png' : 'misile.png';
-            let rImg = h.r === 'wall' ? 'tateyaku.png' : h.r === 'atk' ? 'karyoku.png' : 'support.png';
-            
-            fIcon.innerHTML = `<img src="${fImg}" style="width:100%; height:100%; object-fit:contain; border-radius:50%;">`;
-            rIcon.innerHTML = `<img src="${rImg}" style="width:100%; height:100%; object-fit:contain; border-radius:50%;">`;
-            
-            if (currentVal >= 30) {
-                let synName = "専用武装";
-                if (hid === 'williams') synName = "鋼鉄の心";
-                else if (hid === 'kimberly') synName = "致命の花火";
-                else if (hid === 'dva') synName = "超速起動";
-                else if (hid === 'tesla') synName = "電磁誘導";
-                else if (hid === 'carlie') synName = "ぺぺおねがい";
-                else if (hid === 'schuyler') synName = "電磁妨害";
-                else if (hid === 'stetmann') synName = "電磁バリア";
-                else if (hid === 'morrison') synName = "爆裂徹甲弾";
-                synEl.innerHTML = `✨${synName}`;
-            }
-        }
-
-        members.push({ ...h, id:hid, wp:currentVal, pos:p });
-        counts[h.t]++;
-    }
-
-    if(s !== 4) {
-        analyzeSquad(s, members, counts);
-    }
-    
-    if(!skipAi) {
-        saveData();
-        generateAiSuggestion(); 
-    }
-}
-
 function lockDuplicateHeroes(s) {
     let selects = Array.from(document.querySelectorAll(`#sq-body-${s} .card-select`));
     let selectedVals = selects.map(el => el.value).filter(v => v !== 'empty');
@@ -475,6 +414,106 @@ function lockDuplicateHeroes(s) {
             }
         });
     });
+}
+
+function updateSquad(s, skipAi = false) {
+    lockDuplicateHeroes(s);
+    
+    let members = [];
+    let counts = {tank:0, air:0, mis:0, none:0};
+    let activeMembers = []; 
+    
+    for(let p=1; p<=getMaxP(s); p++) {
+        let hid = document.getElementById(`h-${s}-${p}`).value;
+        let wpEl = document.getElementById(`w-${s}-${p}`);
+        let wpBox = document.getElementById(`wp-box-${s}-${p}`);
+        
+        let card = document.getElementById(`card-${s}-${p}`);
+        let fIcon = document.getElementById(`f-icon-${s}-${p}`);
+        let rIcon = document.getElementById(`r-icon-${s}-${p}`);
+        let synEl = document.getElementById(`syn-${s}-${p}`);
+        let prioEl = document.getElementById(`prio-${s}-${p}`);
+        
+        let h = HEROES[hid];
+        let currentVal = parseInt(wpEl.value) || 0;
+
+        card.className = 'interactive-card';
+        prioEl.style.display = 'none'; 
+
+        if(h.ur || hid === 'empty') {
+            wpBox.style.opacity = '0.3';
+            wpBox.style.pointerEvents = 'none';
+            wpEl.value = h.ur ? "未" : "-";
+            currentVal = 0;
+        } else {
+            wpBox.style.opacity = '1';
+            wpBox.style.pointerEvents = 'auto';
+            wpEl.value = currentVal;
+        }
+
+        synEl.innerHTML = '';
+        
+        if (hid === 'empty') {
+            card.classList.add('card-empty');
+            fIcon.style.display = 'none';
+            rIcon.style.display = 'none';
+            counts.none++;
+        } else {
+            if(h.ur) card.classList.add('card-ur');
+            if(h.t === 'tank') card.classList.add('card-tank');
+            if(h.t === 'air') card.classList.add('card-air');
+            if(h.t === 'mis') card.classList.add('card-mis');
+            
+            fIcon.style.display = 'flex';
+            rIcon.style.display = 'flex';
+            
+            let fImg = h.t === 'tank' ? 'tank.png' : h.t === 'air' ? 'air.png' : 'misile.png';
+            let rImg = h.r === 'wall' ? 'tateyaku.png' : h.r === 'atk' ? 'karyoku.png' : 'support.png';
+            
+            fIcon.innerHTML = `<img src="${fImg}" style="width:100%; height:100%; object-fit:contain; border-radius:50%;">`;
+            rIcon.innerHTML = `<img src="${rImg}" style="width:100%; height:100%; object-fit:contain; border-radius:50%;">`;
+            
+            if (currentVal >= 30) {
+                card.classList.add('card-awakened');
+                synEl.innerHTML = `<div class="awaken-badge">👑 覚醒</div>`;
+            } else {
+                let dynamicPr = h.pr;
+                if (h.r === 'wall' && currentVal >= 20) {
+                    dynamicPr -= 45; 
+                }
+                activeMembers.push({ p: p, pr: dynamicPr, wp: currentVal });
+            }
+
+            counts[h.t]++;
+        }
+
+        members.push({ ...h, id:hid, wp:currentVal, pos:p });
+    }
+
+    if(s !== 4 && activeMembers.length > 0) {
+        activeMembers.sort((a, b) => {
+            if(b.pr !== a.pr) return b.pr - a.pr;
+            if(b.wp !== a.wp) return b.wp - a.wp;
+            return a.p - b.p;
+        });
+
+        let icons = ["👑①", "🛡️②", "⚔️③", "🛡️④", "💊⑤"];
+        activeMembers.forEach((mem, index) => {
+            let badgeEl = document.getElementById(`prio-${s}-${mem.p}`);
+            badgeEl.innerHTML = icons[index] || "";
+            badgeEl.className = `prio-badge prio-${index + 1}`;
+            badgeEl.style.display = 'block'; 
+        });
+    }
+
+    if(s !== 4) {
+        analyzeSquad(s, members, counts);
+    }
+    
+    if(!skipAi) {
+        saveData();
+        generateAiSuggestion(); 
+    }
 }
 
 function analyzeSquad(s, m, c) {
@@ -555,7 +594,10 @@ function calcSquadScore(squadArr) {
 function applySwap() {
     if(!window.currentBestSwap) return;
     
-    document.querySelectorAll('.card-select option').forEach(opt => opt.disabled = false);
+    document.querySelectorAll('.card-select option').forEach(opt => {
+        opt.disabled = false;
+        opt.text = opt.text.replace(" (済)", "");
+    });
 
     window.currentBestSwap.in.forEach((cIn, i) => {
         let cOut = window.currentBestSwap.out[i];
@@ -619,7 +661,6 @@ function generateAiSuggestion() {
         }
     }
 
-    // --- 育成ルート＆兵種移行アドバイス ロジック ---
     if(roster.length === 0) {
         routeResult.style.display = 'none'; routePlace.style.display = 'block';
     } else {
@@ -660,13 +701,14 @@ function generateAiSuggestion() {
         }
 
         let transitionHtml = "";
+        // ▼▼ ここを「目的に合わせて誰と交代するか」が分かるように書き換えました ▼▼
         if (mainAxis === 'mis') {
             transitionHtml = "🚀 <b>エンドコンテンツ到達：</b><br>現環境の頂点、ミサイル部隊への移行が進んでいます！航空機メタを完全に破壊できるので、このまま育成を極めましょう。";
         } else if (mainAxis === 'air') {
-            if (dva >= 30 && luc >= 20 && sky >= 20) transitionHtml = "🔄 <b>最終メタへの準備：</b><br>航空機が極まってきました！サーバー内に航空機が増えてきたら、最強のアンチである<b>ミサイル（テスラ軸）</b>の育成を裏で進めるのがガチ勢の最終到達点です。";
+            if (dva >= 30 && luc >= 20 && sky >= 20) transitionHtml = "🔄 <b>最終メタへの準備：</b><br>航空機が極まりました！対航空機を意識するなら次のステップへ。<br><b style='color:#b91c1c;'>🚀 対航空機</b>：テスラを育成し、火力枠(モリソンやスカイラー)と交代して異種混成へ";
             else transitionHtml = "✈️ <b>航空機シフト進行中：</b><br>対戦車メタへの移行が順調です。まずはDVAを軸としたこの編成を極め、アリーナで圧倒的有利を取りましょう！";
         } else {
-            if (kim >= 30 && mur >= 20) transitionHtml = "🔄 <b>次世代への移行推奨：</b><br>戦車の必須基盤が完成しました！さらに上を目指すなら、王道の<b>航空機（DVA）</b>へ移行するか、茨の道ですが最終最強の<b>ミサイル（テスラ）</b>を目指すフェーズです。";
+            if (kim >= 30 && mur >= 20) transitionHtml = "🔄 <b>次世代への移行推奨：</b><br>戦車の必須基盤が完成しました！目的に合わせて次のエースを育成・交代しましょう。<br><b style='color:#3b82f6;'>✈️ 航空機ルート</b>：DVAを育成 ➡ ステッドマン等と交代 (王道メタ)<br><b style='color:#b91c1c;'>🚀 ロケランルート</b>：テスラを育成 ➡ ステッドマン等と交代 (最終最強メタ)";
             else transitionHtml = "🚜 <b>戦車基盤の構築期：</b><br>兵種移行を考えるのはまだ早いです。まずは対人・PvE両方で腐らない『キンバリーLv30＋マーフィーLv20』の完成を一直線に目指しましょう。";
         }
         
@@ -674,7 +716,6 @@ function generateAiSuggestion() {
         <div style="margin-top:12px; padding-top:10px; border-top:1px dashed #cbd5e1; font-size:0.85rem; color:#475569; background:#f8fafc; padding:10px; border-radius:8px;">${transitionHtml}</div>`;
     }
 
-    // --- 入替提案ロジック ---
     if(roster.length === 0 || mainSquad.length === 0) {
         resultBox.style.display = 'none'; placeH.style.display = 'block';
         return;
@@ -837,20 +878,17 @@ function exportFormationUrl() {
             let hid = document.getElementById(`h-${s}-${p}`).value;
             let wp = parseInt(document.getElementById(`w-${s}-${p}`).value) || 0;
             
-            // キャラ名を1文字に変換
             let charCode = HERO_COMPRESS_MAP[hid] || '0';
-            // 武装Lv(0〜30)を36進数(0〜z)の1文字に変換
             let wpCode = wp.toString(36); 
             
             compressedData += charCode + wpCode;
         }
     }
     
-    // URLのパラメータに付与
     let url = window.location.origin + window.location.pathname + "?d=" + compressedData;
     
     navigator.clipboard.writeText(url).then(() => {
-        showToast("📋 共有URLをコピーしました！");
+        showToast("📋 短縮URL(約40文字)をコピーしました！");
     }).catch(err => {
         showToast("❌ コピーに失敗しました");
     });
@@ -947,7 +985,6 @@ function loadAllData() {
     const urlParams = new URLSearchParams(window.location.search);
     const param = urlParams.get('d');
     
-    // 超圧縮URLからのロード
     if(param && param.length >= 40 && !param.includes('%')) {
         try {
             let idx = 0;
@@ -965,7 +1002,6 @@ function loadAllData() {
             window.history.replaceState(null, null, window.location.pathname); 
         } catch(e) { console.error("URL解析エラー"); }
     } 
-    // 旧バージョンのBase64形式のフォールバック
     else if (param) {
         try {
             let decoded = JSON.parse(decodeURIComponent(atob(param)));
@@ -981,7 +1017,6 @@ function loadAllData() {
         } catch(e) { console.error("URL解析エラー(旧形式)"); }
     }
     
-    // URLからの読み込みがなければ、ローカルから編成を復元
     if(!isShared) {
         let saved = localStorage.getItem('lw_sim_final_layout_v9');
         if(saved) {
@@ -995,7 +1030,6 @@ function loadAllData() {
         }
     }
 
-    // 装備シミュのデータは、URLシェアに関わらず常に自分のローカルデータを表示
     let savedLocal = localStorage.getItem('lw_sim_final_layout_v9');
     if(savedLocal) {
         let dLocal = JSON.parse(savedLocal);
