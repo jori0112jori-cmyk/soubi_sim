@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ラストウォー育成シミュレーター</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link rel="stylesheet" href="styles.css?v=20260228">
+</head>
+<body>
+<div id="toast"></div>
+
+<div class="container">
+    <h1>育成シミュレーター <span class="version-badge">環境適応型AI v1.4 安定版</span></h1>
+    <div class="tabs">
+        <div class="tab-btn active" onclick="showTab('squad', this)">⚔️ 部隊編成</div>
+        <div class="tab-btn" onclick="showTab('gear', this)">🛡️ 装備</div>
+        <div class="tab-btn" onclick="showTab('guide', this)">📘 使い方</div>
+    </div>
+
+<div id="tab-squad" class="tab-content active">
+        
+        
+<div style="display:flex; justify-content:flex-end; align-items:center; margin-bottom: 12px; gap: 6px;">
+            <span style="font-size: 0.85rem; font-weight: 900; color: #475569;">🌍 現在のメタ:</span>
+            <select id="current-meta" style="font-size: 0.85rem; padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; font-weight:bold; color:#1d4ed8; outline:none;" onchange="updateAllSquads()">
+                <option value="tank">🚜 戦車環境</option>
+                <option value="air">✈️ 航空環境</option>
+                <option value="mis" selected>🚀 ロケラン環境</option>
+            </select>
+        </div>
+        <div id="power-row" style="display:flex; justify-content:flex-end; align-items:center; margin-top:-6px; margin-bottom: 12px; gap: 6px; flex-wrap:wrap;">
+            <span style="font-size: 0.85rem; font-weight: 900; color: #475569;">📈 戦力(M・任意):</span>
+            <input id="pow-tank" type="number" inputmode="decimal" min="0" step="0.01" placeholder="戦車" style="width:78px; font-size: 0.85rem; padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; font-weight:bold; color:#0f172a; outline:none;" onchange="saveData(); scheduleAi();" />
+            <input id="pow-air" type="number" inputmode="decimal" min="0" step="0.01" placeholder="航空" style="width:78px; font-size: 0.85rem; padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; font-weight:bold; color:#0f172a; outline:none;" onchange="saveData(); scheduleAi();" />
+            <input id="pow-mis" type="number" inputmode="decimal" min="0" step="0.01" placeholder="ロケ" style="width:78px; font-size: 0.85rem; padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; font-weight:bold; color:#0f172a; outline:none;" onchange="saveData(); scheduleAi();" />
+            <span style="font-size: 0.75rem; font-weight: bold; color: #94a3b8;">未入力でもOK</span>
+        </div>
+
+
+
+
+        <div id="power-transition" class="suggestion-box" style="margin-top:10px;">
+            <div style="font-weight:900; color:#0f172a; margin-bottom:6px;">兵種シフト目安（戦力差）</div>
+            <div style="font-size:0.82rem; color:#64748b; font-weight:bold;">戦力を入力すると表示されます（目安：対象が主力の60%以上で「検討圏」）。</div>
+        </div>
+
+        <div id="summary-panel" class="panel summary-panel">
+            <div class="panel-title" style="color:#0ea5e9;">🥇 最優先育成</div>
+            <div id="summary-bar" class="suggestion-box">
+                まだデータが足りません（10人以上配置すると要約が表示されます）。
+            </div>
+            <div class="jump-row" aria-label="編成ジャンプ">
+                <button class="jump-btn j1" onclick="jumpToArmy(1)">🥇 1軍へ</button>
+                <button class="jump-btn j2" onclick="jumpToArmy(2)">🥈 2軍へ</button>
+                <button class="jump-btn j3" onclick="jumpToArmy(3)">🥉 3軍へ</button>
+                <button class="jump-btn jb" onclick="jumpToArmy(4)">🧰 控えへ</button>
+            </div>
+        </div>
+
+        <div id="ai-suggestion-panel" class="panel ai-panel" style="display:none;">
+            <div class="panel-title" style="color:#1d4ed8;">🤖 AI軍師：多部隊バランス戦略</div>
+            <div id="ai-result" class="suggestion-box">キャラを10人以上配置すると、自動的に全軍の最適化と診断が始まります。</div>
+        </div>
+        
+        <div id="eff-panel" class="panel route-panel">
+            <div class="panel-title" style="color:#c026d3;">🚀 育成優先ランキング</div>
+            <div id="eff-result" class="suggestion-box">正確なコストと編成診断に基づき、最も効果的な強化先を提案します。</div>
+        </div>
+
+        
+        <div class="panel slot-panel">
+            <div class="panel-title" style="color:#16a34a;">🧩 編成（タップで編集）</div>
+            <div class="suggestion-box" style="margin-bottom:10px;">
+                キャラ枠をタップして <b>キャラ選択</b> と <b>武装Lv(0〜30)</b> を変更します。変更すると上の「最優先育成まとめ」や下の診断/ランキングが自動更新されます。
+            </div>
+
+            <div class="slot-army" id="slot-army-1">
+                <div class="slot-army-head"><div class="label">🥇 1軍</div>
+                <div class="slot-eval" id="slot-eval-1"></div></div>
+                <div class="slot-tiles" id="slot-tiles-1"></div>
+            </div>
+            <div class="slot-army" id="slot-army-2">
+                <div class="slot-army-head"><div class="label">🥈 2軍</div>
+                <div class="slot-eval" id="slot-eval-2"></div></div>
+                <div class="slot-tiles" id="slot-tiles-2"></div>
+            </div>
+            <div class="slot-army" id="slot-army-3">
+                <div class="slot-army-head"><div class="label">🥉 3軍</div>
+                <div class="slot-eval" id="slot-eval-3"></div></div>
+                <div class="slot-tiles" id="slot-tiles-3"></div>
+            </div>
+            <div class="slot-army" id="slot-army-4">
+                <div class="slot-army-head"><div class="label">🧳 控え（任意・10枠）</div></div>
+                <div class="slot-tiles" id="slot-tiles-4"></div>
+            </div>
+        </div>
+
+<div class="panel" style="background:transparent; padding:0; border:none; box-shadow:none; display:none;">
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:12px;">
+                <button onclick="exportAsImage()" style="font-size:0.85rem; padding:8px 15px; background:#10b981; color:#fff; border:none; border-radius:8px; font-weight:bold; cursor:pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">📸 保存</button>
+                <button onclick="resetSquads()" style="font-size:0.8rem; background:#fff; color:#64748b; border:1px solid #cbd5e1; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">🗑️ リセット</button>
+            </div>
+            <div id="squad-container"></div>
+        </div>
+    </div>
+
+    <div id="tab-gear" class="tab-content">
+        <div class="gear-container">
+            <div class="g-card">
+                <div style="color:#64748b; font-weight:bold; margin-bottom:12px; border-bottom:2px solid #f8fafc; padding-bottom:8px;">現在の装備</div>
+                <div class="g-row" style="border-bottom: 1px dashed #e2e8f0; padding-bottom: 12px; margin-bottom: 12px;">
+                    <span class="g-label">⚔️ 武装Lv</span>
+                    <div class="g-input-group">
+                        <div class="stepper stepper-lv"><button onclick="gearStep('cWeapon', -1)">-</button><input id="cWeapon" value="20" readonly><button onclick="gearStep('cWeapon', 1)">+</button></div>
+                        <div style="width:115px;"></div>
+                    </div>
+                </div>
+                <div id="current-gear-rows"></div>
+                <div id="detail-curr" class="buff-info"></div>
+            </div>
+
+            <div class="g-card">
+                <div style="color:#b91c1c; font-weight:bold; margin-bottom:12px; border-bottom:2px solid #f8fafc; padding-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                    目標の装備 <button onclick="resetGear()" style="font-size:0.75rem; background:#fff; border:1px solid #cbd5e1; border-radius:4px; cursor:pointer; padding:3px 8px; font-weight:bold; color:#64748b;">クリア</button>
+                </div>
+                <div class="g-row" style="border-bottom: 1px dashed #fecaca; padding-bottom: 12px; margin-bottom: 12px;">
+                    <span class="g-label" style="color:#b91c1c;">⚔️ 目標Lv</span>
+                    <div class="g-input-group">
+                        <div class="stepper stepper-lv" style="border-color:#fecaca;"><button onclick="gearStep('tWeapon', -1)">-</button><input id="tWeapon" value="20" readonly><button onclick="gearStep('tWeapon', 1)">+</button></div>
+                        <div style="width:115px;"></div>
+                    </div>
+                </div>
+                <div id="target-gear-rows"></div>
+                <div id="detail-tgt" class="buff-info"></div>
+            </div>
+        </div>
+        
+        <div class="cost-panel">
+            <div style="font-weight:900; color:#d97706; font-size:0.95rem; margin-bottom:8px;">🆙 不足している装備レシピ</div>
+            <div id="cost-list" style="margin-bottom:12px;"></div>
+            <div style="font-size:0.75rem; color:#64748b; background:#f8fafc; padding:8px; border-radius:6px; text-align:center; font-weight:bold;">
+                ★0→1:5 / ★1→2:10 / ★2→3:15 / ★3→4:20 / ★4→5:赤10
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-guide" class="tab-content">
+    <div class="panel" style="border-left:5px solid #0ea5e9;">
+        <div class="panel-title" style="color:#0ea5e9;">📘 このツールの使い方</div>
+        <div class="suggestion-box" style="font-size:0.86rem;">
+      <div style="font-weight:900; margin-bottom:8px; color:#0f172a;">1) 🧩 編成（タップで編集）</div>
+      <ul style="margin:0 0 10px 18px; padding:0; line-height:1.7;">
+        <li>第1〜第3軍（各5枠）＋控え（10枠）を、<b>上のタイル</b>からタップして編集します。</li>
+        <li>各スロットで <b>キャラ</b> と <b>武装Lv（0〜30）</b> を設定できます（URは未実装表示）。</li>
+        <li><b>10人以上</b>配置すると、<b>🥇 最優先育成まとめ</b> と <b>🚀 育成効率ランキング</b> が自動更新されます。</li>
+        <li>「🥇/🥈/🥉/🧰」ボタンで各軍へジャンプできます。</li>
+      </ul>
+
+      <div style="font-weight:900; margin:12px 0 8px; color:#0f172a;">2) 🌍 現在のメタ切り替え</div>
+      <ul style="margin:0 0 10px 18px; padding:0; line-height:1.7;">
+        <li>ページ上部の「現在のメタ」で <b>戦車 / 航空 / ロケラン</b> を選ぶと、AIの評価がその環境に寄るように補正されます。</li>
+        <li>迷う場合は、サーバー上位の主流（多い兵種）に合わせるのが無難です。</li>
+      </ul>
+
+      <div style="font-weight:900; margin:12px 0 8px; color:#0f172a;">3) 📈 戦力入力（任意）＆ 乗り換え推奨度％</div>
+      <ul style="margin:0 0 10px 18px; padding:0; line-height:1.7;">
+        <li>「戦力（戦車/航空/ロケラン）」を入れると、兵種ごとの伸び代を推定して <b>乗り換え推奨度％</b> を表示します。</li>
+        <li>この推奨度は、<b>環境適応型AI</b> の補正（どの兵種を伸ばすと得をしやすいか）に使われます。</li>
+      </ul>
+
+      <div style="font-weight:900; margin:12px 0 8px; color:#0f172a;">4) 🚀 育成効率ランキングの見方</div>
+      <ul style="margin:0 0 10px 18px; padding:0; line-height:1.7;">
+        <li>「🎯 次の到達目標（Lv10 / 20 / 30）」に到達する時の <b>武装のかけら</b> 効率で並びます。</li>
+        <li>伸びの表示は体感ベースで、<b>→10：中 / →20：大 / →30：超</b> になるように調整しています。</li>
+      </ul>
+
+      <div style="margin-top:14px; padding:10px; border-radius:10px; background:#f8fafc; border:1px solid #e2e8f0;">
+        <div style="font-weight:900; color:#334155; margin-bottom:6px;">💾 データ保存について</div>
+        入力内容はブラウザの <b>localStorage</b> に自動保存されます（同じ端末・同じブラウザ内）。別端末/別ブラウザには引き継がれません。
+      </div>
+
+</div>
+        </div>
+    </div>
+
+    <div id="ref-panel" class="panel" style="border-left:5px solid #22c55e; display:block;">
+        <div class="panel-title" style="color:#16a34a;">🔗 情報収集・参考サイト</div>
+        <div class="suggestion-box" style="font-size:0.86rem;">
+            <div style="margin-bottom:8px;">
+                <a href="https://game8.jp/lastwar-survival" target="_blank" rel="noopener noreferrer" style="font-weight:900; color:#2563eb; text-decoration:none;">Game8（ラストウォー攻略）</a><br>
+                <span style="color:#64748b;">キャラ/装備/イベントなどの基本情報をざっと確認したい時に便利。</span>
+            </div>
+            <div style="margin-bottom:8px;">
+                <a href="https://cpt-hedge.com/" target="_blank" rel="noopener noreferrer" style="font-weight:900; color:#2563eb; text-decoration:none;">cpt-hedge.com</a><br>
+                <span style="color:#64748b;">育成/効率系の情報収集に。更新頻度も高め。</span>
+            </div>
+            <div>
+                <a href="https://alliance-duel.pages.dev/" target="_blank" rel="noopener noreferrer" style="font-weight:900; color:#2563eb; text-decoration:none;">連盟対決ツール（自作）</a><br>
+                <span style="color:#64748b;">連盟対決のポイント計算。</span>
+            </div>
+        </div>
+    </div>
+</div>
+    </div>
+
+<div id="footer-bar" class="footer" style="display:none;">
+    <div style="font-size: 1.1rem; font-weight:900; color:#b91c1c;">今より <span id="growth-rate" style="font-size:1.4rem;">1.00</span> 倍!</div>
+    <div style="font-size:0.8rem; color:#4b5563; background:#f8fafc; padding:4px 10px; border-radius:12px; border:1px solid #e2e8f0; font-weight:bold;">必要: <span style="color:#f59e0b;">UR<span id="ft-ur">0</span></span> <span style="color:#b91c1c;">MR<span id="ft-mr">0</span></span></div>
+</div>
+
+<script src="data.js?v=20260228"></script>
+<script src="app.js?v=20260228"></script>
+
+<div id="slot-modal" class="modal-backdrop" onclick="if(event.target===this) closeSlotModal()">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="t">スロット編集</div>
+      <button class="modal-close" onclick="closeSlotModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-row">
+        <label>キャラ</label>
+        <select id="slot-modal-hero" class="modal-select"></select>
+      </div>
+      <div class="modal-row">
+        <label>武装Lv</label>
+        <div class="modal-step">
+          <button onclick="slotModalStep(-1)">−</button>
+          <div id="slot-modal-lv" class="val">0</div>
+          <button onclick="slotModalStep(1)">＋</button>
+        </div>
+      </div>
+      <div class="modal-quick">
+        <button onclick="slotModalSet(0)">0</button>
+        <button onclick="slotModalSet(1)">1</button>
+        <button onclick="slotModalSet(10)">10</button>
+        <button onclick="slotModalSet(20)">20</button>
+        <button onclick="slotModalSet(30)">30</button>
+      </div>
+      <div style="margin-top:10px; font-size:0.8rem; color:#64748b; font-weight:bold; background:#f8fafc; border:1px solid #e2e8f0; padding:10px; border-radius:12px; line-height:1.5;">
+        武装Lvは 0〜30。10→20は現実的、20→30は効果大ですがコスト重めです。
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-danger" onclick="slotModalClear()">未設定にする</button>
+      <button class="btn-primary" onclick="slotModalApply()">反映</button>
+    </div>
+  </div>
+</div>
+</body>
+
+</html>
+<!-- penalty not auto inserted -->
