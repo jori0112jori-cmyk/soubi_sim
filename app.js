@@ -9,6 +9,59 @@
 
 let previousAssignment = null;
 
+// ===============================
+// ⭐ ★上げ判定：警告表示（武装Lv/★4崖）
+// ===============================
+(function(){
+  try{
+    if(document.getElementById('__gcmp_warn_css')) return;
+    const st = document.createElement('style');
+    st.id = '__gcmp_warn_css';
+    st.textContent = `
+      .gcmp-warns{ margin-top:8px; display:flex; flex-direction:column; gap:6px; }
+      .gcmp-warn{ font-size:0.74rem; font-weight:900; color:#b45309; background:#fffbeb; border:1px solid #fde68a; padding:6px 8px; border-radius:10px; line-height:1.25; }
+    `;
+    document.head.appendChild(st);
+  }catch(e){}
+})();
+
+
+
+// ===============================
+// ⭐ UI強制：レシピ表示（不足している装備レシピ等）を非表示
+// ===============================
+(function(){
+  try{
+    if(document.getElementById('__hide_recipe_css')) return;
+    const st = document.createElement('style');
+    st.id = '__hide_recipe_css';
+    st.textContent = [
+      '.recipe-line{display:none !important;}',
+      '.cost-row{display:none !important;}',
+      '#cost-list{display:none !important;}'
+    ].join('\n');
+    document.head.appendChild(st);
+  }catch(e){}
+})();
+
+
+
+// ===============================
+// ⭐ UI強制：フッターを常時非表示（CSSで確実に）
+// ===============================
+(function(){
+  try{
+    if(document.getElementById('__hide_footer_css')) return;
+    const st = document.createElement('style');
+    st.id = '__hide_footer_css';
+    st.textContent = '#footer-bar';
+    st.textContent += '\n\n/* === Mobile: compare recommendation card layout fix === */\n.gcmp-reco{ padding:10px 12px !important; border-radius:12px !important; }\n.gcmp-line1{ display:flex !important; gap:6px !important; align-items:baseline !important; min-width:0 !important; flex-wrap:wrap !important; }\n.gcmp-line1 .gcmp-name{ min-width:0 !important; overflow:hidden !important; text-overflow:ellipsis !important; white-space:nowrap !important; max-width:100% !important; }\n.gcmp-line1 .gcmp-gear{ white-space:nowrap !important; }\n.gcmp-line2{ margin-top:6px !important; display:flex !important; gap:10px !important; align-items:center !important; justify-content:flex-start !important; flex-wrap:nowrap !important; }\n.gcmp-line2 span{ white-space:nowrap !important; }\n.gcmp-cost{ font-size:0.80rem !important; font-weight:900 !important; color:#475569 !important; background:#fff !important; border:1px solid #e2e8f0 !important; padding:2px 8px !important; border-radius:999px !important; }\n';
+    //{display:none !important; visibility:hidden !important; height:0 !important;}';
+    document.head.appendChild(st);
+  }catch(e){}
+})();
+
+
 
 // ===============================
 // 🔁 乗り換え推奨度：色連動コピー（%で文言変化）
@@ -55,6 +108,7 @@ function scheduleAi() {
   __aiTimer = setTimeout(() => {
     __aiTimer = null;
     try { updateTransitionRecommendationUI(); } catch(e) {}
+    try { updateGearPriorityUI(); } catch(e) {}
     generateAiSuggestion();
   }, 60);
 }
@@ -210,7 +264,27 @@ window.onload = function() {
 
     initSquadHTML(); 
     initGearHTML();
-    loadAllData(); 
+    // ⭐ 装備タブ：上部の「現在の装備」「目標の装備」入力を完全非表示（キャラ別入力に一本化）
+    try{
+        const hideGearTopBlock = (innerId) => {
+            const inner = document.getElementById(innerId);
+            if(!inner) return;
+            // できるだけ大きいコンテナを隠す（見出しも含める）
+            const host =
+                inner.closest('.gear-card') ||
+                inner.closest('.section') ||
+                inner.closest('.card') ||
+                inner.closest('.box') ||
+                inner.closest('section') ||
+                inner.parentElement?.parentElement ||
+                inner.parentElement ||
+                inner;
+            if(host) host.style.display = 'none';
+        };
+        hideGearTopBlock('current-gear-rows');
+        hideGearTopBlock('target-gear-rows');
+    }catch(e){}
+loadAllData(); 
     try { renderSlots(); } catch(e) {}
    
    // ★★★ これを追加（超重要）
@@ -225,7 +299,7 @@ function showTab(id, el) {
     let footer = $id('footer-bar');
     let ref = document.getElementById('ref-panel');
     if(ref) ref.style.display = (id === 'guide') ? 'block' : 'none';
-    if(footer) footer.style.display = (id === 'gear') ? 'flex' : 'none';
+    if(footer) footer.style.display = 'none';
 }
 
 function showToast(msg) { 
@@ -1333,7 +1407,7 @@ function loadAllData() {
 
   // ✅ ここは必ず実行される
   updateAllSquads();
-  calculateGear();
+  calculateGear();  try { updateGearPriorityUI(); } catch(e) {}
 }
 
 
@@ -1513,6 +1587,637 @@ function getWeaknessBadge(w){
         "AI診断：バランス良好";
 
     return `<span class="weak-badge ${cls}">${getRoleBadge(role)}<span class="t">${txt}</span></span>`;
+}
+
+
+
+// 🛠️ 装備強化優先度（役割ごと2装備 / 編成へは影響しない）
+// ===============================
+const GEAR_PRIORITY_STORAGE_KEY = "lw_sim_gear_prio_v1";
+
+// 役割ごとの「見る装備」2つ（安全運用：編成最適化には一切反映しない）
+const GEAR_ROLE_MAP = {
+  atk: ["Gun", "Data"],     // 火力：レールガン + チップ
+  wall:["Radar","Armor"],   // 盾　：装甲 + レーダー
+  sup: ["Radar","Data"]     // 支援：レーダー + チップ（暫定）
+};
+
+// === ★上げ判定（UR/MRレシピの誤爆防止：費用対効果の簡易モデル） ===
+// ※ゲーム内の正確な必要数はサーバー/仕様で変わり得るため、ここは「無・微課金向けの意思決定用ヒューリスティック」。
+// 　必要数/重みはいつでも調整できるよう定数化している。
+const GEAR_RECIPE_COST_BY_TARGET_STAR = {
+  // targetStar: { mr: number, ur: number }
+  // ランク(★) 0→1,1→2,2→3,3→4,4→5 の必要数（ユーザー提示の正規テーブル）
+  1: { mr: 0,  ur: 5  },  // ★0→★1
+  2: { mr: 0,  ur: 10 },  // ★1→★2
+  3: { mr: 0,  ur: 15 },  // ★2→★3
+  4: { mr: 0,  ur: 20 },  // ★3→★4
+  5: { mr: 10, ur: 0  }   // ★4→★5
+};
+// 無・微課金の「重さ」：MRの方が入手難と仮定（必要ならここを調整）
+const GEAR_RECIPE_WEIGHT = { ur: 1.0, mr: 3.0 };
+
+// ★の段階ごとの「伸び」を大雑把に表現（高★ほど価値が高い想定）
+const GEAR_MARGINAL_VALUE_BY_TARGET_STAR = {
+  1: 0.6,
+  2: 0.9,
+  3: 1.2,
+  4: 1.5,
+  5: 1.8
+};
+
+// 役割×装備の重要度（同一役割内の相対）
+const GEAR_IMPORTANCE = {
+  atk:  { Gun: 1.20, Data: 1.00 },
+  wall: { Radar: 1.20, Armor: 1.00 },
+  sup:  { Radar: 1.10, Data: 1.00 }
+};
+
+// 比較UIの状態
+let __gearCompare = { a: "", b: "" };
+
+function recipeCostWeight(targetStar){
+  const c = GEAR_RECIPE_COST_BY_TARGET_STAR[targetStar] || { mr:0, ur:0 };
+  const w = (c.mr||0)*GEAR_RECIPE_WEIGHT.mr + (c.ur||0)*GEAR_RECIPE_WEIGHT.ur;
+  // 0割り防止（低★の微コストを少しだけ効かせる）
+  return Math.max(0.35, w);
+}
+
+function computeUpgradeCandidate(hero, gearKey, currentStar, role){
+  const cur = Math.max(0, Math.min(5, parseInt(currentStar)||0));
+  if(cur >= 5) return null;
+
+  const targetStar = cur + 1;
+  const lv = Math.max(0, Math.min(30, parseInt(hero.wp)||0));
+  const lvW = 1 + (lv/30); // 1.0〜2.0（既存の考え方に合わせる） fileciteturn5file0L8-L12
+
+  const impMap = (GEAR_IMPORTANCE[role] || {});
+  const imp = (impMap[gearKey] !== undefined) ? impMap[gearKey] : 1.0;
+
+  const marginal = (GEAR_MARGINAL_VALUE_BY_TARGET_STAR[targetStar] || 1.0);
+  const costW = recipeCostWeight(targetStar);
+
+  const score = (marginal * imp * lvW) / costW;
+
+  const cost = (GEAR_RECIPE_COST_BY_TARGET_STAR[targetStar] || {mr:0, ur:0});
+  return {
+    heroId: hero.id,
+    heroName: hero.name || hero.id,
+    gearKey,
+    currentStar: cur,
+    targetStar,
+    wp: lv,
+    imp,
+    marginal,
+    cost,
+    score
+  };
+}
+
+function formatRecipeCost(cost){
+  const mr = cost && cost.mr ? cost.mr : 0;
+  const ur = cost && cost.ur ? cost.ur : 0;
+  const parts = [];
+  if(mr>0) parts.push(`MR×${mr}`);
+  if(ur>0) parts.push(`UR×${ur}`);
+  return parts.length ? parts.join(" + ") : "（軽）";
+}
+
+function renderGearCompareResult(a, b, g1, g2, role){
+  const store = loadGearPrioData();
+  const stA = store[a.id] || {};
+  const stB = store[b.id] || {};
+  const a1 = Math.max(0, Math.min(5, parseInt(stA[g1])||0));
+  const a2 = Math.max(0, Math.min(5, parseInt(stA[g2])||0));
+  const b1 = Math.max(0, Math.min(5, parseInt(stB[g1])||0));
+  const b2 = Math.max(0, Math.min(5, parseInt(stB[g2])||0));
+
+  const badgeHtml = (mode)=>{
+    if(mode === "both"){
+      return `<span class="no-wrap" style="display:inline-flex; align-items:center; gap:6px; background:#f1f5f9; border:1px solid #cbd5e1; color:#334155; padding:2px 10px; border-radius:999px; font-weight:900; font-size:0.74rem;">PvP/PvE</span>`;
+    }
+    return (mode === "pve")
+      ? `<span class="no-wrap" style="display:inline-flex; align-items:center; gap:6px; background:#ecfeff; border:1px solid #a5f3fc; color:#0e7490; padding:2px 10px; border-radius:999px; font-weight:900; font-size:0.74rem;">PvE</span>`
+      : `<span class="no-wrap" style="display:inline-flex; align-items:center; gap:6px; background:#fff1f2; border:1px solid #fecdd3; color:#be123c; padding:2px 10px; border-radius:999px; font-weight:900; font-size:0.74rem;">PvP</span>`;
+  };
+
+  const build = (mode)=>{
+    const cand = [
+      computeUpgradeCandidate(a, g1, a1, role, mode),
+      computeUpgradeCandidate(a, g2, a2, role, mode),
+      computeUpgradeCandidate(b, g1, b1, role, mode),
+      computeUpgradeCandidate(b, g2, b2, role, mode)
+    ].filter(Boolean);
+
+    if(cand.length === 0){
+      return { sig:"", top:null, html:`<div style="font-weight:900; color:#15803d;">両者とも ★5 で完成しています。</div>` };
+    }
+
+    cand.sort((x,y)=> (y.score - x.score) || (y.wp - x.wp));
+    const top = cand[0];
+    const gearLabel = gearName(top.gearKey);
+    const costTxt = formatRecipeCost(top.cost);
+
+    // ⚠ 武装Lv警告（無微課金向け）
+    const wpWarn = (top.wp < 10)
+      ? `<div class="gcmp-warn">⚠ 武装Lvが低め（Lv${top.wp}）→ 投資効率は控えめ</div>`
+      : "";
+
+    // ⚠ ★4以降の崖警告
+    const cliffWarn = (top.targetStar >= 4)
+      ? `<div class="gcmp-warn">⚠ ★${top.targetStar}は素材消費が急増（UR/MR）</div>`
+      : "";
+
+    const warnHtml = (wpWarn || cliffWarn)
+      ? `<div class="gcmp-warns">${wpWarn}${cliffWarn}</div>`
+      : "";
+
+    const metaLine = `<div class="gcmp-meta">係数：${top.marginal.toFixed(1)}×${top.imp.toFixed(2)}×${(1+(top.wp/30)).toFixed(2)} ÷重み</div>`;
+
+    const html = `
+      <div style="margin-top:10px; padding:10px 10px; border:1px solid #e2e8f0; border-radius:14px; background:rgba(255,255,255,0.72);">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <div style="font-weight:900; color:#0f172a;">✅ 次に★+1</div>
+          ${badgeHtml(mode)}
+        </div>
+
+        <div class="gcmp-reco" style="margin-top:8px;">
+          <div class="gcmp-line0">
+            <span class="gcmp-name">${top.heroName}</span><span class="no-wrap">/</span><span class="gcmp-gear">${gearLabel}</span>
+            <span class="gcmp-arrow no-wrap">→★${top.targetStar}</span>
+            <span class="gcmp-cost no-wrap">${costTxt}</span>
+          </div>
+        </div>
+
+        ${warnHtml}
+
+        <div class="gcmp-desc" style="margin-top:8px;">
+          <div><b>${top.heroName}</b>：<b>${gearLabel}</b> → <span class="no-wrap"><b>★${top.targetStar}</b></span>（<span class="no-wrap"><b>${costTxt}</b></span>）</div>
+          ${metaLine}
+        </div>
+
+        <div class="gcmp-alt">
+          ${cand.slice(1,3).map(x=>{
+            return `<div class="alt-line">次：${x.heroName} ${gearName(x.gearKey)} → <span class="no-wrap">★${x.targetStar}</span>（<span class="no-wrap">${formatRecipeCost(x.cost)}</span>）</div>`;
+          }).join("")}
+        </div>
+      </div>
+    `;
+    const sig = `${top.heroId||top.heroName}|${top.gearKey}|${top.targetStar}|${JSON.stringify(top.cost||{})}`;
+    return { sig, top, html };
+  };
+
+  // PvP/PvE の結果を作る
+  const pvp = build("pvp");
+  const pve = build("pve");
+
+  // 🔥 同一結果なら統合して表示（スクロール量削減）
+  if(pvp.sig && pvp.sig === pve.sig){
+    const t1 = pvp.top, t2 = pve.top;
+    const metaBoth = (t1 && t2)
+      ? `<div class="gcmp-meta">係数：PvP ${t1.marginal.toFixed(1)}×${t1.imp.toFixed(2)} / PvE ${t2.marginal.toFixed(1)}×${t2.imp.toFixed(2)}</div>`
+      : "";
+
+    let merged = pvp.html;
+    // バッジを PvP/PvE に差し替え（色も中立に）
+    merged = merged.replace(/>PvP<\/span>/, '>PvP/PvE</span>');
+    merged = merged.replace(/background:#fff1f2; border:1px solid #fecdd3; color:#be123c;/, 'background:#f1f5f9; border:1px solid #cbd5e1; color:#334155;');
+
+    // 係数行を差し替え
+    if(metaBoth){
+      merged = merged.replace(/<div class="gcmp-meta">[\s\S]*?<\/div>/, metaBoth);
+    }
+    return merged;
+  }
+
+  // 2種類並べて表示（PvP / PvE）
+  return `${pvp.html}${pve.html}`;
+}
+
+function setGearCompare(which, heroId){
+  if(which === "a") __gearCompare.a = heroId || "";
+  if(which === "b") __gearCompare.b = heroId || "";
+  try{ updateGearPriorityUI(); }catch(e){}
+}
+window.setGearCompare = setGearCompare;
+
+function loadGearPrioData(){
+  try{
+    const raw = localStorage.getItem(GEAR_PRIORITY_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) || {}) : {};
+  }catch(e){ return {}; }
+}
+function saveGearPrioData(d){
+  try{ localStorage.setItem(GEAR_PRIORITY_STORAGE_KEY, JSON.stringify(d||{})); }catch(e){}
+}
+
+// 編成タブの入力（キャラ + 武装Lv）を流用して、装備タブで一覧にする
+function getRosterFromSquadsUnique(){
+  const map = new Map(); // id -> {id, wp, role, type, name}
+  for(let s=1; s<=4; s++){
+    const n = (s===4)?10:5;
+    for(let p=1; p<=n; p++){
+      const hEl = document.getElementById(`h-${s}-${p}`);
+      const wEl = document.getElementById(`w-${s}-${p}`);
+      if(!hEl || !wEl) continue;
+      const id = (hEl.value || "empty");
+      if(id==="empty") continue;
+      const h = HEROES[id];
+      if(!h || h.ur) continue;
+      const wpRaw = wEl.value;
+      const wp = (typeof wpRaw === "string" && (wpRaw.includes("未") || wpRaw === "-")) ? 0 : (parseInt(wpRaw)||0);
+      const prev = map.get(id);
+      if(!prev || wp > (prev.wp||0)){
+        map.set(id, { id, wp, role: h.r, type: h.t, name: h.n });
+      }
+    }
+  }
+  return Array.from(map.values());
+}
+
+function ensureGearPriorityToolDOM(){
+  const tab = document.getElementById("tab-gear");
+  if(!tab) return null;
+
+
+  // --- Mobile typography / wrapping fixes for compare UI (smartphone portrait) ---
+  try{
+    if(!document.getElementById("gear-mobile-style")){
+      const st = document.createElement("style");
+      st.id = "gear-mobile-style";
+      st.textContent = `
+        /* Compare UI: prevent awkward wraps on mobile */
+        .gear-compare-row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+        .gear-compare-row select{ flex:1; min-width:0; padding:8px 10px; border-radius:12px; border:1px solid #e2e8f0; font-weight:800; }
+        @media (max-width: 380px){ .gear-compare-row{ flex-direction:column; } }
+
+        .no-wrap{ white-space:nowrap; }
+
+        .gcmp-reco{ margin-top:6px; font-weight:900; color:#a21caf; background:#fdf4ff; border:1px solid #fbcfe8; padding:10px 10px; border-radius:12px; }
+        .gcmp-line1{ display:flex; gap:6px; align-items:baseline; min-width:0; }
+        .gcmp-line1 .gcmp-name{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .gcmp-line1 .gcmp-gear{ white-space:nowrap; }
+        .gcmp-line2{ margin-top:6px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+        .gcmp-cost{ font-size:0.80rem; font-weight:900; color:#475569; background:#fff; border:1px solid #e2e8f0; padding:2px 8px; border-radius:999px; }
+
+        .gcmp-desc{ margin-top:8px; font-size:0.74rem; color:#475569; font-weight:800; line-height:1.55; }
+        .gcmp-desc .gcmp-meta{ color:#64748b; }
+
+        .gcmp-alt{ margin-top:8px; }
+        .gcmp-alt .alt-line{ font-size:0.72rem; color:#64748b; font-weight:800; line-height:1.5; }
+        .recipe-line{ font-size:12px; white-space:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+
+        /* One-line recommendation (portrait): keep in one row with ellipsis */
+        .gcmp-line0{ display:flex; gap:6px; align-items:baseline; min-width:0; flex-wrap:nowrap; overflow:hidden; font-size:0.86rem; }
+        .gcmp-line0 .gcmp-name{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .gcmp-line0 .gcmp-gear{ flex:0 0 auto; white-space:nowrap; }
+        .gcmp-line0 .gcmp-arrow{ flex:0 0 auto; }
+        .gcmp-line0 .gcmp-cost{ flex:0 0 auto; }
+        @media (max-width: 360px){ .gcmp-line0{ font-size:0.82rem; } .gcmp-reco{ padding:9px 10px; } }
+
+      `;
+      document.head.appendChild(st);
+    }
+  }catch(e){}
+
+  let wrap = document.getElementById("gear-prio-tool");
+  if(wrap) return wrap;
+
+  wrap = document.createElement("div");
+  wrap.id = "gear-prio-tool";
+  wrap.style.marginTop = "14px";
+
+  wrap.innerHTML = `
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <div style="font-weight:900; color:#0f172a;"></div>
+        <div style="font-size:0.72rem; color:#64748b; font-weight:900; white-space:nowrap;">※編成の評価には反映しません</div>
+      </div>
+
+      <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="tab-btn" id="gear-prio-btn-atk" onclick="setGearPrioRole('atk')" style="padding:8px 10px; border-radius:10px;">火力役</button>
+        <button class="tab-btn" id="gear-prio-btn-wall" onclick="setGearPrioRole('wall')" style="padding:8px 10px; border-radius:10px;">盾役</button>
+        <button class="tab-btn" id="gear-prio-btn-sup" onclick="setGearPrioRole('sup')" style="padding:8px 10px; border-radius:10px;">支援役</button>
+      </div>
+
+      <div id="gear-prio-sub" style="margin-top:8px; font-size:0.78rem; color:#475569; font-weight:800;"></div>
+      <div id="gear-prio-list" style="margin-top:10px;"></div>
+
+      <!-- ★上げ判定（2キャラ比較） -->
+      <div id="gear-compare-box" style="margin-top:12px; padding:10px 12px; border:1px solid #e2e8f0; border-radius:14px; background:#fff;">
+        <div style="font-weight:900; color:#0f172a;">🔍 ★上げ判定（2キャラ比較）</div>
+        <div class="gear-compare-row">
+          <select id="gear-compare-a" onchange="setGearCompare('a', this.value)"></select>
+          <select id="gear-compare-b" onchange="setGearCompare('b', this.value)"></select>
+        </div>
+        <div id="gear-compare-result" style="margin-top:10px;"></div>
+        <div style="margin-top:8px; font-size:0.70rem; color:#94a3b8; font-weight:800; line-height:1.45;">
+          ※この判定は「(次の★+1の伸び) ÷ (UR/MR入手難易度の重み) × (武装Lv補正)」の簡易モデルです。<br>
+          ※役割ボタン（火力/盾/支援）で対象装備が変わります。
+        </div>
+      </div>
+
+      <div style="margin-top:10px; font-size:0.72rem; color:#94a3b8; font-weight:800; line-height:1.45;">
+        ・役割ごとに「見る装備」を2つに固定（例：火力＝レールガン&チップ）。<br>
+        ・★入力はこのタブだけで管理（UR/MRレシピの誤爆防止用）。<br>
+        ・優先度は「未完成★の多さ」×「武装Lv（育成済みほど優先）」で並び替え。
+      </div>
+    </div>
+  `;
+
+  tab.appendChild(wrap);
+  return wrap;
+}
+
+let __gearPrioRole = "atk";
+function setGearPrioRole(role){
+  __gearPrioRole = role;
+  try{ updateGearPriorityUI(); }catch(e){}
+}
+window.setGearPrioRole = setGearPrioRole;
+
+function gearName(key){
+  try{
+    // data.js の GEAR_NAMES を利用
+    return (typeof GEAR_NAMES !== "undefined" && GEAR_NAMES[key]) ? GEAR_NAMES[key] : key;
+  }catch(e){ return key; }
+}
+
+function renderStars(n){
+  const v = Math.max(0, Math.min(5, parseInt(n)||0));
+  let s = "";
+  for(let i=0;i<5;i++) s += (i<v) ? "★" : "☆";
+  return s;
+}
+
+function updateGearPriorityUI(){
+  const wrap = ensureGearPriorityToolDOM();
+  if(!wrap) return;
+
+  // ボタン状態
+  ["atk","wall","sup"].forEach(r=>{
+    const b = document.getElementById(`gear-prio-btn-${r}`);
+    if(!b) return;
+    if(r===__gearPrioRole) b.classList.add("active");
+    else b.classList.remove("active");
+  });
+
+  const roster = getRosterFromSquadsUnique();
+  const listEl = document.getElementById("gear-prio-list");
+  const subEl  = document.getElementById("gear-prio-sub");
+  if(!listEl || !subEl) return;
+
+  const gears = GEAR_ROLE_MAP[__gearPrioRole] || GEAR_ROLE_MAP.atk;
+  const g1 = gears[0], g2 = gears[1];
+
+  const roleLabel = (__gearPrioRole==="atk") ? "火力役" : (__gearPrioRole==="wall") ? "盾役" : "支援役";
+  subEl.innerHTML = `対象：<b>${roleLabel}</b>（${gearName(g1)} / ${gearName(g2)} の★を入力して比較）`;
+
+  const store = loadGearPrioData();
+  const rows = roster
+    .filter(h => h.role === __gearPrioRole)
+    .map(h=>{
+      const st = store[h.id] || {};
+      const s1 = Math.max(0, Math.min(5, parseInt(st[g1])||0));
+      const s2 = Math.max(0, Math.min(5, parseInt(st[g2])||0));
+      const need = (5 - s1) + (5 - s2); // 未完成★の多さ
+      const lvW = 1 + (Math.max(0, Math.min(30, h.wp||0)) / 30); // 育成済みほど優先（1.0〜2.0）
+      const score = need * lvW;
+      return { ...h, g1, g2, s1, s2, need, score };
+    })
+    .sort((a,b)=> (b.score - a.score) || (b.wp - a.wp));
+
+  if(rows.length === 0){
+    listEl.innerHTML = `<div style="font-size:0.82rem; color:#64748b; font-weight:800; padding:8px 2px;">該当キャラがいません（編成タブに配置するとここに出ます）。</div>`;
+    return;
+  }
+
+  const topId = rows[0].id;
+
+  // --- 2キャラ比較UI（次に★+1するならどれが良い？） ---
+  const selA = document.getElementById("gear-compare-a");
+  const selB = document.getElementById("gear-compare-b");
+  const resEl = document.getElementById("gear-compare-result");
+  if(selA && selB && resEl){
+    const optHtml = rows.map(r=>{
+      const label = `${r.name} Lv${r.wp} / ${gearName(g1)}★${r.s1} ${gearName(g2)}★${r.s2}`;
+      return `<option value="${r.id}">${label}</option>`;
+    }).join("");
+
+    // optionsは毎回更新（役割切替で候補が変わるため）
+    selA.innerHTML = optHtml;
+    selB.innerHTML = optHtml;
+
+    const ids = rows.map(r=>r.id);
+    const defA = ids[0] || "";
+    const defB = ids[1] || ids[0] || "";
+
+    if(!__gearCompare.a || !ids.includes(__gearCompare.a)) __gearCompare.a = defA;
+    if(!__gearCompare.b || !ids.includes(__gearCompare.b)) __gearCompare.b = defB;
+
+    selA.value = __gearCompare.a;
+    selB.value = __gearCompare.b;
+
+    const heroA = rows.find(r=>r.id===__gearCompare.a) || rows[0];
+    const heroB = rows.find(r=>r.id===__gearCompare.b) || rows[1] || rows[0];
+
+    resEl.innerHTML = (heroA && heroB) ? renderGearCompareResult(heroA, heroB, g1, g2, __gearPrioRole) : "";
+  }
+    listEl.innerHTML = rows.map((r, idx)=>{
+    const isTop = (r.id === topId);
+    const badge = isTop
+      ? `<span style="margin-left:0px; font-size:0rem; font-weight:0; color:#a21caf; background:#fdf4ff; border:1px solid #fbcfe8; padding:0px 0px; border-radius:0px;"></span>`
+      : ``;
+  
+
+    const nextHint = (r.need<=0)
+      ? `<span style="font-size:0.68rem; font-weight:900; color:#15803d; background:#f0fdf4; border:1px solid #bbf7d0; padding:2px 6px; border-radius:999px;">完成</span>`
+      : `<span style="font-size:0.68rem; font-weight:900; color:#475569; background:#fff; border:1px solid #e2e8f0; padding:0px 0px; border-radius:999px;">未完成★ ${r.need}</span>`;
+
+    const avatar = `<img src="${r.id}.webp" alt="${r.name}" style="width:38px;height:38px;border-radius:10px;object-fit:cover; background:#0b1220;" onerror="this.style.display='none'; this.parentNode.querySelector('.fb').style.display='flex';">`;
+    const fb = `<div class="fb" style="display:none; width:0px;height:38px;border-radius:0px; background:#0b1220; color:#fff; align-items:center; justify-content:center; font-weight:0;">${(r.name||"").substring(0,2)}</div>`;
+
+    return `
+      <div onclick="openGearStarModal('${r.id}')" style="cursor:pointer; background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:10px; display:flex; gap:10px; align-items:center; margin-bottom:8px;">
+        <div style="flex-shrink:0; position:relative;">${avatar}${fb}</div>
+        <div style="min-width:0; flex:1;">
+          <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
+            <div style="font-weight:900; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${idx+1}. ${r.name}</div>
+            ${badge}
+            ${nextHint}
+          </div>
+          <div style="margin-top:4px; font-size:0.74rem; color:#475569; font-weight:800;">
+            武装Lv<b>${r.wp}</b> / ${gearName(r.g1)}：<b>${renderStars(r.s1)}</b>　${gearName(r.g2)}：<b>${renderStars(r.s2)}</b>
+          </div>
+        </div>
+        <div style="flex-shrink:0; font-size:0.72rem; color:#64748b; font-weight:900;">編集</div>
+      </div>
+    `;
+  }).join("");
+}
+
+// 初期化（装備タブ生成後に呼ばれる）
+function initGearPriorityTool(){
+  ensureGearPriorityToolDOM();
+  // 初回は火力役
+  __gearPrioRole = __gearPrioRole || "atk";
+  updateGearPriorityUI();
+}
+
+let __gearModal = { id:null, role:"atk", g1:"Gun", g2:"Data", s1:0, s2:0 };
+
+function ensureGearStarModalDOM(){
+  if(document.getElementById("gear-star-modal")) return;
+
+  const modal = document.createElement("div");
+  modal.id = "gear-star-modal";
+  modal.style.position = "fixed";
+  modal.style.left = "0";
+  modal.style.top = "0";
+  modal.style.right = "0";
+  modal.style.bottom = "0";
+  modal.style.background = "rgba(0,0,0,0.45)";
+  modal.style.display = "none";
+  modal.style.alignItems = "flex-end";
+  modal.style.justifyContent = "center";
+  modal.style.zIndex = "9999";
+
+  modal.innerHTML = `
+    <div style="width:min(520px, 100%); background:#fff; border-radius:16px 16px 0 0; padding:14px; box-shadow:0 -10px 30px rgba(0,0,0,0.18);">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <div style="font-weight:900; color:#0f172a;" id="gear-star-title">装備★入力</div>
+        <button onclick="closeGearStarModal()" style="border:none; background:#f1f5f9; border-radius:10px; padding:8px 10px; font-weight:900; color:#0f172a; cursor:pointer;">閉じる</button>
+      </div>
+
+      <div style="margin-top:10px; display:flex; gap:12px; align-items:center;">
+        <div id="gear-star-avatar" style="width:44px;height:44px;border-radius:12px;background:#0b1220; overflow:hidden; flex-shrink:0;"></div>
+        <div style="min-width:0;">
+          <div id="gear-star-name" style="font-weight:900; color:#0f172a; font-size:1.02rem;"></div>
+          <div id="gear-star-sub" style="font-size:0.76rem; color:#64748b; font-weight:900;"></div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px; display:grid; grid-template-columns:1fr; gap:10px;">
+        <div style="border:1px solid #e2e8f0; border-radius:12px; padding:10px;">
+          <div style="font-weight:900; color:#0f172a; margin-bottom:6px;" id="gear-star-g1-name"></div>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+            <button onclick="gearStarStep(1,-1)" style="width:44px; height:40px; border-radius:12px; border:1px solid #e2e8f0; background:#fff; font-weight:900; cursor:pointer;">-</button>
+            <div style="font-weight:900; color:#0f172a; font-size:1.05rem;" id="gear-star-g1-stars">☆☆☆☆☆</div>
+            <button onclick="gearStarStep(1,1)" style="width:44px; height:40px; border-radius:12px; border:1px solid #e2e8f0; background:#fff; font-weight:900; cursor:pointer;">+</button>
+          </div>
+        </div>
+
+        <div style="border:1px solid #e2e8f0; border-radius:12px; padding:10px;">
+          <div style="font-weight:900; color:#0f172a; margin-bottom:6px;" id="gear-star-g2-name"></div>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+            <button onclick="gearStarStep(2,-1)" style="width:44px; height:40px; border-radius:12px; border:1px solid #e2e8f0; background:#fff; font-weight:900; cursor:pointer;">-</button>
+            <div style="font-weight:900; color:#0f172a; font-size:1.05rem;" id="gear-star-g2-stars">☆☆☆☆☆</div>
+            <button onclick="gearStarStep(2,1)" style="width:44px; height:40px; border-radius:12px; border:1px solid #e2e8f0; background:#fff; font-weight:900; cursor:pointer;">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px; display:flex; gap:10px;">
+        <button onclick="gearStarClear()" style="flex:1; border:none; background:#f1f5f9; border-radius:12px; padding:12px; font-weight:900; color:#0f172a; cursor:pointer;">クリア</button>
+        <button onclick="gearStarApply()" style="flex:2; border:none; background:#0f172a; border-radius:12px; padding:12px; font-weight:900; color:#fff; cursor:pointer;">保存</button>
+      </div>
+
+      <div style="margin-top:10px; font-size:0.72rem; color:#94a3b8; font-weight:800; line-height:1.45;">
+        ※ここで入力した★は「装備タブの優先度表示」だけに使います。編成の最適化やスコア計算には影響しません。
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  // 背景タップで閉じる
+  modal.addEventListener("click", (e)=>{
+    if(e.target === modal) closeGearStarModal();
+  });
+}
+
+function openGearStarModal(heroId){
+  ensureGearStarModalDOM();
+
+  const roster = getRosterFromSquadsUnique();
+  const hero = roster.find(x=>x.id===heroId);
+  if(!hero) return;
+
+  const store = loadGearPrioData();
+  const gears = GEAR_ROLE_MAP[hero.role] || GEAR_ROLE_MAP.atk;
+  const g1 = gears[0], g2 = gears[1];
+
+  const st = store[heroId] || {};
+  __gearModal = {
+    id: heroId,
+    role: hero.role,
+    g1, g2,
+    s1: Math.max(0, Math.min(5, parseInt(st[g1])||0)),
+    s2: Math.max(0, Math.min(5, parseInt(st[g2])||0)),
+    wp: hero.wp || 0,
+    name: hero.name || ""
+  };
+
+  const modal = document.getElementById("gear-star-modal");
+  modal.style.display = "flex";
+
+  const title = document.getElementById("gear-star-title");
+  const name  = document.getElementById("gear-star-name");
+  const sub   = document.getElementById("gear-star-sub");
+  const av    = document.getElementById("gear-star-avatar");
+
+  const roleLabel = (hero.role==="atk") ? "火力役" : (hero.role==="wall") ? "盾役" : "支援役";
+  title.innerText = "装備★入力（" + roleLabel + "）";
+  name.innerText = hero.name || heroId;
+  sub.innerText  = "武装Lv " + (hero.wp||0);
+
+  av.innerHTML = `<img src="${heroId}.webp" alt="${hero.name||heroId}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';">`;
+
+  document.getElementById("gear-star-g1-name").innerText = gearName(g1);
+  document.getElementById("gear-star-g2-name").innerText = gearName(g2);
+
+  refreshGearStarModalStars();
+}
+window.openGearStarModal = openGearStarModal;
+
+function closeGearStarModal(){
+  const modal = document.getElementById("gear-star-modal");
+  if(modal) modal.style.display = "none";
+}
+window.closeGearStarModal = closeGearStarModal;
+
+function refreshGearStarModalStars(){
+  const e1 = document.getElementById("gear-star-g1-stars");
+  const e2 = document.getElementById("gear-star-g2-stars");
+  if(e1) e1.innerText = renderStars(__gearModal.s1);
+  if(e2) e2.innerText = renderStars(__gearModal.s2);
+}
+
+function gearStarStep(which, d){
+  if(which===1){
+    __gearModal.s1 = Math.max(0, Math.min(5, (__gearModal.s1||0) + d));
+  }else{
+    __gearModal.s2 = Math.max(0, Math.min(5, (__gearModal.s2||0) + d));
+  }
+  refreshGearStarModalStars();
+}
+window.gearStarStep = gearStarStep;
+
+function gearStarClear(){
+  __gearModal.s1 = 0; __gearModal.s2 = 0;
+  refreshGearStarModalStars();
+}
+window.gearStarClear = gearStarClear;
+
+function gearStarApply(){
+  if(!__gearModal || !__gearModal.id) { closeGearStarModal(); return; }
+  const store = loadGearPrioData();
+  if(!store[__gearModal.id]) store[__gearModal.id] = {};
+  store[__gearModal.id][__gearModal.g1] = __gearModal.s1;
+  store[__gearModal.id][__gearModal.g2] = __gearModal.s2;
+  saveGearPrioData(store);
+  closeGearStarModal();
+  // 反映
+  try{ updateGearPriorityUI(); }catch(e){}
 }
 
 // inline handler / 外部から呼べるように window に公開
