@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ラストウォー育成シミュレーター</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=20260228">
+<link rel="stylesheet" href="styles.css?v=fix008">
 </head>
 <body>
 <div id="toast"></div>
@@ -75,23 +75,50 @@
                 キャラ枠をタップして <b>キャラ選択</b> と <b>武装Lv(0〜30)</b> を変更します。変更すると上の「最優先育成まとめ」や下の診断/ランキングが自動更新されます。
             </div>
 
+            <div class="slot-pref-row">
+              <label class="slot-pref">
+                <input id="slot-keep-eval" type="checkbox">
+                <span>折りたたみ時も評価（進行度）を表示</span>
+              </label>
+            </div>
+
             <div class="slot-army" id="slot-army-1">
-                <div class="slot-army-head"><div class="label">🥇 1軍</div>
-                <div class="slot-eval" id="slot-eval-1"></div></div>
+                <div class="slot-army-head">
+                  <div class="label">🥇 1軍</div>
+                  <div class="slot-head-right">
+                    <div class="slot-eval" id="slot-eval-1"></div>
+                    <button class="slot-toggle-btn" type="button" onclick="toggleSlotArmy(1)" aria-label="1軍を折りたたむ">▼</button>
+                  </div>
+                </div>
                 <div class="slot-tiles" id="slot-tiles-1"></div>
             </div>
             <div class="slot-army" id="slot-army-2">
-                <div class="slot-army-head"><div class="label">🥈 2軍</div>
-                <div class="slot-eval" id="slot-eval-2"></div></div>
+                <div class="slot-army-head">
+                  <div class="label">🥈 2軍</div>
+                  <div class="slot-head-right">
+                    <div class="slot-eval" id="slot-eval-2"></div>
+                    <button class="slot-toggle-btn" type="button" onclick="toggleSlotArmy(2)" aria-label="2軍を折りたたむ">▼</button>
+                  </div>
+                </div>
                 <div class="slot-tiles" id="slot-tiles-2"></div>
             </div>
             <div class="slot-army" id="slot-army-3">
-                <div class="slot-army-head"><div class="label">🥉 3軍</div>
-                <div class="slot-eval" id="slot-eval-3"></div></div>
+                <div class="slot-army-head">
+                  <div class="label">🥉 3軍</div>
+                  <div class="slot-head-right">
+                    <div class="slot-eval" id="slot-eval-3"></div>
+                    <button class="slot-toggle-btn" type="button" onclick="toggleSlotArmy(3)" aria-label="3軍を折りたたむ">▼</button>
+                  </div>
+                </div>
                 <div class="slot-tiles" id="slot-tiles-3"></div>
             </div>
             <div class="slot-army" id="slot-army-4">
-                <div class="slot-army-head"><div class="label">🧳 控え（任意・10枠）</div></div>
+                <div class="slot-army-head">
+                  <div class="label">🧳 控え（任意・10枠）</div>
+                  <div class="slot-head-right">
+                    <button class="slot-toggle-btn" type="button" onclick="toggleSlotArmy(4)" aria-label="控えを折りたたむ">▼</button>
+                  </div>
+                </div>
                 <div class="slot-tiles" id="slot-tiles-4"></div>
             </div>
         </div>
@@ -207,7 +234,7 @@
 </div>
 
 <script src="data.js?v=20260228"></script>
-<script src="app.js?v=20260228"></script>
+<script src="app.js?v=fix009"></script>
 
 <div id="slot-modal" class="modal-backdrop" onclick="if(event.target===this) closeSlotModal()">
   <div class="modal-card">

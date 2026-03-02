@@ -142,7 +142,8 @@
     /* === 統合編成スロット（タップで編集） === */
     .slot-panel { border-left: 5px solid #22c55e; background: linear-gradient(135deg, #ffffff, #f0fdf4); }
     .slot-army { border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; margin-top: 10px; background:#fff; }
-    .slot-army-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
+    .slot-army-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; flex-wrap:nowrap; }
+
     .slot-army-head .label { font-weight:900; color:#0f172a; display:flex; align-items:center; gap:6px; }
     .slot-army-head .hint { font-size:0.75rem; color:#64748b; font-weight:bold; white-space:nowrap; }
     .slot-tiles { display:flex; gap:8px; flex-wrap:nowrap; overflow-x:auto; padding: 6px 2px 8px; scroll-snap-type:x mandatory; }
@@ -180,8 +181,10 @@
     /* === スロット評価（兵種バフ / 進行度バー）=== */
     .slot-eval{ margin:6px 0 6px; padding:8px 10px; border-radius:10px; background:#f8fafc; border:1px solid #e2e8f0; }
     .slot-eval .row{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+    .slot-eval .row.sub{ justify-content:flex-end; margin-top:4px; gap:6px; }
     .slot-eval .tag{ font-size:0.72rem; font-weight:900; color:#475569; display:flex; align-items:center; gap:6px; }
-    .slot-eval .pct{ font-size:0.78rem; font-weight:900; color:#334155; }
+    .slot-eval .pct{ font-size:0.82rem; font-weight:1000; color:#0f172a; white-space:nowrap; }
+    .slot-eval .buff-badge{ font-size:0.65rem; color:#475569; background:#fff; border:1px solid #e2e8f0; padding:2px 6px; border-radius:8px; font-weight:900; white-space:nowrap; }
     .slot-eval .bar{ width:100%; height:8px; border-radius:6px; overflow:hidden; background:#e5e7eb; margin-top:6px; }
     .slot-eval .bar > div{ height:100%; }
 
@@ -333,3 +336,65 @@
   border: 2px solid #f59e0b;
   background: linear-gradient(180deg,#fff7ed,#ffffff);
 }
+
+
+
+/* === 編成ヘッダー右側（評価 + 開閉ボタン） === */
+.slot-head-right{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex:1;
+  min-width:0;
+  justify-content:flex-end;
+}
+
+/* 評価は縮められるように（スマホでボタンが下に落ちない） */
+.slot-eval{
+  flex:1;
+  min-width:0;
+}
+
+/* 開閉ボタン（▶/▼） */
+.slot-toggle{
+  width:34px;
+  height:34px;
+  border-radius:10px;
+  border:1px solid #e2e8f0;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:16px;
+  font-weight:900;
+  color:#0f172a;
+  cursor:pointer;
+  flex-shrink:0;
+}
+
+/* 折りたたみ時は▶、展開時は▼ */
+.slot-army:not(.slot-collapsed) .slot-toggle{ content: none; }
+.slot-army:not(.slot-collapsed) .slot-toggle::after{ content:"▼"; }
+.slot-army.slot-collapsed .slot-toggle::after{ content:"▶"; }
+.slot-toggle{ font-size:0; } /* text nodeは消す */
+.slot-toggle::after{ content:"▼"; font-size:16px; }
+
+/* ヘッダーをタップで開閉できるように */
+.slot-army-head{ cursor:pointer; }
+
+/* 折りたたみ時はタイルだけ隠す（評価は残す運用） */
+.slot-army.slot-collapsed .slot-tiles{ display:none !important; }
+.slot-army.slot-collapsed #slot-tiles-1,
+.slot-army.slot-collapsed #slot-tiles-2,
+.slot-army.slot-collapsed #slot-tiles-3,
+.slot-army.slot-collapsed #slot-tiles-4{ display:none !important; }
+
+
+
+/* === 折りたたみ時の評価（進行度）表示切替 === */
+/* デフォルト：折りたたみ時は評価を隠す */
+.slot-army.slot-collapsed .slot-eval{ display:none !important; }
+
+/* チェックONのとき（body.keep-eval-collapse）だけ表示 */
+body.keep-eval-collapse .slot-army.slot-collapsed .slot-eval{ display:block !important; }
+

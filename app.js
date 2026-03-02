@@ -1083,6 +1083,55 @@ function generateAiSuggestion() {
             return base;
         };
 
+        
+        const detailedDiag = (armyArr, fallbackWeak) => {
+            const list = (armyArr || []).filter(h => h && h.id && h.id !== 'empty' && !h.ur);
+            const avg = (arr) => arr.length ? (arr.reduce((a,x)=>a + (parseInt(x.wp)||0), 0) / arr.length) : 0;
+
+            const atk = list.filter(h => h.r === 'atk');
+            const wall = list.filter(h => h.r === 'wall');
+            const avgAll = avg(list);
+            const avgAtk = avg(atk);
+            const avgWall = avg(wall);
+
+            let key = fallbackWeak || 'balance';
+            let level = '中';
+
+            // 役割の欠損は最優先で「大」
+            if(wall.length === 0){
+                key = 'defense'; level = '大';
+            }else if(atk.length === 0){
+                key = 'attack'; level = '大';
+            }else{
+                const diff = avgAtk - avgWall; // +なら盾が遅れてる（耐久不足）
+                if(diff >= 6){
+                    key = 'defense';
+                    level = (diff >= 12) ? '大' : (diff >= 8) ? '中' : '小';
+                }else if(diff <= -6){
+                    key = 'attack';
+                    level = (diff <= -12) ? '大' : (diff <= -8) ? '中' : '小';
+                }else{
+                    key = 'balance';
+                    level = (avgAll >= 20) ? '高' : (avgAll >= 12) ? '中' : '低';
+                }
+
+                // 絶対値が低い場合は段階を引き上げ
+                if(key === 'defense'){
+                    if(avgWall < 8) level = '大';
+                    else if(avgWall < 12 && level === '小') level = '中';
+                }
+                if(key === 'attack'){
+                    if(avgAtk < 8) level = '大';
+                    else if(avgAtk < 12 && level === '小') level = '中';
+                }
+            }
+
+            const label = (key === 'defense') ? `耐久不足：${level}`
+                        : (key === 'attack') ? `火力不足：${level}`
+                        : `バランス：${level}`;
+            return { key, level, label };
+        };
+
         const setEval = (armyNo, pct, baseColor, tagHtml, buffCount) => {
             const el = document.getElementById(`slot-eval-${armyNo}`);
             if(!el) return;
@@ -1094,22 +1143,25 @@ function generateAiSuggestion() {
 
             const c = colorOf(pct, baseColor);
 
-            const buffSpan = buff
-              ? '<span style="font-size:0.65rem; color:#475569; background:#fff; border:1px solid #e2e8f0; padding:2px 6px; border-radius:8px; font-weight:900;">' + buff + '</span>'
-              : "";
+            const buffSpan = buff ? `<span class="buff-badge">${buff}</span>` : "";
 
             el.innerHTML =
               '<div class="row">' +
-                '<div class="tag">' + tagHtml + ' ' + buffSpan + '</div>' +
+                '<div class="tag">' + tagHtml + '</div>' +
                 '<div class="pct">進行度 <span style="color:' + c + ';">' + pct + '%</span></div>' +
               '</div>' +
+              (buffSpan ? ('<div class="row sub">' + buffSpan + '</div>') : '') +
               '<div class="bar"><div style="width:' + pct + '%; background:' + c + ';"></div></div>';
         };
 
-        setEval(1, p1, "#10b981", weakText(effData.weakness1), result.maxCounts.army1);
-        setEval(2, p2, "#3b82f6", weakText(effData.weakness2), result.maxCounts.army2);
+        const d1 = detailedDiag(result.assignment.army1, effData.weakness1);
+        const d2 = detailedDiag(result.assignment.army2, effData.weakness2);
+        const d3 = detailedDiag(result.assignment.army3, effData.weakness3 || 'balance');
+
+        setEval(1, p1, "#10b981", '💬AI診断：' + d1.label, result.maxCounts.army1);
+        setEval(2, p2, "#3b82f6", '💬AI診断：' + d2.label, result.maxCounts.army2);
         // 3軍も不足傾向を表示（総合寄り）
-        setEval(3, p3, "#8b5cf6", weakText(effData.weakness3 || 'balance'), result.maxCounts.army3);
+        setEval(3, p3, "#8b5cf6", '💬AI診断：' + d3.label, result.maxCounts.army3);
     }catch(e){}
 
 
@@ -2224,3 +2276,111 @@ function gearStarApply(){
 window.saveData = saveData;
 window.scheduleAi = scheduleAi;
 window.updateTransitionRecommendationUI = updateTransitionRecommendationUI;
+
+
+// ================= スロット: 折りたたみ =================
+const SLOT_COLLAPSE_KEY_PREFIX = "slot-collapse-";
+const SLOT_KEEP_EVAL_KEY = "slot-keep-eval-on-collapse";
+
+function applyKeepEvalPref(keep){
+  try{
+    document.body.classList.toggle('keep-eval-collapse', !!keep);
+  }catch(e){}
+}
+
+function initKeepEvalPref(){
+  // default: 現状の見た目に合わせて「折りたたみ時は評価を消す」
+  let keep = false;
+  try{ keep = (localStorage.getItem(SLOT_KEEP_EVAL_KEY) === '1'); }catch(e){}
+  applyKeepEvalPref(keep);
+
+  const cb = document.getElementById('slot-keep-eval');
+  if(cb){
+    cb.checked = keep;
+    cb.addEventListener('change', ()=>{
+      const v = !!cb.checked;
+      applyKeepEvalPref(v);
+      try{ localStorage.setItem(SLOT_KEEP_EVAL_KEY, v ? '1' : '0'); }catch(e){}
+    });
+  }
+}
+
+function setSlotToggleState(n, isExpanded){
+  const army = document.getElementById(`slot-army-${n}`);
+  const btn = army ? (army.querySelector('.slot-toggle-btn') || army.querySelector('.slot-toggle')) : null;
+  if(!army || !btn) return;
+
+  // isExpanded: true = 展開（タイル表示）
+  army.classList.toggle('slot-collapsed', !isExpanded);
+  // Icon button (▼/▶)
+  if(btn.classList.contains('slot-toggle-btn')){
+    btn.textContent = isExpanded ? '▼' : '▶';
+  }else{
+    // legacy switch
+    btn.setAttribute('aria-checked', String(!!isExpanded));
+  }
+  const label = (n===4) ? '控え' : `${n}軍`;
+  btn.setAttribute('aria-label', isExpanded ? `${label}を折りたたむ` : `${label}を展開する`);
+}
+
+function toggleSlotArmy(n){
+  const army = document.getElementById(`slot-army-${n}`);
+  if(!army) return;
+  const isExpanded = army.classList.contains('slot-collapsed'); // collapsed -> will expand
+  setSlotToggleState(n, isExpanded);
+  try{ localStorage.setItem(SLOT_COLLAPSE_KEY_PREFIX + n, isExpanded ? "0" : "1"); }catch(e){}
+}
+window.toggleSlotArmy = toggleSlotArmy;
+
+// === トグルボタンだけで開閉（ヘッダー全体タップは無効） ===
+// モバイルで onclick が不安定でも確実に反応するように click/touchend を直接バインドする
+(function(){
+  function armyNoFrom(btn){
+    const army = btn.closest('.slot-army');
+    if(!army) return null;
+    const m = (army.id||'').match(/slot-army-(\d+)/);
+    return m ? Number(m[1]) : null;
+  }
+  function bind(){
+    document.querySelectorAll('.slot-toggle-btn, .slot-toggle').forEach(btn=>{
+      if(btn.__slotBound) return;
+      btn.__slotBound = true;
+      const handler = (e)=>{
+        try{ e.preventDefault(); }catch(_){}
+        try{ e.stopPropagation(); }catch(_){}
+        const n = armyNoFrom(btn);
+        if(!n) return;
+        if(typeof window.toggleSlotArmy === 'function') window.toggleSlotArmy(n);
+      };
+      btn.addEventListener('click', handler, { passive:false });
+      btn.addEventListener('touchend', handler, { passive:false }); // iOS対策
+    });
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', bind, { once:true });
+  }else{
+    bind();
+  }
+})();
+
+
+
+function initSlotToggles(){
+  for(let n=1; n<=4; n++){
+    const army = document.getElementById(`slot-army-${n}`);
+    if(!army) continue;
+    const btn = army.querySelector('.slot-toggle-btn') || army.querySelector('.slot-toggle');
+    if(!btn) continue;
+
+    let collapsed = false;
+    try{ collapsed = (localStorage.getItem(SLOT_COLLAPSE_KEY_PREFIX + n) === "1"); }catch(e){}
+    setSlotToggleState(n, !collapsed);
+  }
+}
+
+// index.html はスクリプトが末尾なので、基本は即時でOK
+try{ initSlotToggles(); }catch(e){}
+try{ initKeepEvalPref(); }catch(e){}
+
+
+
