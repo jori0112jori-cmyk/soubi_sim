@@ -93,7 +93,9 @@ const $id = (() => {
   return (id) => {
     if (cache.has(id)) {
       const v = cache.get(id);
-      if (v) return v;
+      // Re-rendered UI can replace nodes; cached elements may be detached.
+      if (v && v.isConnected) return v;
+      cache.delete(id);
     }
     const el = document.getElementById(id);
     if (el) cache.set(id, el);
@@ -308,6 +310,95 @@ function showToast(msg) {
     setTimeout(() => { x.style.visibility = "hidden"; x.style.bottom = "30px"; }, 2500); 
 }
 
+
+/* === UIアイコン（兵種/役割） === */
+const TYPE_ICON = { tank:"tank.png", air:"air.png", mis:"misile.png" };
+const ROLE_ICON = { atk:"karyoku.png", wall:"tateyaku.png", sup:"support.png" };
+function uiIcon(src, alt){
+  if(!src) return "";
+  return `<img class="ui-ico" src="${src}" alt="${alt||''}">`;
+}
+function typeIcon(t){ return uiIcon(TYPE_ICON[t], t); }
+function roleIcon(r){ return uiIcon(ROLE_ICON[r], r); }
+
+/* 育成ランキング表示用：兵種アイコン - キャラ名 - 役割アイコン */
+function effTitleLine(rank, item){
+  const t = item.type || item.t;
+  const r = item.roleKey || item.r;
+  return `<div class="eff-title-line">${typeIcon(t)}<b>${rank}. ${item.name}</b>${roleIcon(r)}</div>`;
+}
+
+// ===============================
+// 育成ランキング：カード用CSSを強制注入（styles.css をいじっても効かない問題対策）
+// ===============================
+(function(){
+  try{
+    if(document.getElementById('__eff_rank_css')) return;
+    const st = document.createElement('style');
+    st.id = '__eff_rank_css';
+    st.textContent = `
+      .eff-card{ padding:10px 10px; border-radius:12px; }
+      .eff-card + .eff-card{ border-top:1px dashed #fbcfe8; margin-top:8px; padding-top:12px; }
+      .eff-card-best{ background:#fff7ed; border:1px solid #fdba74; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+      .eff-row{ display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+      .eff-left{ line-height:1.4; min-width:0; }
+      .eff-right{ display:flex; flex-direction:column; align-items:flex-end; text-align:right; gap:6px; flex-shrink:0; }
+      .eff-sub{ display:flex; justify-content:flex-end; width:100%; }
+      .eff-subline{ display:inline-flex; align-items:center; gap:6px; white-space:nowrap; color:#64748b; font-size:0.78rem; font-weight:900; }
+      .eff-plus{ font-weight:900; }
+      .gear-cost{ display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
+      .gear-cost img{ width:36px; height:36px; flex-shrink:0; }
+      .gear-num{ font-size:1.15em; font-weight:900; }
+      .gear-cost .sep{ opacity:.65; margin-right:2px; }
+    `;
+    document.head.appendChild(st);
+  }catch(e){}
+})();
+
+function effCardHtml(rank, item, opts){
+  opts = opts || {};
+  const isBest = !!opts.isBest;
+  const isTop = !!opts.isTop;
+  const mode = opts.mode || 'normal'; // normal | unlock
+
+  const safeItem = Object.assign({}, item || {});
+  // フォールバック（データ差分吸収）
+  safeItem.type = safeItem.type || safeItem.t;
+  safeItem.roleKey = safeItem.roleKey || safeItem.r;
+  safeItem.name = safeItem.name || safeItem.n;
+
+  const lvLine = (safeItem.from !== undefined && safeItem.to !== undefined)
+    ? `<span class="eff-lv">(Lv${safeItem.from}→${safeItem.to})</span>`
+    : '';
+
+  const badge = (mode === 'normal' && safeItem.growthType) ? growthBadge(safeItem.growthType) : (opts.rightBadge || '');
+
+  let sub = '';
+  if(mode === 'unlock'){
+    sub = `<div class="eff-sub"><span class="eff-subline">解放時 <span class="eff-plus">+${safeItem.gain}</span></span></div>`;
+  }else{
+    const costPart = (safeItem.cost !== undefined && safeItem.cost !== null)
+      ? `<span class="gear-cost"><span class="sep">/</span><img src="original.webp" alt="gear"> <span class="gear-num">${safeItem.cost}</span></span>`
+      : '';
+    sub = `<div class="eff-sub"><span class="eff-subline"><span class="eff-plus">+${safeItem.gain}</span>${costPart ? ' ' + costPart : ''}</span></div>`;
+  }
+
+  return `
+    <div class="eff-card ${isTop?'eff-card-top':''} ${isBest?'eff-card-best':''}">
+      <div class="eff-row">
+        <div class="eff-left">
+          ${effTitleLine(rank, safeItem)}
+          ${isBest ? '<span class="eff-best">👑 最優先</span>' : ''}
+          ${lvLine}
+        </div>
+        <div class="eff-right">
+          ${badge}
+          ${sub}
+        </div>
+      </div>
+    </div>
+  `;
+}
 
 // 育成効率ランキング：Top3 + 「もっと見る」トグル
 function toggleEffMore() {
@@ -807,7 +898,7 @@ function metaTypeWeight(type, roleKey){
             // 環境適応型AI：タイプ/段階補正
             gain = Math.round(gain * metaTypeWeight(hero.t, roleKey));
             if(gain <= 0) return;
-            unlockResults.push({ id: hero.id, name: hero.name, gain: gain, roleKey: roleKey, roleBadge: roleBadge });
+            unlockResults.push({ id: hero.id, name: hero.name, type: hero.t, gain: gain, roleKey: roleKey, roleBadge: roleBadge });
             return;
         }
 
@@ -890,9 +981,7 @@ function metaTypeWeight(type, roleKey){
             (ms ? ms.target : 10)
         );
 
-        normalResults.push({
-            id: hero.id,
-            name: hero.name,
+        normalResults.push({ id: hero.id, name: hero.name, type: hero.t,
             from: hero.wp,
             to: ms.target,
             gain: gain,
@@ -1180,29 +1269,15 @@ function generateAiSuggestion() {
     
 if(effData.normal.length > 0){
         const TOP_N = 3;
-        const MORE_MAX = 10; // 「もっと見る」で最大表示（必要なら調整）
+        const MORE_MAX = 10;
+
         effOut += `
         <div style="background:#fdf4ff; border:1px solid #fbcfe8; padding:12px; border-radius:10px;">
-            <div style="font-weight:900; color:#a21caf; margin-bottom:8px; font-size:0.95rem;">
-                
-            </div>`;
+            <div style="font-weight:900; color:#a21caf; margin-bottom:8px; font-size:0.95rem;"></div>`;
 
         // Top3（おすすめ）
         effData.normal.slice(0, TOP_N).forEach((item,i)=>{
-            effOut += `
-            <div style="${i===0
-                ? 'display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:0.82rem; background:#fff7ed; border:1px solid #fdba74; padding:10px 10px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06);'
-                : 'display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:0.8rem; border-bottom:1px dashed #fbcfe8; padding-bottom:4px;'}">
-                <div style="line-height:1.4;">
-                    <b>${i+1}. ${item.name}</b>
-                    ${i===0 ? '<span style="margin-left:8px; font-size:0.72rem; font-weight:900; color:#7c2d12; background:#ffedd5; border:1px solid #fdba74; padding:2px 8px; border-radius:999px; vertical-align:middle;">👑 最優先</span>' : ''}
-                    ${item.roleBadge} (Lv${item.from}→${item.to})<br>
-                    <span style="color:#64748b; font-size:0.75rem;">+${item.gain} / 武装のかけら${item.cost}個</span>
-                </div>
-                <div style="font-weight:900; color:#7e22ce; font-size:0.85rem; flex-shrink:0; margin-left:8px;">
-                    ${growthBadge(item.growthType)}
-                </div>
-            </div>`;
+            effOut += effCardHtml(i+1, item, { mode:'normal', isTop:true, isBest:(i===0) });
         });
 
         // もっと見る（任意）
@@ -1210,16 +1285,7 @@ if(effData.normal.length > 0){
             let moreList = "";
             effData.normal.slice(TOP_N, Math.min(effData.normal.length, MORE_MAX)).forEach((item,idx)=>{
                 let rank = TOP_N + idx + 1;
-                moreList += `
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:0.8rem; border-bottom:1px dashed #fbcfe8; padding-bottom:4px;">
-                    <div style="line-height:1.4;">
-                        <b>${rank}. ${item.name}</b> ${item.roleBadge} (Lv${item.from}→${item.to})<br>
-                        <span style="color:#64748b; font-size:0.75rem;">+${item.gain} / 武装のかけら${item.cost}個</span>
-                    </div>
-                    <div style="font-weight:900; color:#7e22ce; font-size:0.85rem; flex-shrink:0; margin-left:8px;">
-                        ${growthBadge(item.growthType)}
-                    </div>
-                </div>`;
+                moreList += effCardHtml(rank, item, { mode:'normal' });
             });
 
             effOut += `
@@ -1242,10 +1308,7 @@ if(effData.normal.length > 0){
             </div>`;
 
         effData.reinforceList.forEach((r,i)=>{
-            effOut += `
-            <div style="font-size:0.8rem; margin-bottom:4px;">
-                ${i+1}. <b>${r.name}</b> ${r.roleBadge} <span style="color:#64748b; font-size:0.75rem;">(Lv${r.from}→${r.to})</span>
-            </div>`;
+            effOut += effCardHtml(i+1, r, { mode:'normal', rightBadge: '' });
         });
         effOut += `</div>`;
     }
@@ -1363,8 +1426,15 @@ function calculateGear() {
         }
     });
     
-    $id('cost-list').innerHTML = listHtml || "<span style='color:#94a3b8;'>追加コストなし</span>";
-    $id('ft-ur').innerText = costUr; $id('ft-mr').innerText = costMr;
+	// NOTE: 旧UIでは cost-list が存在しない場合があるためガード
+	const costListEl = $id('cost-list');
+	if (costListEl) {
+		costListEl.innerHTML = listHtml || "<span style='color:#94a3b8;'>追加コストなし</span>";
+	}
+	const ftUrEl = $id('ft-ur');
+	const ftMrEl = $id('ft-mr');
+	if (ftUrEl) ftUrEl.innerText = costUr;
+	if (ftMrEl) ftMrEl.innerText = costMr;
 
     const calcP = (p) => {
         let wp = parseInt($id(`${p}Weapon`).value), m = 1.0, myth = [];
@@ -1378,7 +1448,8 @@ function calculateGear() {
     };
 
     let resC = calcP('c'), resT = calcP('t');
-    $id('growth-rate').innerText = (resC.val > 0) ? (resT.val / resC.val).toFixed(2) : "1.00";
+	const grEl = $id('growth-rate');
+	if (grEl) grEl.innerText = (resC.val > 0) ? (resT.val / resC.val).toFixed(2) : "1.00";
     
     let dBuff = (id, arr) => {
         let el = $id(id);
@@ -2332,35 +2403,33 @@ function toggleSlotArmy(n){
 }
 window.toggleSlotArmy = toggleSlotArmy;
 
+
 // === トグルボタンだけで開閉（ヘッダー全体タップは無効） ===
-// モバイルで onclick が不安定でも確実に反応するように click/touchend を直接バインドする
+// DOM再描画でボタンが差し替わっても効くように「イベント委譲」にする（PCでも安定）
 (function(){
-  function armyNoFrom(btn){
-    const army = btn.closest('.slot-army');
-    if(!army) return null;
-    const m = (army.id||'').match(/slot-army-(\d+)/);
-    return m ? Number(m[1]) : null;
+  function armyNoFromBtn(btn){
+    const p = btn.closest("[id^='slot-army-']");
+    if(p && p.id){
+      const m = p.id.match(/slot-army-(\d+)/);
+      if(m) return Number(m[1]);
+    }
+    const oc = btn.getAttribute('onclick') || '';
+    const mm = oc.match(/toggleSlotArmy\((\d+)\)/);
+    if(mm) return Number(mm[1]);
+    return null;
   }
-  function bind(){
-    document.querySelectorAll('.slot-toggle-btn, .slot-toggle').forEach(btn=>{
-      if(btn.__slotBound) return;
-      btn.__slotBound = true;
-      const handler = (e)=>{
-        try{ e.preventDefault(); }catch(_){}
-        try{ e.stopPropagation(); }catch(_){}
-        const n = armyNoFrom(btn);
-        if(!n) return;
-        if(typeof window.toggleSlotArmy === 'function') window.toggleSlotArmy(n);
-      };
-      btn.addEventListener('click', handler, { passive:false });
-      btn.addEventListener('touchend', handler, { passive:false }); // iOS対策
-    });
+  function handler(e){
+    const btn = e.target && e.target.closest ? e.target.closest('.slot-toggle-btn, .slot-toggle') : null;
+    if(!btn) return;
+    try{ e.preventDefault(); }catch(_){}
+    try{ e.stopPropagation(); }catch(_){}
+    if(e.stopImmediatePropagation){ try{ e.stopImmediatePropagation(); }catch(_){ } }
+    const n = armyNoFromBtn(btn);
+    if(!n) return;
+    if(typeof window.toggleSlotArmy === 'function') window.toggleSlotArmy(n);
   }
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', bind, { once:true });
-  }else{
-    bind();
-  }
+  document.addEventListener('click', handler, true);
+  document.addEventListener('touchend', handler, { capture:true, passive:false });
 })();
 
 
