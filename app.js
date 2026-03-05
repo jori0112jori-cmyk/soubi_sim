@@ -86,6 +86,25 @@ function getTransitionAdvice(score){
 }
 
 
+// ===============================
+// ✅ 戦力計算（共通）：武装Lv → pts（体感カーブ）
+// - Lv0 は 50pt（武装未解放でも基礎戦力がある想定）
+// - 以降は既存の体感カーブをそのまま共通化
+// ===============================
+function wpToPts(wp){
+  wp = parseInt(wp);
+  if(!Number.isFinite(wp)) return 0;
+  if(wp <= 0) return 50;
+  wp = Math.max(0, Math.min(30, wp));
+  let pts = 70;
+  if (wp >= 30) pts += 360;
+  else if (wp >= 20) pts += 190 + (wp - 20) * 8;
+  else if (wp >= 10) pts += 90 + (wp - 10) * 5;
+  else pts += 20 + wp * 3;
+  return pts;
+}
+
+
 // === 内部最適化ヘルパー（UI変更なし） ===
 // getElementById をキャッシュ（初回 null の場合は再取得）
 const $id = (() => {
@@ -117,12 +136,9 @@ function scheduleAi() {
 
 
 // === 戦力入力（任意）をAI判定に使う ===
+// 戦力入力UIは非表示/廃止したため、常に未入力扱い（null）にする
 function getUserPowers(){
-  const t = parseFloat(($id('pow-tank') && $id('pow-tank').value) ? $id('pow-tank').value : 0) || 0;
-  const a = parseFloat(($id('pow-air') && $id('pow-air').value) ? $id('pow-air').value : 0) || 0;
-  const m = parseFloat(($id('pow-mis') && $id('pow-mis').value) ? $id('pow-mis').value : 0) || 0;
-  if(t<=0 && a<=0 && m<=0) return null;
-  return { tank:t, air:a, mis:m };
+  return null;
 }
 
 // 育成段階（初期/中盤/成熟）と移行先（航空寄り/ロケラン寄り）を汎用判定
@@ -147,96 +163,156 @@ function determineStageAndPreference(avgWp, powers){
 
 
 
-// ================= 戦力差ベース：乗り換え推奨度（%） =================
+// ================= 兵種シフト目安（部隊編成ベース / 戦力入力なし） =================
 function updateTransitionRecommendationUI(){
-  const box = $id('power-transition');
-  if(!box) return;
+  const host = $id('power-transition-body') || $id('power-transition');
+  if(!host) return;
 
-  const pt = parseFloat(($id('pow-tank')||{}).value) || 0;
-  const pa = parseFloat(($id('pow-air')||{}).value) || 0;
-  const pm = parseFloat(($id('pow-mis')||{}).value) || 0;
+  const labels = { tank:"戦車", air:"航空機", mis:"ロケラン" };
+  const meta = ($id('current-meta')||{}).value || '';
 
-  if(pt<=0 && pa<=0 && pm<=0){
-    box.innerHTML = `
-      <div style="font-weight:900; color:#0f172a; margin-bottom:6px;">🔁 乗り換え推奨度（戦力差ベース）</div>
-      <div style="font-size:0.82rem; color:#64748b; font-weight:bold;">戦力を入力すると表示されます（目安：対象が主力の60%以上で「検討圏」）。</div>
-    `;
-    return;
+  // 兵種ごとに候補（メンバー）を集める（控え=第4部隊は除外、1〜3部隊のみ）
+  const members = { tank:[], air:[], mis:[] };
+
+  for(let s=1; s<=3; s++){
+    for(let p=1; p<=5; p++){
+      const hidEl = $id(`h-${s}-${p}`);
+      const wpEl  = $id(`w-${s}-${p}`);
+      if(!hidEl || !wpEl) continue;
+
+      const id = hidEl.value;
+      if(!id || id === 'empty') continue;
+
+      const h = (typeof HEROES === 'object') ? HEROES[id] : null;
+      if(!h || h.ur) continue;
+
+      const wpRaw = wpEl.value;
+      if(wpRaw == null) continue;
+
+      // 武装未解放/未入力でも「枠としては配置済み」なので人数に含める。
+      // ただし戦力(pt)は低い（wp=0扱い）として反映。
+      let wpNorm = wpRaw;
+      const wps = String(wpNorm);
+      if(wps.includes("未")) wpNorm = 0;
+      if(wps.trim() === "-") wpNorm = 0;
+
+      const wp = parseInt(wpNorm) || 0;
+      const pts = wpToPts(wp);
+
+      if(members[h.t]){
+        members[h.t].push({
+          id,
+          name: h.n || id,
+          wp,
+          pts,
+        });
+      }
+    }
   }
 
-  const powers = { tank: pt, air: pa, mis: pm };
-  const labels = { tank: "戦車", air: "航空機", mis: "ロケラン" };
+  // 5人同兵種前提：各兵種の「上位5人合計」を5人編成想定の戦力にする（5人揃いは20%バフ）
+  const fivePower = {};
+  const countByType = {};
+  const top5ByType = { tank:[], air:[], mis:[] };
 
-  const base = Object.keys(powers).sort((a,b)=>powers[b]-powers[a])[0];
-  const baseP = Math.max(powers[base], 0.0001);
+  (["tank","air","mis"]).forEach(t=>{
+    const list = (members[t] || []).slice().sort((a,b)=>b.pts-a.pts);
+    countByType[t] = list.length;
 
-  // 60%未満は「ほぼ乗り換え圏外」扱い（0%）
-  const scoreFromRatio = (ratio)=>{
-    const raw = (ratio - 0.60) / 0.40; // 0.60→0%, 1.00→100%
-    return Math.max(0, Math.min(1, raw)) * 100;
-  };
+    const top5 = list.slice(0,5);
+    top5ByType[t] = top5;
 
-  const meta = ($id('current-meta')||{}).value || '';
+    const sum5 = top5.reduce((s,o)=>s+o.pts,0);
+    fivePower[t] = (top5.length === 5) ? Math.round(sum5 * 1.20) : sum5;
+  });
+
+  const base = Object.keys(fivePower).sort((a,b)=>fivePower[b]-fivePower[a])[0];
+  const baseP = Math.max(fivePower[base], 1);
+
   const metaBoost = (t)=>{
     if(!meta) return 0;
-    if(t === meta) return 10;
-    if(base === meta) return -5;
-    return 0;
+    return (t === meta) ? 10 : 0;
   };
 
-  const targets = Object.keys(powers).filter(t=>t!==base).map(t=>{
-    const ratio = powers[t] / baseP;
-    let sc = scoreFromRatio(ratio) + metaBoost(t);
-    sc = Math.max(0, Math.min(100, sc));
-    return { t, ratio, sc: Math.round(sc) };
-  }).sort((a,b)=>b.sc-a.sc);
+  const targets = Object.keys(fivePower)
+    .filter(t=>t!==base)
+    .map(t=>{
+      const ratio = baseP > 0 ? (fivePower[t] / baseP) : 0; // NaN防止
+      let sc = Math.round(ratio * 100 + metaBoost(t));
+      sc = Math.max(0, Math.min(100, sc));
+      return { t, sc };
+    })
+    .sort((a,b)=>b.sc-a.sc);
 
-  
+  // おすすめTop3：移行先兵種のメンバーの「次の節目」までの伸びが大きい順
+  const nextMilestone = (wp)=>{
+    if(wp < 10) return 10;
+    if(wp < 20) return 20;
+    if(wp < 30) return 30;
+    return null;
+  };
+  const getTop3 = (t)=>{
+    const cand = (members[t] || []).map(m=>{
+      const nxt = nextMilestone(m.wp);
+      if(nxt == null) return null;
+      const gain = wpToPts(nxt) - wpToPts(m.wp);
+      return { ...m, nxt, gain };
+    }).filter(x=>x && x.gain > 0);
 
-// === 推奨度カラー ===
-function colorByScore(sc){
-  if(sc>=85) return "#ef4444";
-  if(sc>=70) return "#f59e0b";
-  if(sc>=55) return "#eab308";
-  if(sc>=40) return "#64748b";
-  if(sc>=25) return "#94a3b8";
-  return "#cbd5e1";
-}
+    cand.sort((a,b)=> (b.gain - a.gain) || (a.wp - b.wp) || a.name.localeCompare(b.name, 'ja'));
+    return cand.slice(0,3);
+  };
 
-const line = (t)=> {
-  const adv = getTransitionAdvice(t.sc);
-  const color = adv.color;
-  const w = Number.isFinite(t.sc) ? Math.max(0, Math.min(100, t.sc)) : 0;
+  const line = (row)=>{
+    const adv = getTransitionAdvice(row.sc);
+    const color = adv.color;
+    const w = Math.max(0, Math.min(100, row.sc));
 
-  return `
-    <div class="trans-row" style="align-items:flex-start;">
-      <div class="trans-left">
-        ${labels[base]} → ${labels[t.t]}
-        <span class="trans-badge ${adv.cls}">${adv.txt}</span>
-      </div>
+    const shortage = Math.max(0, fivePower[base] - fivePower[row.t]);
+    const tops = getTop3(row.t);
+    const topTxt = tops.length
+      ? tops.map(x=>`${x.name} Lv${x.wp}→${x.nxt} (+${x.gain})`).join(' / ')
+      : '—';
 
-      <div class="trans-right" style="min-width:84px; text-align:right;">
-        <div style="color:${color}; font-weight:900;">${t.sc}%</div>
-        <div style="margin-top:4px; width:84px; height:8px; background:#e5e7eb; border-radius:999px; overflow:hidden;">
-          <div style="width:${w}%; height:100%; background:${color};"></div>
+    return `
+      <div class="trans-row" style="align-items:flex-start;">
+        <div class="trans-left">
+          ${labels[base]} → ${labels[row.t]}
+          <span class="trans-badge ${adv.cls}">${adv.txt}</span>
+          <div style="font-size:0.72rem; color:#94a3b8; font-weight:900; margin-top:2px;">
+            不足：+${shortage}pt ／ おすすめ：${topTxt}
+          </div>
+        </div>
+        <div class="trans-right" style="min-width:84px; text-align:right;">
+          <div style="color:${color}; font-weight:900;">${row.sc}%</div>
+          <div style="margin-top:4px; width:84px; height:8px; background:#e5e7eb; border-radius:999px; overflow:hidden;">
+            <div style="width:${w}%; height:100%; background:${color};"></div>
+          </div>
         </div>
       </div>
-    </div>
-  `;
-};
+    `;
+  };
 
-const metaTxt = meta ? ` / 現在のメタ：<b style="color:#1d4ed8;">${labels[meta]||meta}</b>` : '';
-  box.innerHTML = `
-    <div style="font-weight:900; color:#0f172a; margin-bottom:6px;">🎯 兵種シフト目安</div>
+  const noteL = [];
+  (["tank","air","mis"]).forEach(t=>{
+    if(countByType[t] < 5) noteL.push(`${labels[t]}:${countByType[t]}/5`);
+  });
+  const note = noteL.length ? `（5人未満: ${noteL.join(" / ")}）` : "";
+
+  const metaTxt = meta ? ` / 現在のメタ：<b style="color:#1d4ed8;">${labels[meta]||meta}</b>` : '';
+  host.innerHTML = `
+    <div style="font-weight:900; color:#0f172a; margin-bottom:6px;"></div>
     <div style="font-size:0.78rem; color:#64748b; font-weight:bold; margin-bottom:6px;">
-      基準：いま一番強い兵種（${labels[base]}）${metaTxt}
+      基準：5人同兵種の想定（${labels[base]}）${metaTxt} <span style="color:#94a3b8; font-weight:900;">${note}</span>
     </div>
     ${targets.map(line).join('')}
     <div style="font-size:0.72rem; color:#94a3b8; font-weight:bold; margin-top:6px;">
-      ※ 60%未満は0%扱い。メタ一致は+10%、主力がメタ一致のときは-5%（目安）。
+      ※ %は「移行先(上位5人+5バフ) / 主力(上位5人+5バフ)」の目安。メタ一致は+10%（目安）。不足pt/おすすめは「次の節目(Lv10/20/30)」基準。
     </div>
   `;
 }
+
+
 
 
 
@@ -612,11 +688,7 @@ function evaluateSquadRealCombat(squadMembers) {
         // 0→10: 解放〜実戦投入の立ち上がり
         // 10→20: 伸びを実感（現実的な到達）
         // 20→30: 伸びが大きい（重課金帯）
-        let pts = 70;
-        if (m.wp >= 30) pts += 360;
-        else if (m.wp >= 20) pts += 190 + (m.wp - 20) * 8;
-        else if (m.wp >= 10) pts += 90 + (m.wp - 10) * 5;
-        else if (m.wp > 0) pts += 20 + (m.wp) * 3;
+        let pts = wpToPts(m.wp);
 
         if (m.ur) pts -= 20;
         m.basePts = pts;
@@ -831,6 +903,29 @@ function detectArmyWeaknessFromDetail(detail){
 }
 
 function calculateUpgradeEfficiencyFull(roster){
+  // ⭐ 相対型：兵種ごとの育成進行度（wp平均）を先に算出
+  //   - ROIだけで未育成兵種が上位に来すぎるのを抑制
+  //   - 主力兵種平均との差でペナルティ（汎用）
+  let __avgWpByType = null;
+  let __mainAvgWp = 0;
+  let __countByType = null;
+  try{
+    const acc = { tank:{s:0,n:0}, air:{s:0,n:0}, mis:{s:0,n:0} };
+    for(const h of (roster || [])){
+      const t = (typeof HEROES === 'object' && HEROES[h.id]) ? HEROES[h.id].t : (h.t || h.type);
+      if(!t || !acc[t]) continue;
+      acc[t].s += (h.wp ?? 0);
+      acc[t].n += 1;
+    }
+    __avgWpByType = {
+      tank: acc.tank.n ? (acc.tank.s/acc.tank.n) : 0,
+      air:  acc.air.n  ? (acc.air.s/acc.air.n)   : 0,
+      mis:  acc.mis.n  ? (acc.mis.s/acc.mis.n)   : 0
+    };
+    __countByType = { tank:acc.tank.n, air:acc.air.n, mis:acc.mis.n };
+    __mainAvgWp = Math.max(__avgWpByType.tank, __avgWpByType.air, __avgWpByType.mis);
+  }catch(e){}
+
     if(roster.length < 10) return {normal:[], unlock:[], weakness1: "balance", weakness2: "balance", weakness3: "balance", reinforceList: []};
 
     let base = optimizeMultiArmy(roster,5);
@@ -936,6 +1031,42 @@ function metaTypeWeight(type, roleKey){
                 army3: Math.round((s3 / maxS) * 100)
             };
             const minP = Math.min(pMap.army1, pMap.army2, pMap.army3);
+            // ✅ 進行度ゲート（p1/p2/p3）で「未育成兵種のROI暴れ」を抑える（汎用）
+            // - 2軍（航空）が育つまで 3軍（ロケラン）は上位に上がりにくくする
+            // - 3軍そのものが低いほど、同軍候補は軽く抑える（未育成暴れ防止）
+            // - 1軍が成熟してきたら、次兵種（航空）を少し後押し
+            try{
+                const p1 = pMap.army1 || 0;
+                const p2 = pMap.army2 || 0;
+                const p3 = pMap.army3 || 0;
+
+                // 2軍が60%未満の間は、ロケラン候補を段階的に抑制（0.85〜1.00）
+                if(hero.t === 'mis'){
+                    const gateStart = 60;
+                    const gateMin = 0.85;
+                    if(p2 < gateStart){
+                        const k = Math.max(0, Math.min(1, p2 / gateStart));
+                        const gate = gateMin + (1 - gateMin) * k;
+                        efficiency *= gate;
+                    }
+                    // 3軍進行度が低いほど抑える（0.90〜1.00）
+                    const p3Penalty = 0.90 + 0.10 * (Math.max(0, Math.min(100, p3)) / 100);
+                    efficiency *= p3Penalty;
+                }
+
+                // 1軍が成熟しているほど、航空候補を少し後押し（最大+6%）
+                if(p1 >= 85 && hero.t === 'air'){
+                    const k = Math.max(0, Math.min(1, (p1 - 85) / 15)); // 85→0, 100→1
+                    efficiency *= (1.02 + 0.04 * k); // 1.02〜1.06
+                }
+
+                // 1軍が成熟しているほど、戦車候補はごく軽く抑える（最大-2%）
+                if(p1 >= 85 && hero.t === 'tank'){
+                    const k = Math.max(0, Math.min(1, (p1 - 85) / 15));
+                    efficiency *= (1.00 - 0.02 * k); // 1.00〜0.98
+                }
+            }catch(e){}
+
             const getArmyBoost = (p) => {
                 if(p === minP) return 1.12;  // 最低軍：強めに底上げ
                 if(p < 80) return 1.06;      // 育成途上：少し底上げ
@@ -1152,13 +1283,26 @@ function generateAiSuggestion() {
     updateSummaryBar(result, effData);
     // 進行度バー＆兵種バフ（画像の見た目に合わせる）
     try{
-        const s1 = result.weightedScores.army1 || 0;
-        const s2 = result.weightedScores.army2 || 0;
-        const s3 = result.weightedScores.army3 || 0;
-        const maxScore = Math.max(s1, s2, s3, 1);
-        const p1 = Math.round((s1 / maxScore) * 100);
-        const p2 = Math.round((s2 / maxScore) * 100);
-        const p3 = Math.round((s3 / maxScore) * 100);
+        // ✅ 進行度は「表示されている編成スロット(1〜3軍)」から毎回算出して、キャラ表示とズレないようにする
+        const ideal = (typeof wpToPts === 'function' ? wpToPts(30) : 0) * 5 || 1;
+        const calcSlotProgress = (armyNo) => {
+            let sum = 0;
+            for(let p=1; p<=5; p++){
+                const hid = document.getElementById(`h-${armyNo}-${p}`);
+                const wid = document.getElementById(`w-${armyNo}-${p}`);
+                if(!hid || !wid) continue;
+                const idv = hid.value;
+                if(!idv || idv === 'empty') continue;
+                const wp = parseInt(wid.value)||0;
+                sum += (typeof wpToPts === 'function') ? wpToPts(wp) : 0;
+            }
+            const pct = Math.round((sum / ideal) * 100);
+            return Math.max(0, Math.min(100, pct));
+        };
+
+        const p1 = calcSlotProgress(1);
+        const p2 = calcSlotProgress(2);
+        const p3 = calcSlotProgress(3);
         const minPercent = Math.min(p1, p2, p3);
 
         const weakText = (w) => {
@@ -1304,7 +1448,7 @@ if(effData.normal.length > 0){
         effOut += `
         <div style="margin-top:12px; background:#fff7ed; border:1px solid #fdba74; padding:12px; border-radius:10px;">
             <div style="font-weight:900; color:#ea580c; margin-bottom:8px; font-size:0.9rem;">
-                🛡️ 軍師提案：不足補強候補
+                ⭐ 編成補強おすすめ
             </div>`;
 
         effData.reinforceList.forEach((r,i)=>{
@@ -2453,3 +2597,8 @@ try{ initKeepEvalPref(); }catch(e){}
 
 
 
+
+
+// --- ensure globals for inline onclick handlers ---
+try{ if(typeof showTab==='function') window.showTab = showTab; }catch(e){}
+try{ if(typeof toggleSlotArmy==='function') window.toggleSlotArmy = toggleSlotArmy; }catch(e){}

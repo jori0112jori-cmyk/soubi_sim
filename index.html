@@ -6,6 +6,353 @@
 <title>ラストウォー育成シミュレーター</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <link rel="stylesheet" href="styles.css?v=7">
+
+<!-- ▼ 兵種シフト目安：編成の▼ボタンと同じ“右端トグル” + 縦位置揃え -->
+<style>
+  .power-transition-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .power-transition-title{
+    font-weight:900;
+    color:#f59e0b;
+    margin:0;
+    line-height:1.2;
+    padding:0;
+  }
+  /* クリックが取りやすいように最低限の当たり判定 */
+  #power-transition-toggle{ min-width:32px; }
+ 
+/* 兵種シフト目安：行レイアウト安定化 */
+#power-transition-body .trans-row{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:flex-start;
+}
+
+/* 左カラム（テキスト側）は縮めて折り返せるように */
+#power-transition-body .trans-left{
+  flex:1 1 auto;
+  min-width:0; /* これがないと省略(ellipsis)が効かない */
+}
+
+/* 右カラム（%＋バー）は固定幅で守る */
+#power-transition-body .trans-right{
+  flex:0 0 92px;
+  min-width:92px;
+  text-align:right;
+}
+
+/* 不足/推奨の1行は折り返しOK（省略したいならnowrap+ellipsisに） */
+#power-transition-body .trans-meta{
+  margin-top:4px;
+  font-size:0.78rem;
+  color:#64748b;
+  font-weight:700;
+  line-height:1.25;
+  white-space:normal;     /* 折り返し */
+  overflow-wrap:anywhere; /* 長い単語も折る */
+}
+
+/* “推奨”部分だけ長いので、必要なら省略したい場合はこっちを使う
+#power-transition-body .trans-meta{
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+*/
+
+/* ===== スマホ最適化：兵種シフト目安を縦積みに ===== */
+@media (max-width: 520px){
+  #power-transition-body .trans-row{
+    flex-direction:column;
+    align-items:stretch;
+    gap:8px;
+  }
+
+  /* 上段：タイトル（戦車→航空機＋バッジ）を1行で見せる */
+  #power-transition-body .trans-left{
+    min-width:0;
+  }
+
+  /* “戦車 → 航空機” が1文字ずつ折れないように */
+  #power-transition-body .trans-left .trans-title{
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    display:block;
+  }
+
+  /* 不足/推奨は通常折り返しでOK（今の trans-meta を活かす） */
+  #power-transition-body .trans-meta{
+    white-space:normal;
+    overflow-wrap:anywhere;
+  }
+
+  /* 右側（% + バー）は行の最後に横並びで配置 */
+  #power-transition-body .trans-right{
+    flex:0 0 auto;
+    min-width:0;
+    width:100%;
+    display:flex;
+    justify-content:flex-end;
+    align-items:center;
+    gap:10px;
+    text-align:right;
+  }
+
+  /* バー幅をスマホでは少し広げる */
+  #power-transition-body .trans-right .trans-bar{
+    width:120px !important;
+    
+}
+
+
+#power-transition-body .trans-title{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  flex-wrap:nowrap;
+}
+
+#power-transition-body .trans-meta{
+  line-height:1.35;
+}
+
+#power-transition-body .trans-meta span{
+  display:inline-block;
+  margin-right:6px;
+}
+
+#power-transition-body .trans-bar{
+  height:10px !important;
+}
+
+@media (max-width:520px){
+
+  #power-transition-body .trans-row{
+    flex-direction:column;
+    gap:10px;
+  }
+
+  #power-transition-body .trans-left{
+    width:100%;
+  }
+
+  #power-transition-body .trans-meta{
+    display:block;
+    margin-top:4px;
+  }
+
+  /* 推奨を縦並びに */
+  #power-transition-body .trans-meta br{
+    display:block;
+  }
+
+  /* %バーを下に */
+  #power-transition-body .trans-right{
+    width:100%;
+    display:flex;
+    justify-content:flex-end;
+    align-items:center;
+    gap:10px;
+  }
+
+  #power-transition-body .trans-bar{
+    width:140px !important;
+  }
+
+/* ===== 兵種シフト目安：フォント/レイアウト調整 ===== */
+#power-transition-body .trans-row{
+  padding: 10px 0;
+  border-bottom: 1px dashed #e5e7eb;
+}
+
+#power-transition-body .trans-left{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+#power-transition-body .trans-title{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size: 0.98rem;
+  font-weight: 800;
+  color:#0f172a;
+  line-height:1.2;
+}
+
+/* 状態バッジ（様子見(中) / 検討圏 など） */
+#power-transition-body .trans-badge{
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  line-height: 1.4;
+}
+
+/* 不足・おすすめ行 */
+#power-transition-body .trans-meta{
+  font-size: 0.80rem;
+  font-weight: 700;
+  color:#64748b;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+}
+
+/* 不足ptを強調したい場合 */
+#power-transition-body .trans-shortage{
+  color:#dc2626;
+  font-weight: 900;
+}
+
+/* 右側（%+バー） */
+#power-transition-body .trans-right{
+  display:flex;
+  align-items:center;     /* 縦揃え */
+  justify-content:flex-end;
+  gap:10px;
+  min-width: 110px;
+}
+
+#power-transition-body .trans-pct{
+  font-size: 0.92rem;
+  font-weight: 900;
+  color:#0f172a;
+  width: 52px;
+  text-align:right;
+}
+
+#power-transition-body .trans-bar{
+  height: 10px !important;     /* 太く */
+  border-radius: 999px;
+}
+
+@media (max-width:520px){
+  #power-transition-body .trans-meta{
+    white-space:normal;
+    overflow-wrap:anywhere;
+  }
+}
+
+/* 兵種シフト目安：スマホ最適（左寄せ＋階層） */
+@media (max-width:520px){
+
+  #power-transition-body .trans-row{
+    padding: 12px 0;
+    border-bottom: 1px dashed #e5e7eb;
+  }
+
+  /* タイトル行：左寄せで1行に */
+  #power-transition-body .trans-title{
+    justify-content:flex-start;
+    text-align:left;
+    font-size: 1.0rem;
+    font-weight: 900;
+    gap:8px;
+  }
+
+  /* バッジはタイトル直下に置く（中央に浮かせない） */
+  #power-transition-body .trans-badge{
+    align-self:flex-start;
+    margin-top: 2px;
+  }
+
+  /* 不足/おすすめ：文章ブロックとして左寄せ */
+  #power-transition-body .trans-meta{
+    text-align:left;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    margin-top: 2px;
+  }
+
+  /* “不足”を強調（未使用ならOK） */
+  #power-transition-body .trans-shortage{
+    color:#dc2626;
+    font-weight: 900;
+  }
+
+  /* % + バー：1行で右寄せ、下に配置 */
+  #power-transition-body .trans-right{
+    width:100%;
+    display:flex;
+    justify-content:flex-end;
+    align-items:center;
+    gap:10px;
+    margin-top: 6px;
+  }
+
+  #power-transition-body .trans-pct{
+    width:auto;
+    font-size: 0.95rem;
+    font-weight: 900;
+  }
+
+  #power-transition-body .trans-bar{
+    width: 150px !important; /* スマホで見やすく */
+    height: 10px !important;
+    border-radius: 999px;
+  }
+}
+
+/* ===== 兵種シフト目安：最終調整 ===== */
+
+/* タイトル */
+#power-transition-body .trans-title{
+  display:flex;
+  align-items:center;
+  justify-content:flex-start; /* 左寄せ */
+  gap:10px;
+  font-size:1rem;
+  font-weight:900;
+  color:#1e293b;
+}
+
+/* バッジ位置 */
+#power-transition-body .trans-badge{
+  margin-left:4px;
+  margin-top:2px;
+}
+
+/* 不足＋おすすめ行 */
+#power-transition-body .trans-meta{
+  font-size:0.82rem;
+  font-weight:700;
+  color:#64748b;
+  line-height:1.45;
+  margin-top:4px;
+}
+
+/* 右側 progress */
+#power-transition-body .trans-right{
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:10px;
+  margin-top:8px;
+}
+
+/* % */
+#power-transition-body .trans-pct{
+  font-size:0.95rem;
+  font-weight:900;
+  width:52px;
+  text-align:right;
+}
+
+/* progress bar */
+#power-transition-body .trans-bar{
+  width:160px !important;
+  height:10px !important;
+  border-radius:999px;
+}
+
+</style>
 </head>
 <body>
 <div id="toast"></div>
@@ -29,21 +376,13 @@
                 <option value="mis" selected>🚀 ロケラン環境</option>
             </select>
         </div>
-        <div id="power-row" style="display:flex; justify-content:flex-end; align-items:center; margin-top:-6px; margin-bottom: 12px; gap: 6px; flex-wrap:wrap;">
+        <div id="power-row" style="display:none; justify-content:flex-end; align-items:center; margin-top:-6px; margin-bottom: 12px; gap: 6px; flex-wrap:wrap;">
             <span style="font-size: 0.85rem; font-weight: 900; color: #475569;">📈 戦力(M・任意):</span>
             <input id="pow-tank" type="number" inputmode="decimal" min="0" step="0.01" placeholder="戦車" style="width:78px; font-size: 0.85rem; padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; font-weight:bold; color:#0f172a; outline:none;" onchange="saveData(); scheduleAi();" />
             <input id="pow-air" type="number" inputmode="decimal" min="0" step="0.01" placeholder="航空" style="width:78px; font-size: 0.85rem; padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; font-weight:bold; color:#0f172a; outline:none;" onchange="saveData(); scheduleAi();" />
             <input id="pow-mis" type="number" inputmode="decimal" min="0" step="0.01" placeholder="ロケ" style="width:78px; font-size: 0.85rem; padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; font-weight:bold; color:#0f172a; outline:none;" onchange="saveData(); scheduleAi();" />
-            <span style="font-size: 0.75rem; font-weight: bold; color: #94a3b8;">未入力でもOK</span>
         </div>
 
-
-
-
-        <div id="power-transition" class="suggestion-box" style="margin-top:10px;">
-            <div style="font-weight:900; color:#0f172a; margin-bottom:6px;">兵種シフト目安（戦力差）</div>
-            <div style="font-size:0.82rem; color:#64748b; font-weight:bold;">戦力を入力すると表示されます（目安：対象が主力の60%以上で「検討圏」）。</div>
-        </div>
 
         <div id="summary-panel" class="panel summary-panel">
             <div class="panel-title" style="color:#0ea5e9;">🥇 最優先育成</div>
@@ -121,6 +460,15 @@
                 </div>
                 <div class="slot-tiles" id="slot-tiles-4"></div>
             </div>
+        </div>
+
+        <!-- 🎯 兵種シフト目安（最下部 + 折りたたみ：編成の▼と同じボタン） -->
+        <div id="power-transition" class="panel" style="border-left:5px solid #f59e0b; margin-top: 14px;">
+          <div class="power-transition-head">
+            <div class="power-transition-title">🎯 兵種シフト目安</div>
+            <button id="power-transition-toggle" class="slot-toggle-btn" type="button" onclick="toggleTransitionPanel()" aria-label="兵種シフト目安を展開">▼</button>
+          </div>
+          <div id="power-transition-body" class="suggestion-box" style="margin-top:10px;"></div>
         </div>
 
 <div class="panel" style="background:transparent; padding:0; border:none; box-shadow:none; display:none;">
@@ -233,9 +581,8 @@
     <div style="font-size:0.8rem; color:#4b5563; background:#f8fafc; padding:4px 10px; border-radius:12px; border:1px solid #e2e8f0; font-weight:bold;">必要: <span style="color:#f59e0b;">UR<span id="ft-ur">0</span></span> <span style="color:#b91c1c;">MR<span id="ft-mr">0</span></span></div>
 </div>
 
-<script src="data.js?v=4"></script>
-<script src="app.js?v=17"></script>
-
+<script src="data.js?v=10"></script>
+<script src="app.js?v=999"></script>
 
 <div id="slot-modal" class="modal-backdrop" onclick="if(event.target===this) closeSlotModal()">
   <div class="modal-card">

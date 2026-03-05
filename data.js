@@ -7,3 +7,52 @@ const HEROES = {
 const GEAR_TYPES = ['Gun', 'Data', 'Armor', 'Radar'];
 const GEAR_NAMES = { 'Gun':'🔫レールガン', 'Data':'💾チップ', 'Armor':'🛡️装甲', 'Radar':'📡レーダー' };
 const SHARD_ICON = 'original.webp';
+
+
+// ===============================
+// ⭐ メタ育成優先（兵種コア / tier）
+// ===============================
+const META_TIER = {
+  // 🚜 戦車
+  kimberly:{ tier:'atk1', ew:'SSS', ewTarget:30 },
+  williams:{ tier:'tank1', ew:'S',  ewTarget:20 },
+  stetmann:{ tier:'atk2', ew:'S',  ewTarget:20 },
+  marshall:{ tier:'sup',  ew:'B',  ewTarget:0  },
+  murphy:{   tier:'tank2',ew:'C',  ewTarget:0  },
+
+  // ✈️ 航空
+  lucius:{   tier:'tank1',ew:'SSS',ewTarget:30 },
+  dva:{      tier:'atk1', ew:'SSS',ewTarget:30 },
+  morrison:{ tier:'atk2', ew:'S',  ewTarget:20 },
+  schuyler:{ tier:'atk2', ew:'A',  ewTarget:10 },
+  carlie:{   tier:'tank2',ew:'A',  ewTarget:10 },
+
+  // 🚀 ミサイル（ロケラン）
+  fiona:{    tier:'atk1', ew:'SSS',ewTarget:30 },
+  tesla:{    tier:'atk1', ew:'SS', ewTarget:20 },
+  mcgregor:{ tier:'tank1',ew:'S',  ewTarget:20 },
+  swift:{    tier:'atk2', ew:'A',  ewTarget:10 },
+  adam:{     tier:'tank2',ew:'B',  ewTarget:10 }
+};
+
+
+// ===============================
+// ⭐ 兵種シフト（完全自動推定）用の設定
+// ※閾値は app.js 側で毎回推定（ここは係数とコア定義だけ）
+// ===============================
+const META_SHIFT = {
+  core: {
+    tank:   { ids:['kimberly','williams','stetmann'], targets:[30,20,20] },
+    air:    { ids:['lucius','dva'],                   targets:[30,30] },
+    missile:{ ids:['fiona','tesla','mcgregor'],        targets:[30,20,20] }
+  },
+  mult: {
+    boostNext: 1.08,   // 次兵種を押し上げ（控えめ）
+    dampPrev:  0.98    // 前兵種を少し抑える（抑えすぎ防止）
+  },
+  progress: {
+    maxWp: 30,
+    minMult: 0.92,     // wp=0
+    maxMult: 1.08      // wp=max
+  }
+};
