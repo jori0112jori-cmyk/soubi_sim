@@ -1,3 +1,1172 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ラストウォー育成シミュレーター</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+/* === ベース設定 === */
+    :root{ --ui-ico:14px; }
+    body { font-family: "Helvetica Neue", Arial, sans-serif; background-color: #f4f6f8; color: #2c3e50; padding: 12px 10px 120px; margin: 0; font-size: 14px; line-height: 1.5; }
+    h1 { font-size: 1.25rem; text-align: left; color: #1a252f; margin: 0 0 15px 0; font-weight: 900; }
+    .version-badge { font-size: 0.65rem; color: #fff; background: linear-gradient(135deg, #f43f5e, #b91c1c); font-weight: bold; padding: 2px 8px; border-radius: 12px; vertical-align: middle; margin-left: 4px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    .container { max-width: 900px; margin: 0 auto; animation: appStart 0.4s ease-out forwards; }
+    @keyframes appStart { 0%, 30% { opacity: 0; } 100% { opacity: 1; } }
+
+    /* === タブUI === */
+    .tabs { display: flex; background: #e2e8f0; border-radius: 10px; padding: 4px; margin-bottom: 12px; }
+    .tab-btn { flex: 1; padding: 12px 0; text-align: center; font-size: 0.95rem; font-weight: bold; color: #64748b; cursor: pointer; border-radius: 8px; transition: 0.2s; }
+    .tab-btn.active { background: #fff; color: #2563eb; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.3s ease-out forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* === パネル共通 === */
+    .panel { background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); margin-bottom: 15px; border: 1px solid #edf2f7; }
+    .ai-panel { background: linear-gradient(135deg, #ffffff, #f8fafc); border-left: 5px solid #3b82f6; }
+    .route-panel { background: linear-gradient(135deg, #ffffff, #fdf4ff); border-left: 5px solid #c026d3; }
+    .panel-title { font-weight: 900; font-size: 1.05rem; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .suggestion-box { background: #fff; border-radius: 8px; padding: 12px; font-size: 0.85rem; border: 1px solid #e2e8f0; line-height: 1.6; color: #334155; }
+    .apply-btn { background: linear-gradient(to right, #2563eb, #1d4ed8); color: #fff; border: none; padding: 10px; border-radius: 30px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; box-shadow: 0 4px 6px rgba(37,99,235,0.2); }
+
+    /* === 編成カード構造 === */
+    .squad-section { border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 15px; background: #fff; overflow: hidden; }
+    .squad-header { background: #f8fafc; padding: 12px 15px; font-weight: 900; color: #334155; display: flex; justify-content: space-between; cursor: pointer; border-bottom: 1px solid #e2e8f0; }
+    .squad-body { padding: 15px; display: none; }
+    .squad-body.open { display: block; }
+    .squad-grid { background: linear-gradient(180deg, #334155 0%, #1e293b 100%); border-radius: 12px; padding: 18px 10px; border: 2px solid #475569; }
+    
+    .v-row { display: flex; justify-content: center; gap: 10px; margin-bottom: 12px; }
+    .v-row.bench { flex-wrap: wrap; justify-content: flex-start; }
+    
+    .interactive-card { width: 31%; max-width: 105px; padding: 8px 4px; text-align: center; border-radius: 10px; background: rgba(255,255,255,0.1); border-bottom: 4px solid #64748b; position: relative; margin-top: 4px; }
+    .prio-badge { position: absolute; top: -10px; left: -10px; font-size: 0.8rem; font-weight: 900; color: #fff; width: 22px; height: 22px; display: none; align-items: center; justify-content: center; border-radius: 50%; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.5); border: 2px solid #fff; }
+    .prio-1 { background: linear-gradient(135deg, #ef4444, #991b1b); }
+    .prio-2 { background: linear-gradient(135deg, #f59e0b, #b45309); }
+    .prio-3 { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+
+    .card-icon-wrap { display: flex; justify-content: center; gap: 6px; margin-bottom: 6px; }
+    .icon-box { width: 28px; height: 28px; background: #1e293b; border-radius: 50%; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #475569; }
+    .card-select { width: 95%; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 6px 0; font-size: 0.8rem; font-weight: bold; margin-bottom: 6px; text-align: center; text-align-last: center; outline: none; -webkit-appearance: none; }
+    .card-select option { background: #1e293b; color: #fff; }
+    .card-select optgroup { background: #0f172a; color: #94a3b8; font-weight: bold; }
+    .card-stepper { display: flex; align-items: center; background: rgba(0,0,0,0.3); border-radius: 4px; width: 95%; }
+    .card-stepper button { flex: 1; background: transparent; border: none; color: #fff; font-size: 1.2rem; cursor: pointer; }
+    .card-stepper input { width: 40px; background: transparent; border: none; color: #fff; font-size: 0.8rem; text-align: center; font-weight: bold; pointer-events: none; white-space: nowrap; }
+    
+    .shard-info { color: #fbbf24; height: 22px; display: flex; align-items: center; justify-content: center; letter-spacing: -0.5px; white-space: nowrap; font-weight: 900; margin-top: 2px; }
+    .shard-icon { width: var(--ui-ico); height: var(--ui-ico); margin: 0 2px; vertical-align: -2px; }
+    .awaken-badge { background: linear-gradient(135deg, #b45309, #f59e0b); color: #fff; font-size: 0.75rem; font-weight: 900; padding: 1px 6px; border-radius: 12px; border: 1px solid #fde68a; }
+    .card-empty { opacity: 0.6; border: 2px dashed #475569 !important; background: rgba(0,0,0,0.2) !important; border-bottom: 2px dashed #475569 !important; }
+    .card-ur { border-bottom-color: #a855f7; }
+    .card-tank { border-bottom-color: #f59e0b; }
+    .card-air { border-bottom-color: #3b82f6; }
+    .card-mis { border-bottom-color: #ef4444; }
+    .card-awakened { border-color: #fbbf24 !important; border-bottom: 4px solid #f59e0b !important; box-shadow: 0 0 10px rgba(251, 191, 36, 0.4) !important; }
+
+    .advice { font-size: 0.8rem; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; line-height: 1.5; border-left: 5px solid #cbd5e1; }
+    .adv-perfect { background: #eff6ff; border-color: #3b82f6; color: #1e40af; }
+    .adv-ok { background: #f0fdf4; border-color: #22c55e; color: #166534; }
+    .adv-ng { background: #fef2f2; border-color: #ef4444; color: #991b1b; }
+
+    /* === 装備シミュレーター用 === */
+    .stepper { display: flex; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; height: 32px; align-items: center; overflow: hidden; flex-shrink: 0; }
+    .stepper button { width: 28px; flex-shrink: 0; border: none; background: #f1f5f9; font-weight: bold; font-size: 1.1rem; color: #475569; cursor: pointer; height: 100%; display: flex; align-items: center; justify-content: center; padding: 0; }
+    .stepper input { flex: 1; text-align: center; border: none; font-size: 0.9rem; font-weight: 900; pointer-events: none; padding: 0; min-width: 0; background: transparent; }
+    .stepper.disabled { opacity: 0.6; pointer-events: none; background: #e2e8f0; }
+    .gear-container { display: flex; flex-wrap: wrap; gap: 12px; }
+    .g-card { flex: 1; min-width: 100%; background: #fff; padding: 15px 10px; border-radius: 12px; border: 1px solid #e2e8f0; box-sizing: border-box; }
+    @media (min-width: 700px) { .g-card { min-width: 48%; } }
+    .g-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 6px; flex-wrap: nowrap; padding: 0 4px; }
+    .g-label { font-weight: bold; font-size: 0.8rem; color: #475569; white-space: nowrap; flex-shrink: 0; }
+    .g-input-group { display: flex; gap: 6px; flex-shrink: 0; justify-content: flex-end; }
+    .stepper-lv { width: 85px; } .stepper-star { width: 115px; } .stepper-star input { font-size: 11px; letter-spacing: -1px; }
+    .buff-info { font-size: 0.75rem; color: #d97706; background: #fffbeb; padding: 8px; border-radius: 6px; margin-top: 12px; text-align: center; display: none; font-weight: bold; }
+    .buff-info.active { display: block; }
+    .cost-panel { margin-top: 15px; background: #fff; padding: 15px; border-radius: 10px; border-top: 4px solid #f59e0b; }
+    .cost-row { display: flex; justify-content: space-between; font-size: 0.9rem; border-bottom: 1px dashed #e2e8f0; padding: 6px 0; font-weight: bold; color: #475569; }
+    
+    .footer { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 500px; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); padding: 10px 15px; border-radius: 50px; border: 1px solid #fecaca; display: flex; justify-content: space-between; align-items: center; z-index: 999; box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
+    #toast { visibility:hidden; position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:rgba(30,41,59,0.95); color:#fff; padding:12px 20px; border-radius:30px; z-index:9999; font-weight:bold; transition:0.3s; }
+
+    /* === 要約バー & ジャンプ === */
+    .summary-panel { background: linear-gradient(135deg, #ffffff, #eff6ff); border-left: 5px solid #0ea5e9; }
+    .summary-grid { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+    .summary-title { font-weight:900; color:#0f172a; font-size:0.9rem; }
+    .summary-main { font-weight:900; color:#1d4ed8; font-size:0.95rem; }
+    .summary-sub { font-size:0.78rem; color:#64748b; font-weight:bold; }
+    .jump-row { display:flex; gap:8px; margin: 10px 0 14px; flex-wrap:wrap; }
+    .jump-btn { flex:1; min-width: 98px; border:none; border-radius: 12px; padding: 10px 10px; font-weight: 900; cursor:pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .jump-btn.j1 { background: linear-gradient(135deg, #fbbf24, #f59e0b); color:#1f2937; }
+    .jump-btn.j2 { background: linear-gradient(135deg, #cbd5e1, #94a3b8); color:#0f172a; }
+    .jump-btn.j3 { background: linear-gradient(135deg, #fb923c, #f97316); color:#0f172a; }
+    .jump-btn.jb { background: #fff; border:1px solid #e2e8f0; color:#334155; }
+
+
+/* === ROLE ICONS (SVG mask / white fill) === */
+.role-badge {
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:2px 7px; border-radius:999px; font-weight:900; font-size:0.7rem;
+  color:#fff; line-height:1;
+}
+.role-badge.atk { background: #ef4444; }
+.role-badge.wall { background: #3b82f6; }
+.role-badge.sup { background: #64748b; }
+
+.role-ico {
+  width:var(--ui-ico); height:var(--ui-ico); display:inline-block;
+  background-color: currentColor;
+  -webkit-mask-repeat:no-repeat; -webkit-mask-position:center; -webkit-mask-size:contain;
+  mask-repeat:no-repeat; mask-position:center; mask-size:contain;
+}
+.role-ico.atk { -webkit-mask-image:url('data:image/svg+xml;utf8,%3Csvg%20xmlns="http://www.w3.org/2000/svg"%20viewBox="0%200%2024%2024"%3E%3Cpath%20fill="white"%20d="M13.5%202.2s.6%202.5-.7%204.5c-1.3%202-3.8%202.9-3.8%206.1%200%202.3%201.7%204.2%204%204.2%202.1%200%203.8-1.7%203.8-3.8%200-1.7-1.2-2.8-2-3.7%202.7.2%205.2%202.6%205.2%206.1%200%204.1-3.4%207.4-7.6%207.4-4.3%200-7.6-3.2-7.6-7.6%200-6.7%206.7-8.3%208.7-13.2z"/%3E%3C/svg%3E'); mask-image:url('data:image/svg+xml;utf8,%3Csvg%20xmlns="http://www.w3.org/2000/svg"%20viewBox="0%200%2024%2024"%3E%3Cpath%20fill="white"%20d="M13.5%202.2s.6%202.5-.7%204.5c-1.3%202-3.8%202.9-3.8%206.1%200%202.3%201.7%204.2%204%204.2%202.1%200%203.8-1.7%203.8-3.8%200-1.7-1.2-2.8-2-3.7%202.7.2%205.2%202.6%205.2%206.1%200%204.1-3.4%207.4-7.6%207.4-4.3%200-7.6-3.2-7.6-7.6%200-6.7%206.7-8.3%208.7-13.2z"/%3E%3C/svg%3E'); }
+.role-ico.wall { -webkit-mask-image:url('data:image/svg+xml;utf8,%3Csvg%20xmlns="http://www.w3.org/2000/svg"%20viewBox="0%200%2024%2024"%3E%3Cpath%20fill="white"%20d="M12%202l7%204v6c0%205-3.4%209.7-7%2010-3.6-.3-7-5-7-10V6l7-4z"/%3E%3C/svg%3E'); mask-image:url('data:image/svg+xml;utf8,%3Csvg%20xmlns="http://www.w3.org/2000/svg"%20viewBox="0%200%2024%2024"%3E%3Cpath%20fill="white"%20d="M12%202l7%204v6c0%205-3.4%209.7-7%2010-3.6-.3-7-5-7-10V6l7-4z"/%3E%3C/svg%3E'); }
+.role-ico.sup { -webkit-mask-image:url('data:image/svg+xml;utf8,%3Csvg%20xmlns="http://www.w3.org/2000/svg"%20viewBox="0%200%2024%2024"%3E%3Cpath%20fill="white"%20d="M3%2010v4c0%20.6.4%201%201%201h2l3%204h2v-4h2l7%203V6l-7%203H4c-.6%200-1%20.4-1%201zm10%204H5v-4h8v4zm6%202.5l-4-1.7V9.2l4-1.7v9z"/%3E%3C/svg%3E'); mask-image:url('data:image/svg+xml;utf8,%3Csvg%20xmlns="http://www.w3.org/2000/svg"%20viewBox="0%200%2024%2024"%3E%3Cpath%20fill="white"%20d="M3%2010v4c0%20.6.4%201%201%201h2l3%204h2v-4h2l7%203V6l-7%203H4c-.6%200-1%20.4-1%201zm10%204H5v-4h8v4zm6%202.5l-4-1.7V9.2l4-1.7v9z"/%3E%3C/svg%3E'); }
+
+/* === Impact badge (no emoji; uses same masks) === */
+.impact-badge {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:2px 6px; border-radius:8px;
+  font-size:0.7rem; font-weight:900; color:#fff; line-height:1;
+}
+.impact-ico {
+  width:var(--ui-ico); height:var(--ui-ico); display:inline-block;
+  background-color:#fff;
+  -webkit-mask-repeat:no-repeat; -webkit-mask-position:center; -webkit-mask-size:contain;
+  mask-repeat:no-repeat; mask-position:center; mask-size:contain;
+}
+.impact-ico.atk { -webkit-mask-image:url('data:image/svg+xml;utf8,%3Csvg%20xmlns="http://www.w3.org/2000/svg"%20viewBox="0%200%2024%2024"%3E%3Cpath%20fill="white"%20d="M13.5%202.2s.6%202.5-.7%204.5c-1.3%202-3.8%202.9-3.8%206.1%200%202.3%201.7%204.2%204%204.2%202.1%200%203.8-1.7%203.8-3.8%200-1.7-1.2-2.8-2-3.7%202.7.2%205.2%202.6%205.2%206.1%200%204.1-3.4%207.4-7.6%207.4-4.3%200-7.6-3.2-7.6-7.6%200-6.7%206.7-8.3%208.7-13.2z"/%3E%3C/svg%3E'); mask-image:url('data:image/svg+xml;utf8,%3Csvg%20xmlns="http://www.w3.org/2000/svg"%20viewBox="0%200%2024%2024"%3E%3Cpath%20fill="white"%20d="M13.5%202.2s.6%202.5-.7%204.5c-1.3%202-3.8%202.9-3.8%206.1%200%202.3%201.7%204.2%204%204.2%202.1%200%203.8-1.7%203.8-3.8%200-1.7-1.2-2.8-2-3.7%202.7.2%205.2%202.6%205.2%206.1%200%204.1-3.4%207.4-7.6%207.4-4.3%200-7.6-3.2-7.6-7.6%200-6.7%206.7-8.3%208.7-13.2z"/%3E%3C/svg%3E'); }
+.impact-ico.wall { -webkit-mask-image:url('data:image/svg+xml;utf8,%3Csvg%20xmlns="http://www.w3.org/2000/svg"%20viewBox="0%200%2024%2024"%3E%3Cpath%20fill="white"%20d="M12%202l7%204v6c0%205-3.4%209.7-7%2010-3.6-.3-7-5-7-10V6l7-4z"/%3E%3C/svg%3E'); mask-image:url('data:image/svg+xml;utf8,%3Csvg%20xmlns="http://www.w3.org/2000/svg"%20viewBox="0%200%2024%2024"%3E%3Cpath%20fill="white"%20d="M12%202l7%204v6c0%205-3.4%209.7-7%2010-3.6-.3-7-5-7-10V6l7-4z"/%3E%3C/svg%3E'); }
+.impact-ico.bal { -webkit-mask-image:url('data:image/svg+xml;utf8,%3Csvg%20xmlns="http://www.w3.org/2000/svg"%20viewBox="0%200%2024%2024"%3E%3Cpath%20fill="white"%20d="M12%203l3%204h-2v10h4v2H7v-2h4V7H9l3-4zm-6%206h4l-2%205H4l2-5zm10%200h4l-2%205h-4l2-5z"/%3E%3C/svg%3E'); mask-image:url('data:image/svg+xml;utf8,%3Csvg%20xmlns="http://www.w3.org/2000/svg"%20viewBox="0%200%2024%2024"%3E%3Cpath%20fill="white"%20d="M12%203l3%204h-2v10h4v2H7v-2h4V7H9l3-4zm-6%206h4l-2%205H4l2-5zm10%200h4l-2%205h-4l2-5z"/%3E%3C/svg%3E'); }
+
+.impact-badge.atk { background:#f97316; }
+.impact-badge.atk.strong { background:#ef4444; }
+.impact-badge.wall { background:#3b82f6; }
+.impact-badge.wall.strong { background:#2563eb; }
+.impact-badge.bal { background:#64748b; }
+
+
+    /* === 統合編成スロット（タップで編集） === */
+    .slot-panel { border-left: 5px solid #22c55e; background: linear-gradient(135deg, #ffffff, #f0fdf4); }
+    .slot-army { border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; margin-top: 10px; background:#fff; }
+    .slot-army-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; flex-wrap:nowrap; }
+
+    .slot-army-head .label { font-weight:900; color:#0f172a; display:flex; align-items:center; gap:6px; }
+    .slot-army-head .hint { font-size:0.75rem; color:#64748b; font-weight:bold; white-space:nowrap; }
+    .slot-tiles { display:flex; gap:8px; flex-wrap:nowrap; overflow-x:auto; padding: 6px 2px 8px; scroll-snap-type:x mandatory; }
+    .slot-tile { width:68px; flex:0 0 68px; cursor:pointer; user-select:none; -webkit-tap-highlight-color: transparent; text-align:center; scroll-snap-align:start; }
+    .slot-avatar { width:64px; height:64px; border-radius:16px; background:#0f172a; border:2px solid #cbd5e1; position:relative; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.12); display:flex; align-items:center; justify-content:center; }
+    .slot-avatar img { width:100%; height:100%; object-fit:cover; }
+    .slot-fallback { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#cbd5e1; font-weight:900; font-size:0.78rem; }
+    .slot-lv { position:relative; margin-top:-9px; display:inline-block; background:#334155; color:#fff; font-weight:900; font-size:0.68rem; border-radius:10px; padding:2px 7px; border:1px solid #fff; box-shadow:0 1px 2px rgba(0,0,0,0.2); }
+    .slot-name { margin-top:3px; font-size:0.70rem; line-height:1.05; font-weight:900; color:#0f172a; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-height:1.1em; }
+    .slot-empty .slot-avatar { background: rgba(15, 23, 42, 0.06); border: 2px dashed #94a3b8; box-shadow:none; }
+    .slot-empty .slot-fallback { color:#64748b; font-size:1.45rem; }
+    .slot-empty .slot-lv, .slot-empty .slot-name { opacity:0.65; }
+
+    /* モーダル */
+    .modal-backdrop { position:fixed; inset:0; background:rgba(2,6,23,0.55); display:none; align-items:center; justify-content:center; z-index:9999; padding:16px; }
+    .modal-backdrop.open { display:flex; }
+    .modal-card { width:min(560px, 96vw); background:#fff; border-radius:16px; box-shadow:0 25px 60px rgba(0,0,0,0.35); overflow:hidden; }
+    .modal-head { padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #e2e8f0; }
+    .modal-head .t { font-weight:900; font-size:1.0rem; color:#0f172a; }
+    .modal-close { width:38px; height:38px; border-radius:12px; border:1px solid #e2e8f0; background:#fff; cursor:pointer; font-size:1.2rem; }
+    .modal-body { padding:14px 16px; }
+    .modal-row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+    .modal-row label { font-weight:900; color:#334155; font-size:0.9rem; white-space:nowrap; }
+    .modal-select { flex:1; padding:10px 12px; border-radius:12px; border:1px solid #cbd5e1; font-weight:900; background:#f8fafc; }
+    .modal-step { display:flex; gap:10px; align-items:center; justify-content:flex-end; }
+    .modal-step button { width:56px; height:56px; border:none; border-radius:14px; font-size:1.6rem; font-weight:900; color:#fff; cursor:pointer; box-shadow:0 10px 18px rgba(37,99,235,0.25); background:linear-gradient(135deg,#2563eb,#1d4ed8); }
+    .modal-step .val { width:84px; height:56px; display:flex; align-items:center; justify-content:center; border-radius:14px; background:#0f172a; color:#fff; font-weight:900; font-size:1.3rem; }
+    .modal-quick { display:flex; gap:10px; flex-wrap:wrap; }
+    .modal-quick button { flex:1; min-width:76px; padding:10px 0; border-radius:14px; border:1px solid #e2e8f0; background:#fff; font-weight:900; cursor:pointer; }
+    .modal-foot { padding:14px 16px; border-top:1px solid #e2e8f0; display:flex; gap:10px; }
+    .btn-danger { flex:1; background:#fff; border:1px solid #fecaca; color:#b91c1c; font-weight:900; padding:12px 10px; border-radius:14px; cursor:pointer; }
+    .btn-primary { flex:1.6; background:linear-gradient(135deg,#2563eb,#1d4ed8); border:none; color:#fff; font-weight:900; padding:12px 10px; border-radius:14px; cursor:pointer; }
+
+
+    /* === スロット評価（兵種バフ / 進行度バー）=== */
+    .slot-eval{ margin:6px 0 6px; padding:8px 10px; border-radius:10px; background:#f8fafc; border:1px solid #e2e8f0; }
+    .slot-eval .row{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+    .slot-eval .row.sub{ justify-content:flex-end; margin-top:4px; gap:6px; }
+    .slot-eval .tag{ font-size:0.72rem; font-weight:900; color:#475569; display:flex; align-items:center; gap:6px; }
+    .slot-eval .pct{ font-size:0.82rem; font-weight:1000; color:#0f172a; white-space:nowrap; }
+    .slot-eval .buff-badge{ font-size:0.65rem; color:#475569; background:#fff; border:1px solid #e2e8f0; padding:2px 6px; border-radius:8px; font-weight:900; white-space:nowrap; }
+    .slot-eval .bar{ width:100%; height:8px; border-radius:6px; overflow:hidden; background:#e5e7eb; margin-top:6px; }
+    .slot-eval .bar > div{ height:100%; }
+
+
+/* === Mobile fit fix === */
+.slot-tiles{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  overflow-x:hidden !important;
+}
+
+.slot-tile{
+  width:72px !important;
+}
+
+.slot-tile img{
+  width:64px !important;
+  height:64px !important;
+}
+
+.slot-tile .lv-badge{
+  font-size:0.6rem !important;
+  padding:1px 4px !important;
+}
+
+.slot-tile .name{
+  font-size:0.65rem !important;
+  line-height:1.05 !important;
+}
+
+/* extra small phones */
+@media (max-width:380px){
+  .slot-tile{
+    width:52px !important;
+  }
+  .slot-tile img{
+    width:52px !important;
+    height:52px !important;
+  }
+}
+
+
+/* === 5人2段フォーメーション（スマホ）: 第1〜第3軍だけ === */
+@media (max-width: 480px){
+
+  /* 保険：他の transform を無効化 */
+  .slot-tiles .slot-tile{ transform:none; }
+
+  /* ✅ 第1〜3軍：2段grid */
+  #slot-tiles-1,
+  #slot-tiles-2,
+  #slot-tiles-3{
+    display:grid !important;
+    grid-template-columns: repeat(3, 64px);
+    justify-content:center;
+    gap:8px 58px;              /* ← 横の間隔を少し広げる（ここ重要） */
+  }
+
+  /* ===== 前衛（上段：1,2） ===== */
+  #slot-tiles-1 .slot-tile:nth-child(1),
+  #slot-tiles-2 .slot-tile:nth-child(1),
+  #slot-tiles-3 .slot-tile:nth-child(1){
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: end;         /* ← 列の右寄せ（中央寄りになる） */
+  }
+
+  #slot-tiles-1 .slot-tile:nth-child(2),
+  #slot-tiles-2 .slot-tile:nth-child(2),
+  #slot-tiles-3 .slot-tile:nth-child(2){
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: start;       /* ← 列の左寄せ（中央寄りになる） */
+  }
+  
+  /* ===== 前衛 微接近 ===== */
+ #slot-tiles-1 .slot-tile:nth-child(1),
+ #slot-tiles-2 .slot-tile:nth-child(1),
+ #slot-tiles-3 .slot-tile:nth-child(1){
+   justify-self: end;
+   transform: translateX(60px);   /* ← 中央へ寄せる */
+ }
+
+#slot-tiles-1 .slot-tile:nth-child(2),
+#slot-tiles-2 .slot-tile:nth-child(2),
+#slot-tiles-3 .slot-tile:nth-child(2){
+  justify-self: start;
+  transform: translateX(-60px);  /* ← 中央へ寄せる */
+}
+
+  /* ===== 後衛（下段：3,4,5） ===== */
+  #slot-tiles-1 .slot-tile:nth-child(3),
+  #slot-tiles-2 .slot-tile:nth-child(3),
+  #slot-tiles-3 .slot-tile:nth-child(3){
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: start;       /* ← 左を“外側”へ */
+  }
+
+  #slot-tiles-1 .slot-tile:nth-child(4),
+  #slot-tiles-2 .slot-tile:nth-child(4),
+  #slot-tiles-3 .slot-tile:nth-child(4){
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: center;      /* ← 中央は完全センター */
+  }
+
+  #slot-tiles-1 .slot-tile:nth-child(5),
+  #slot-tiles-2 .slot-tile:nth-child(5),
+  #slot-tiles-3 .slot-tile:nth-child(5){
+    grid-column: 3;
+    grid-row: 2;
+    justify-self: end;         /* ← 右を“外側”へ */
+  }
+
+  /* ✅ 控え(10枠)は従来どおり */
+  #slot-tiles-4{
+    display:flex !important;
+    flex-wrap:wrap;
+    justify-content:flex-start;
+    gap:6px;
+  }
+}
+
+
+/* === Power input row mobile alignment fix === */
+@media (max-width: 520px){
+  #power-row{ justify-content:flex-start !important; }
+  #power-row > span:first-child{ flex:0 0 100%; margin:2px 0 4px; }
+  #power-row input{ width:64px !important; } /* keep compact but aligned */
+  #power-row > span:last-child{ flex:0 0 100%; text-align:left; margin-top:2px; }
+}
+
+
+/* transition row */
+.trans-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed #e2e8f0;}
+.trans-left{font-weight:900;color:#334155;font-size:0.85rem;display:flex;gap:6px;align-items:center;}
+.trans-right{font-weight:900;font-size:0.95rem;}
+.trans-badge{font-size:0.7rem;padding:2px 8px;border-radius:999px;font-weight:900;}
+.advice-wait{background:#e5e7eb;color:#475569;}
+.advice-soon{background:#fde68a;color:#92400e;}
+.advice-good{background:#fed7aa;color:#9a3412;}
+.advice-now{background:#fecaca;color:#991b1b;}
+.power-row{display:flex;flex-wrap:wrap;gap:8px;}
+.power-row input{flex:1 1 80px;min-width:0;}
+
+.rank-top {
+  border: 2px solid #f59e0b;
+  background: linear-gradient(180deg,#fff7ed,#ffffff);
+}
+
+
+
+/* === 編成ヘッダー右側（評価 + 開閉ボタン） === */
+.slot-head-right{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex:1;
+  min-width:0;
+  justify-content:flex-end;
+}
+
+/* 評価は縮められるように（スマホでボタンが下に落ちない） */
+.slot-eval{
+  flex:1;
+  min-width:0;
+}
+
+/* 開閉ボタン（▶/▼） */
+.slot-toggle{
+  width:34px;
+  height:34px;
+  border-radius:10px;
+  border:1px solid #e2e8f0;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:16px;
+  font-weight:900;
+  color:#0f172a;
+  cursor:pointer;
+  flex-shrink:0;
+}
+
+/* 折りたたみ時は▶、展開時は▼ */
+.slot-army:not(.slot-collapsed) .slot-toggle{ content: none; }
+.slot-army:not(.slot-collapsed) .slot-toggle::after{ content:"▼"; }
+.slot-army.slot-collapsed .slot-toggle::after{ content:"▶"; }
+.slot-toggle{ font-size:0; } /* text nodeは消す */
+.slot-toggle::after{ content:"▼"; font-size:16px; }
+
+/* ヘッダーをタップで開閉できるように */
+.slot-army-head{ cursor:pointer; }
+
+/* 折りたたみ時はタイルだけ隠す（評価は残す運用） */
+.slot-army.slot-collapsed .slot-tiles{ display:none !important; }
+.slot-army.slot-collapsed #slot-tiles-1,
+.slot-army.slot-collapsed #slot-tiles-2,
+.slot-army.slot-collapsed #slot-tiles-3,
+.slot-army.slot-collapsed #slot-tiles-4{ display:none !important; }
+
+
+
+/* === 折りたたみ時の評価（進行度）表示切替 === */
+/* デフォルト：折りたたみ時は評価を隠す */
+.slot-army.slot-collapsed .slot-eval{ display:none !important; }
+
+/* チェックONのとき（body.keep-eval-collapse）だけ表示 */
+body.keep-eval-collapse .slot-army.slot-collapsed .slot-eval{ display:block !important; }
+
+
+
+/* === 育成ランキング：兵種/役割アイコン === */
+.ui-ico{width:var(--ui-ico);height:var(--ui-ico);display:inline-block;vertical-align:middle;}
+.eff-title-line{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.eff-title-line b{font-weight:900;}
+.eff-lv{color:#334155;font-weight:800;}
+
+.gear-cost{
+  font-weight:700;
+  color:#c2410c;
+  background:#fff7ed;
+  border:1px solid #fdba74;
+  border-radius:8px;
+  padding:2px 6px;
+  margin-left:4px;
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+}
+
+.gear-cost img{
+  width:28px;
+  height:28px;
+  flex-shrink:0;
+}
+
+/* ===== 育成ランキング（eff）共通レイアウト ===== */
+.eff-card{
+  padding:10px 10px;
+  border-radius:12px;
+  margin-bottom:6px;
+  border-bottom:1px dashed #fbcfe8;
+}
+.eff-card:last-child{ border-bottom:none; }
+
+.eff-card-top{
+  background: linear-gradient(90deg,#fff7ed,#ffffff);
+  border:1px solid #fed7aa;
+  box-shadow:0 2px 8px rgba(0,0,0,0.06);
+}
+
+/* ランキングカードの左右高さ・余白を少し整える */
+.eff-row{
+  align-items:center !important;
+}
+
+.eff-left{ min-width:0; line-height:1.35; }
+.eff-right{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  text-align:right;
+  gap:4px;
+  flex-shrink:0;
+  min-width:110px;
+}
+
+.eff-sub{
+  width:1
+  display:flex;
+  justify-content:flex-end;
+}
+
+.eff-subline{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  white-space:nowrap;
+  font-size:0.78rem;
+  font-weight:900;
+  color:#64748b;
+}
+
+.gear-cost{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  white-space:nowrap;
+}
+
+.gear-cost .sep{ opacity:.7; }
+.gear-num{ font-size:1rem; font-weight:900; }
+
+.ui-ico{ width:24px; height:24px; object-fit:contain; vertical-align:middle; }
+
+.eff-right{display:flex;flex-direction:column;align-items:flex-end;text-align:right;gap:4px;min-width:110px;}
+.eff-sub{display:flex;justify-content:flex-end;align-items:center;gap:6px;width:100%;align-self:stretch;white-space:nowrap;}
+.eff-subline{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+
+.gear-cost{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:3px 8px;
+  font-size:1rem;
+}
+
+/* =========================
+   兵種シフト目安：スマホ最適化
+   ========================= */
+@media (max-width: 640px){
+
+  #power-transition{
+    margin-top: 12px;
+  }
+
+  #power-transition .suggestion-box,
+  #power-transition-body{
+    padding: 12px 10px !important;
+  }
+
+  #power-transition .trans-row{
+    display: block !important;
+    padding: 10px 0 !important;
+  }
+
+  #power-transition .trans-row + .trans-row{
+    border-top: 1px dashed #d6dbe6;
+    margin-top: 10px;
+    padding-top: 12px !important;
+  }
+
+  #power-transition .trans-left,
+  #power-transition .trans-right{
+    width: 100% !important;
+    min-width: 0 !important;
+    display: block !important;
+  }
+
+  #power-transition .trans-title{
+    display: flex !important;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 1.02rem !important;
+    line-height: 1.35 !important;
+    margin-bottom: 6px;
+  }
+
+  #power-transition .trans-badge{
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.74rem !important;
+    padding: 3px 8px !important;
+    border-radius: 999px !important;
+    white-space: nowrap;
+  }
+
+  #power-transition .trans-meta{
+    display: block !important;
+    font-size: 0.92rem !important;
+    line-height: 1.55 !important;
+    margin-top: 4px;
+    word-break: break-word;
+  }
+
+  #power-transition .trans-right{
+    margin-top: 8px;
+    text-align: left !important;
+  }
+
+  #power-transition .trans-pct{
+    display: inline-block;
+    font-size: 1rem !important;
+    margin-bottom: 4px;
+  }
+
+  #power-transition .trans-bar{
+    width: 100% !important;
+    max-width: none !important;
+    height: 8px !important;
+  }
+
+  #power-transition .trans-bar > div{
+    height: 100% !important;
+  }
+
+  #power-transition .power-transition-title{
+    font-size: 1rem !important;
+  }
+
+  #power-transition .power-transition-head{
+    align-items: center;
+  }
+
+  #power-transition-body > div:first-child{
+    font-size: 1.05rem !important;
+    line-height: 1.35 !important;
+    margin-bottom: 8px !important;
+  }
+
+  #power-transition-body > div:nth-child(2){
+    font-size: 0.82rem !important;
+    line-height: 1.5 !important;
+    margin-bottom: 10px !important;
+  }
+
+  #power-transition-body > div:last-child{
+    font-size: 0.74rem !important;
+    line-height: 1.55 !important;
+    margin-top: 10px !important;
+  }
+}
+
+@media (max-width: 640px){
+  #power-transition .trans-meta br{
+    display: block;
+    content: "";
+    margin-top: 2px;
+  }
+}
+
+@media (max-width: 640px){
+  #power-transition .trans-right{
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-top: 8px;
+    text-align: left !important;
+    width: 100% !important;
+  }
+
+  #power-transition .trans-pct{
+    order: 2;
+    font-weight: 700 !important;
+    font-size: 14px !important;
+    line-height: 1;
+    margin: 0 !important;
+    white-space: nowrap;
+    min-width: 38px;
+    text-align: right;
+  }
+
+  #power-transition .trans-bar{
+    order: 1;
+    flex: 1 1 auto;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+}
+
+
+/* 育成優先ランキング：名前が長くても役割アイコンを落とさない */
+.eff-title-line{
+  display:flex !important;
+  align-items:center !important;
+  gap:6px !important;
+  min-width:0 !important;
+  flex-wrap:nowrap !important;
+}
+
+.eff-title-line b{
+  min-width:0 !important;
+  flex:1 1 auto !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+}
+
+.eff-title-line .ui-ico{
+  flex:0 0 auto !important;
+}
+
+/* スマホで少しだけ詰める */
+@media (max-width: 640px){
+  .eff-title-line{
+    gap:4px !important;
+  }
+
+  .eff-title-line b{
+    font-size:0.95rem !important;
+  }
+
+  .eff-title-line .ui-ico{
+    width:24px !important;
+    height:24px !important;
+  }
+}
+
+.eff-title-line{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+}
+
+.eff-title-line b{
+  flex:1;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.eff-title-line img{
+  flex-shrink:0;
+}
+
+.eff-title-line{
+  line-height:1.15 !important;
+}
+
+.eff-lv{
+  margin-left:4px;
+  transform: translateY(2px);
+  font-size:18px;
+  color:#64748b;
+}
+
+.eff-title-line{
+  align-items:baseline;
+}
+
+
+
+/* ===== 兵種シフト目安：desktop / tablet layout fix ===== */
+#power-transition .power-transition-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+#power-transition .trans-row{
+  display:flex !important;
+  align-items:flex-start !important;
+  justify-content:space-between !important;
+  gap:18px;
+  padding:12px 0 !important;
+  border-bottom:1px dashed #d6dbe6;
+}
+
+#power-transition .trans-row:last-of-type{
+  border-bottom:none;
+}
+
+#power-transition .trans-left{
+  flex:1 1 auto;
+  min-width:0;
+  display:block !important;
+  font-size:0.96rem;
+  line-height:1.45;
+}
+
+#power-transition .trans-title{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-bottom:6px;
+  color:#334155;
+  font-weight:900;
+}
+
+#power-transition .trans-meta{
+  display:flex;
+  align-items:flex-start;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:4px;
+  color:#475569;
+  word-break:break-word;
+}
+
+#power-transition .trans-key{
+  flex:0 0 auto;
+  color:#0f172a;
+  font-weight:900;
+}
+
+#power-transition .trans-value,
+#power-transition .trans-soft{
+  flex:0 0 auto;
+}
+
+#power-transition .trans-rec{
+  align-items:flex-start;
+}
+
+#power-transition .trans-rec-list{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px 10px;
+  min-width:0;
+}
+
+#power-transition .trans-rec-item{
+  display:inline-flex;
+  align-items:center;
+  padding:0;
+  font-weight:800;
+}
+
+#power-transition .trans-rec-item b{
+  white-space:nowrap;
+}
+
+#power-transition .trans-right,
+#power-transition .trans-right-fixed{
+  flex:0 0 88px;
+  width:88px;
+  min-width:88px;
+  margin-top:0;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  text-align:right;
+}
+
+#power-transition .trans-pct{
+  font-size:1.02rem;
+  font-weight:900;
+  line-height:1;
+  margin-bottom:6px;
+  white-space:nowrap;
+}
+
+#power-transition .trans-bar,
+#power-transition .trans-bar-fixed{
+  width:84px !important;
+  max-width:84px !important;
+  height:6px !important;
+  margin-left:auto;
+}
+
+#power-transition .trans-note-soft{
+  color:#64748b;
+}
+
+/* 折りたたみボタンは表示する */
+#power-transition .power-transition-head button#power-transition-toggle{
+  display:inline-flex !important;
+  align-items:center;
+  justify-content:center;
+}
+
+/* 旧ルールの無効化 */
+#power-transition .toggle-btn{
+  display:none !important;
+}
+
+@media (max-width: 900px){
+  #power-transition .trans-row{
+    gap:12px;
+  }
+  #power-transition .trans-right,
+  #power-transition .trans-right-fixed{
+    flex-basis:72px;
+    width:72px;
+    min-width:72px;
+  }
+  #power-transition .trans-bar,
+  #power-transition .trans-bar-fixed{
+    width:68px !important;
+    max-width:68px !important;
+  }
+}
+
+</style>
+<!-- ▼ 兵種シフト目安：編成の▼ボタンと同じ“右端トグル”見た目に寄せる（差分追加） -->
+<style>
+  .power-transition-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  /* panel-title のデフォルト margin を避けて、▼の縦位置を上（他と同じ）に揃える */
+  .power-transition-title{
+    font-weight:900;
+    color:#f59e0b;
+    margin:0;
+    line-height:1.2;
+  }
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<div class="container">
+    <h1>育成シミュレーター <span class="version-badge">⭐ 編成診断AI v1.0（安定版）</span></h1>
+    <div class="tabs">
+        <div class="tab-btn active" onclick="showTab('squad', this)">⚔️ 部隊編成</div>
+        <div class="tab-btn" onclick="showTab('gear', this)">🛡️ 装備</div>
+        <div class="tab-btn" onclick="showTab('guide', this)">📘 使い方</div>
+    </div>
+
+<div id="tab-squad" class="tab-content active">
+        
+        
+<div style="display:flex; justify-content:flex-end; align-items:center; margin-bottom: 12px; gap: 6px;">
+            <span style="font-size: 0.85rem; font-weight: 900; color: #475569;">🌍 現在のメタ:</span>
+            <select id="current-meta" style="font-size: 0.85rem; padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; font-weight:bold; color:#1d4ed8; outline:none;" onchange="updateAllSquads()">
+                <option value="tank">🚜 戦車環境</option>
+                <option value="air">✈️ 航空環境</option>
+                <option value="mis" selected>🚀 ロケラン環境</option>
+            </select>
+        </div>
+        <div id="power-row" style="display:none; justify-content:flex-end; align-items:center; margin-top:-6px; margin-bottom: 12px; gap: 6px; flex-wrap:wrap;">
+            <span style="font-size: 0.85rem; font-weight: 900; color: #475569;">📈 戦力(M・任意):</span>
+            <input id="pow-tank" type="number" inputmode="decimal" min="0" step="0.01" placeholder="戦車" style="width:78px; font-size: 0.85rem; padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; font-weight:bold; color:#0f172a; outline:none;" onchange="saveData(); scheduleAi();" />
+            <input id="pow-air" type="number" inputmode="decimal" min="0" step="0.01" placeholder="航空" style="width:78px; font-size: 0.85rem; padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; font-weight:bold; color:#0f172a; outline:none;" onchange="saveData(); scheduleAi();" />
+            <input id="pow-mis" type="number" inputmode="decimal" min="0" step="0.01" placeholder="ロケ" style="width:78px; font-size: 0.85rem; padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; font-weight:bold; color:#0f172a; outline:none;" onchange="saveData(); scheduleAi();" />
+        </div>
+
+        <div id="summary-panel" class="panel summary-panel">
+            <div class="panel-title" style="color:#0ea5e9;">🥇 最優先育成</div>
+            <div id="summary-bar" class="suggestion-box">
+                まだデータが足りません（10人以上配置すると要約が表示されます）。
+            </div>
+            <div class="jump-row" aria-label="編成ジャンプ">
+                <button class="jump-btn j1" onclick="jumpToArmy(1)">🥇 1軍へ</button>
+                <button class="jump-btn j2" onclick="jumpToArmy(2)">🥈 2軍へ</button>
+                <button class="jump-btn j3" onclick="jumpToArmy(3)">🥉 3軍へ</button>
+                <button class="jump-btn jb" onclick="jumpToArmy(4)">🧰 控えへ</button>
+            </div>
+        </div>
+
+        <div id="ai-suggestion-panel" class="panel ai-panel" style="display:none;">
+            <div class="panel-title" style="color:#1d4ed8;">🤖 AI軍師：多部隊バランス戦略</div>
+            <div id="ai-result" class="suggestion-box">キャラを10人以上配置すると、自動的に全軍の最適化と診断が始まります。</div>
+        </div>
+        
+        <div id="eff-panel" class="panel route-panel">
+            <div class="panel-title" style="color:#c026d3;">🚀 育成優先ランキング</div>
+            <div id="eff-result" class="suggestion-box">正確なコストと編成診断に基づき、最も効果的な強化先を提案します。</div>
+        </div>
+
+        
+        <div class="panel slot-panel">
+            <div class="panel-title" style="color:#16a34a;">🧩 編成（タップで編集）</div>
+            <div class="suggestion-box" style="margin-bottom:10px;">
+                キャラ枠をタップして <b>キャラ選択</b> と <b>武装Lv(0〜30)</b> を変更します。変更すると上の「最優先育成まとめ」や下の診断/ランキングが自動更新されます。
+            </div>
+
+            <div class="slot-pref-row">
+              <label class="slot-pref">
+                <input id="slot-keep-eval" type="checkbox">
+                <span>折りたたみ時も評価（進行度）を表示</span>
+              </label>
+            </div>
+
+            <div class="slot-army" id="slot-army-1">
+                <div class="slot-army-head">
+                  <div class="label">🥇 1軍</div>
+                  <div class="slot-head-right">
+                    <div class="slot-eval" id="slot-eval-1"></div>
+                    <button class="slot-toggle-btn" type="button" onclick="toggleSlotArmy(1)" aria-label="1軍を折りたたむ">▼</button>
+                  </div>
+                </div>
+                <div class="slot-tiles" id="slot-tiles-1"></div>
+            </div>
+            <div class="slot-army" id="slot-army-2">
+                <div class="slot-army-head">
+                  <div class="label">🥈 2軍</div>
+                  <div class="slot-head-right">
+                    <div class="slot-eval" id="slot-eval-2"></div>
+                    <button class="slot-toggle-btn" type="button" onclick="toggleSlotArmy(2)" aria-label="2軍を折りたたむ">▼</button>
+                  </div>
+                </div>
+                <div class="slot-tiles" id="slot-tiles-2"></div>
+            </div>
+            <div class="slot-army" id="slot-army-3">
+                <div class="slot-army-head">
+                  <div class="label">🥉 3軍</div>
+                  <div class="slot-head-right">
+                    <div class="slot-eval" id="slot-eval-3"></div>
+                    <button class="slot-toggle-btn" type="button" onclick="toggleSlotArmy(3)" aria-label="3軍を折りたたむ">▼</button>
+                  </div>
+                </div>
+                <div class="slot-tiles" id="slot-tiles-3"></div>
+            </div>
+            <div class="slot-army" id="slot-army-4">
+                <div class="slot-army-head">
+                  <div class="label">🧳 控え（任意・10枠）</div>
+                  <div class="slot-head-right">
+                    <button class="slot-toggle-btn" type="button" onclick="toggleSlotArmy(4)" aria-label="控えを折りたたむ">▼</button>
+                  </div>
+                </div>
+                <div class="slot-tiles" id="slot-tiles-4"></div>
+            </div>
+        </div>
+
+        <!-- 🎯 兵種シフト目安（最下部へ移動 + 折りたたみ） -->
+        <div id="power-transition" class="panel" style="border-left:5px solid #f59e0b; margin-top: 14px;">
+          <div class="power-transition-head">
+            <div class="power-transition-title">🎯 兵種シフト目安</div>
+            <button id="power-transition-toggle" class="slot-toggle-btn" type="button" onclick="toggleTransitionPanel()" aria-label="兵種シフト目安を折りたたむ">▲</button>
+          </div>
+          <div id="power-transition-body" class="suggestion-box" style="margin-top:10px; display:block;"></div>
+        </div>
+
+<div class="panel" style="background:transparent; padding:0; border:none; box-shadow:none; display:none;">
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:12px;">
+                <button onclick="exportAsImage()" style="font-size:0.85rem; padding:8px 15px; background:#10b981; color:#fff; border:none; border-radius:8px; font-weight:bold; cursor:pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">📸 保存</button>
+                <button onclick="resetSquads()" style="font-size:0.8rem; background:#fff; color:#64748b; border:1px solid #cbd5e1; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">🗑️ リセット</button>
+            </div>
+            <div id="squad-container"></div>
+        </div>
+    </div>
+
+    <div id="tab-gear" class="tab-content">
+        <div class="gear-container">
+            <div class="g-card">
+                <div style="color:#64748b; font-weight:bold; margin-bottom:12px; border-bottom:2px solid #f8fafc; padding-bottom:8px;">現在の装備</div>
+                <div class="g-row" style="border-bottom: 1px dashed #e2e8f0; padding-bottom: 12px; margin-bottom: 12px;">
+                    <span class="g-label">⚔️ 武装Lv</span>
+                    <div class="g-input-group">
+                        <div class="stepper stepper-lv"><button onclick="gearStep('cWeapon', -1)">-</button><input id="cWeapon" value="20" readonly><button onclick="gearStep('cWeapon', 1)">+</button></div>
+                        <div style="width:115px;"></div>
+                    </div>
+                </div>
+                <div id="current-gear-rows"></div>
+                <div id="detail-curr" class="buff-info"></div>
+            </div>
+
+            <div class="g-card">
+                <div style="color:#b91c1c; font-weight:bold; margin-bottom:12px; border-bottom:2px solid #f8fafc; padding-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                    目標の装備 <button onclick="resetGear()" style="font-size:0.75rem; background:#fff; border:1px solid #cbd5e1; border-radius:4px; cursor:pointer; padding:3px 8px; font-weight:bold; color:#64748b;">クリア</button>
+                </div>
+                <div class="g-row" style="border-bottom: 1px dashed #fecaca; padding-bottom: 12px; margin-bottom: 12px;">
+                    <span class="g-label" style="color:#b91c1c;">⚔️ 目標Lv</span>
+                    <div class="g-input-group">
+                        <div class="stepper stepper-lv" style="border-color:#fecaca;"><button onclick="gearStep('tWeapon', -1)">-</button><input id="tWeapon" value="20" readonly><button onclick="gearStep('tWeapon', 1)">+</button></div>
+                        <div style="width:115px;"></div>
+                    </div>
+                </div>
+                <div id="target-gear-rows"></div>
+                <div id="detail-tgt" class="buff-info"></div>
+            </div>
+        </div>
+        
+        
+                
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-guide" class="tab-content">
+    <div class="panel" style="border-left:5px solid #0ea5e9;">
+        <div class="panel-title" style="color:#0ea5e9;">📘 このツールの使い方</div>
+        <div class="suggestion-box" style="font-size:0.86rem;">
+      <div style="font-weight:900; margin-bottom:8px; color:#0f172a;">1) 🧩 編成（タップで編集）</div>
+      <ul style="margin:0 0 10px 18px; padding:0; line-height:1.7;">
+        <li>第1〜第3軍（各5枠）＋控え（10枠）を、<b>編成タブのタイル</b>からタップして編集します。</li>
+        <li>各スロットで <b>キャラ</b> と <b>武装Lv（0〜30）</b> を設定できます。</li>
+        <li><b>10人以上</b>配置すると、<b>🥇 最優先育成まとめ</b> と <b>🚀 育成優先ランキング</b> が自動更新されます。</li>
+        <li>「🥇/🥈/🥉/🧰」ボタンで各軍や控えへジャンプできます。</li>
+      </ul>
+
+      <div style="font-weight:900; margin:12px 0 8px; color:#0f172a;">2) 🛡️ 装備タブの使い方</div>
+      <ul style="margin:0 0 10px 18px; padding:0; line-height:1.7;">
+        <li><b>火力役 / 盾役 / 支援役</b> を切り替えると、その役割のキャラだけを装備比較できます。</li>
+        <li>各キャラの <b>装備Lv</b> と、表示される2種類の装備の <b>★</b> を入力すると、未完成度に応じて並び替えます。</li>
+        <li>下の <b>★上げ判定（2キャラ比較）</b> では、次にどの装備を★+1するのが良いかを簡易表示します。</li>
+      </ul>
+
+      <div style="font-weight:900; margin:12px 0 8px; color:#0f172a;">3) 🚀 育成優先ランキングの見方</div>
+      <ul style="margin:0 0 10px 18px; padding:0; line-height:1.7;">
+        <li>ランキングは、<b>次の到達目標（Lv10 / 20 / 30）</b>まで上げる時の効率をもとに並びます。</li>
+        <li><b>弱点補強 / コスパ / 将来性 / 安全</b> のラベルは、その候補を今上げる理由の目安です。</li>
+        <li>短い理由文は、いまの編成に対してどこが噛み合っているかを一言で補足しています。</li>
+      </ul>
+
+      <div style="font-weight:900; margin:12px 0 8px; color:#0f172a;">4) 💾 データ保存について</div>
+      <ul style="margin:0 0 0 18px; padding:0; line-height:1.7;">
+        <li>入力内容はブラウザの <b>localStorage</b> に自動保存されます（同じ端末・同じブラウザ内）。</li>
+        <li>別端末や別ブラウザには引き継がれません。</li>
+      </ul>
+</div>
+        </div>
+    </div>
+
+    <div id="ref-panel" class="panel" style="border-left:5px solid #22c55e; display:block;">
+        <div class="panel-title" style="color:#16a34a;">🔗 情報収集・参考サイト</div>
+        <div class="suggestion-box" style="font-size:0.86rem;">
+            <div style="margin-bottom:8px;">
+                <a href="https://game8.jp/lastwar-survival" target="_blank" rel="noopener noreferrer" style="font-weight:900; color:#2563eb; text-decoration:none;">Game8（ラストウォー攻略）</a><br>
+                <span style="color:#64748b;">キャラ/装備/イベントなどの基本情報をざっと確認したい時に便利。</span>
+            </div>
+            <div style="margin-bottom:8px;">
+                <a href="https://cpt-hedge.com/" target="_blank" rel="noopener noreferrer" style="font-weight:900; color:#2563eb; text-decoration:none;">cpt-hedge.com</a><br>
+                <span style="color:#64748b;">育成/効率系の情報収集に。更新頻度も高め。</span>
+            </div>
+            <div>
+                <a href="https://alliance-duel.pages.dev/" target="_blank" rel="noopener noreferrer" style="font-weight:900; color:#2563eb; text-decoration:none;">連盟対決ツール（自作）</a><br>
+                <span style="color:#64748b;">連盟対決のポイント計算。</span>
+            </div>
+        </div>
+    </div>
+</div>
+    </div>
+
+<div id="footer-bar" class="footer" style="display:none;">
+    <div style="font-size: 1.1rem; font-weight:900; color:#b91c1c;">今より <span id="growth-rate" style="font-size:1.4rem;">1.00</span> 倍!</div>
+    <div style="font-size:0.8rem; color:#4b5563; background:#f8fafc; padding:4px 10px; border-radius:12px; border:1px solid #e2e8f0; font-weight:bold;">必要: <span style="color:#f59e0b;">UR<span id="ft-ur">0</span></span> <span style="color:#b91c1c;">MR<span id="ft-mr">0</span></span></div>
+</div>
+
+<script>
+// Auto-split from single-file build (v1.4).
+// Master data / constants
+const HEROES = {
+    empty: {n:"未設定", t:"none", r:"none", ur:false, pr:0},
+    kimberly: {n:"キンバリー", t:"tank", r:"atk", ur:false, pr:100, carry:true}, dva: {n:"DVA", t:"air", r:"atk", ur:false, pr:100, carry:true}, tesla: {n:"テスラ", t:"mis", r:"atk", ur:false, pr:100, carry:true}, murphy: {n:"マーフィ", t:"tank", r:"wall", ur:false, pr:90}, lucius: {n:"ルシウス", t:"air", r:"wall", ur:false, pr:90}, mcgregor: {n:"マクレガー", t:"mis", r:"wall", ur:false, pr:90}, stetmann: {n:"ステッドマン", t:"tank", r:"atk", ur:false, pr:80}, schuyler: {n:"スカイラー", t:"air", r:"atk", ur:false, pr:80}, fiona: {n:"フィオナ", t:"mis", r:"atk", ur:false, pr:80}, morrison: {n:"モリソン", t:"air", r:"atk", ur:false, pr:75}, swift: {n:"スウィフト", t:"mis", r:"atk", ur:false, pr:75}, mason: {n:"メイソン", t:"tank", r:"atk", ur:true, pr:70}, sarah: {n:"サラ", t:"air", r:"atk", ur:true, pr:70}, venom: {n:"ベノム", t:"mis", r:"atk", ur:true, pr:70}, williams: {n:"ウィリアムズ", t:"tank", r:"wall", ur:false, pr:60}, carlie: {n:"カーリー", t:"air", r:"wall", ur:false, pr:60}, adam: {n:"アダム", t:"mis", r:"wall", ur:false, pr:60}, scarlett: {n:"スカーレット", t:"tank", r:"wall", ur:true, pr:55}, violet: {n:"ヴィオラ", t:"tank", r:"wall", ur:true, pr:55}, marshall: {n:"マーシャル", t:"tank", r:"sup", ur:false, pr:50}
+};
+const GEAR_TYPES = ['Gun', 'Data', 'Armor', 'Radar'];
+const GEAR_NAMES = { 'Gun':'🔫レールガン', 'Data':'💾チップ', 'Armor':'🛡️装甲', 'Radar':'📡レーダー' };
+const SHARD_ICON = 'img/original.webp';
+
+
+// ===============================
+// ⭐ メタ育成優先（兵種コア / tier）
+// ===============================
+const META_TIER = {
+  // 🚜 戦車
+  kimberly:{ tier:'atk1', ew:'SSS', ewTarget:30 },
+  williams:{ tier:'tank1', ew:'S',  ewTarget:20 },
+  stetmann:{ tier:'atk2', ew:'S',  ewTarget:20 },
+  marshall:{ tier:'sup',  ew:'B',  ewTarget:0  },
+  murphy:{   tier:'tank2',ew:'C',  ewTarget:0  },
+
+  // ✈️ 航空
+  lucius:{   tier:'tank1',ew:'SSS',ewTarget:30 },
+  dva:{      tier:'atk1', ew:'SSS',ewTarget:30 },
+  morrison:{ tier:'atk2', ew:'S',  ewTarget:20 },
+  schuyler:{ tier:'atk2', ew:'A',  ewTarget:10 },
+  carlie:{   tier:'tank2',ew:'A',  ewTarget:10 },
+
+  // 🚀 ミサイル（ロケラン）
+  fiona:{    tier:'atk1', ew:'SSS',ewTarget:30 },
+  tesla:{    tier:'atk1', ew:'SS', ewTarget:20 },
+  mcgregor:{ tier:'tank1',ew:'S',  ewTarget:20 },
+  swift:{    tier:'atk2', ew:'A',  ewTarget:10 },
+  adam:{     tier:'tank2',ew:'B',  ewTarget:10 }
+};
+
+
+// ===============================
+// ⭐ 兵種シフト（完全自動推定）用の設定
+// ※閾値は app.js 側で毎回推定（ここは係数とコア定義だけ）
+// ===============================
+const META_SHIFT = {
+  core: {
+    tank:   { ids:['kimberly','williams','stetmann'], targets:[30,20,20] },
+    air:    { ids:['lucius','dva'],                   targets:[30,30] },
+    missile:{ ids:['fiona','tesla','mcgregor'],        targets:[30,20,20] }
+  },
+  mult: {
+    boostNext: 1.08,   // 次兵種を押し上げ（控えめ）
+    dampPrev:  0.98    // 前兵種を少し抑える（抑えすぎ防止）
+  },
+  progress: {
+    maxWp: 30,
+    minMult: 0.92,     // wp=0
+    maxMult: 1.08      // wp=max
+  }
+};
+
+
 // Auto-split from single-file build (v1.4)
 // App logic
 // --- マスタデータ ---
@@ -8,6 +1177,85 @@
 
 
 let previousAssignment = null;
+
+// ===============================
+// ⭐ ★上げ判定：警告表示（武装Lv/★4崖）
+// ===============================
+(function(){
+  try{
+    if(document.getElementById('__gcmp_warn_css')) return;
+    const st = document.createElement('style');
+    st.id = '__gcmp_warn_css';
+    st.textContent = `
+      .gcmp-warns{ margin-top:8px; display:flex; flex-direction:column; gap:6px; }
+      .gcmp-warn{ font-size:0.74rem; font-weight:900; color:#b45309; background:#fffbeb; border:1px solid #fde68a; padding:6px 8px; border-radius:10px; line-height:1.25; }
+    `;
+    document.head.appendChild(st);
+  }catch(e){}
+})();
+
+
+
+// ===============================
+// ⭐ UI強制：レシピ表示（不足している装備レシピ等）を非表示
+// ===============================
+(function(){
+  try{
+    if(document.getElementById('__hide_recipe_css')) return;
+    const st = document.createElement('style');
+    st.id = '__hide_recipe_css';
+    st.textContent = [
+      '.recipe-line{display:none !important;}',
+      '.cost-row{display:none !important;}',
+      '#cost-list{display:none !important;}'
+    ].join('\n');
+    document.head.appendChild(st);
+  }catch(e){}
+})();
+
+
+
+// ===============================
+// ⭐ UI強制：フッターを常時非表示（CSSで確実に）
+// ===============================
+(function(){
+  try{
+    if(document.getElementById('__hide_footer_css')) return;
+    const st = document.createElement('style');
+    st.id = '__hide_footer_css';
+    st.textContent = '#footer-bar';
+    st.textContent += '\n\n/* === Mobile: compare recommendation card layout fix === */\n.gcmp-reco{ padding:10px 12px !important; border-radius:12px !important; }\n.gcmp-line1{ display:flex !important; gap:6px !important; align-items:baseline !important; min-width:0 !important; flex-wrap:wrap !important; }\n.gcmp-line1 .gcmp-name{ min-width:0 !important; overflow:hidden !important; text-overflow:ellipsis !important; white-space:nowrap !important; max-width:100% !important; }\n.gcmp-line1 .gcmp-gear{ white-space:nowrap !important; }\n.gcmp-line2{ margin-top:6px !important; display:flex !important; gap:10px !important; align-items:center !important; justify-content:flex-start !important; flex-wrap:nowrap !important; }\n.gcmp-line2 span{ white-space:nowrap !important; }\n.gcmp-cost{ font-size:0.80rem !important; font-weight:900 !important; color:#475569 !important; background:#fff !important; border:1px solid #e2e8f0 !important; padding:2px 8px !important; border-radius:999px !important; }\n';
+    //{display:none !important; visibility:hidden !important; height:0 !important;}';
+    document.head.appendChild(st);
+  }catch(e){}
+})();
+
+
+
+
+(function(){
+  try{
+    if(document.getElementById('__hero_portrait_css')) return;
+    const st = document.createElement('style');
+    st.id = '__hero_portrait_css';
+    st.textContent = `
+      .interactive-card{ position:relative; overflow:hidden; }
+      .hero-portrait{
+        position:absolute; inset:0;
+        background-size:cover;
+        background-position:center;
+        background-repeat:no-repeat;
+        opacity:.34;
+        pointer-events:none;
+        z-index:0;
+      }
+      .interactive-card > *{ position:relative; z-index:1; }
+      .card-icon-wrap{ z-index:2 !important; }
+      .prio-badge{ z-index:3 !important; }
+    `;
+    document.head.appendChild(st);
+  }catch(e){}
+})();
 
 // ===============================
 // 🔁 乗り換え推奨度：色連動コピー（%で文言変化）
@@ -306,10 +1554,10 @@ function updateTransitionRecommendationUI(){
   });
 
   if(totalPicked < 5){
-    const metaTxt = meta ? ` / 現在のメタ：<b class="text-meta">${labels[meta]||meta}</b>` : '';
+    const metaTxt = meta ? ` / 現在のメタ：<b style="color:#1d4ed8;">${labels[meta]||meta}</b>` : '';
     body.innerHTML = `
-      <div class="section-title-spacer"></div>
-      <div class="subtle-note">
+      <div style="font-weight:900; color:#0f172a; margin-bottom:6px;"></div>
+      <div style="font-size:0.78rem; color:#64748b; font-weight:bold;">
         編成が少ないため計算できません（キャラを5人以上配置すると表示されます）。${metaTxt}
       </div>
     `;
@@ -334,7 +1582,7 @@ function updateTransitionRecommendationUI(){
     if(countByType[t] < 5) noteL.push(`${labels[t]}:${countByType[t]}/5`);
   });
   const note = noteL.length ? `（5人未満: ${noteL.join(" / ")}）` : "";
-  const metaTxt = meta ? ` / 現在のメタ：<b class="text-meta">${labels[meta]||meta}</b>` : '';
+  const metaTxt = meta ? ` / 現在のメタ：<b style="color:#1d4ed8;">${labels[meta]||meta}</b>` : '';
 
   const line = (row)=>{
     const adv = getTransitionAdvice(row.sc);
@@ -357,15 +1605,15 @@ function updateTransitionRecommendationUI(){
     const topTxt = tops.length ? tops.map(x=>`${x.name} Lv${x.wp}→${x.nxt} (+${x.gain}pt)`).join('<br>') : '—';
 
     return `
-      <div class="trans-row trans-row-top">
+      <div class="trans-row" style="align-items:flex-start;">
         <div class="trans-left">
           <div class="trans-title">${labels[base]} → ${labels[row.t]} <span class="trans-badge ${adv.cls}">${adv.txt}</span></div>
           <div class="trans-meta">不足：+${shortage}pt（${shortagePct}%）</div>
           <div class="trans-meta">推奨：${topTxt}</div>
         </div>
-        <div class="trans-right trans-right-fixed">
-          <div class="trans-pct" style="color:${color};">${row.sc}%</div>
-          <div class="trans-bar trans-bar-fixed">
+        <div class="trans-right" style="min-width:84px; text-align:right;">
+          <div class="trans-pct" style="color:${color}; font-weight:900;">${row.sc}%</div>
+          <div class="trans-bar" style="margin-top:4px; width:84px; height:8px; background:#e5e7eb; border-radius:999px; overflow:hidden;">
             <div style="width:${w}%; height:100%; background:${color};"></div>
           </div>
         </div>
@@ -374,12 +1622,12 @@ function updateTransitionRecommendationUI(){
   };
 
   body.innerHTML = `
-    <div class="section-title-spacer"></div>
-    <div class="subtle-note subtle-note-gap">
-      基準：5人同兵種の想定（${labels[base]}）${metaTxt} <span class="note-muted-strong">${note}</span>
+    <div style="font-weight:900; color:#0f172a; margin-bottom:6px;"></div>
+    <div style="font-size:0.78rem; color:#64748b; font-weight:bold; margin-bottom:6px;">
+      基準：5人同兵種の想定（${labels[base]}）${metaTxt} <span style="color:#94a3b8; font-weight:900;">${note}</span>
     </div>
     ${targets.map(line).join('')}
-    <div class="footnote-muted">
+    <div style="font-size:0.72rem; color:#94a3b8; font-weight:bold; margin-top:6px;">
       ※ %は「移行先(上位5人+5バフ) / 主力(上位5人+5バフ)」の目安。メタ一致は+10%（目安）。不足pt/推奨は「次の節目(Lv10/20/30)」基準。
     </div>
   `;
@@ -451,18 +1699,6 @@ function showTab(id, el) {
 }
 
 
-function makeDataSvg(svg){
-  return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
-}
-
-function getInitialLabel(heroId){
-  try{
-    const h = HEROES && HEROES[heroId];
-    if(h && h.n && h.n !== '未設定') return h.n;
-  }catch(e){}
-  return heroId || '';
-}
-
 function getHeroImagePath(heroId){
   if(!heroId || heroId === 'empty') return '';
   return `img/${heroId}.webp`;
@@ -473,18 +1709,6 @@ function heroImgOnError(img){
   try{
     img.style.opacity = '0';
   }catch(e){}
-}
-
-function makeCircleIcon(text, bg, fg){
-  return makeDataSvg(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="${bg}"/><text x="32" y="39" text-anchor="middle" font-family="system-ui, sans-serif" font-size="26" font-weight="700" fill="${fg}">${text}</text></svg>`);
-}
-
-function makeRoundedIcon(text, bg, fg){
-  return makeDataSvg(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect x="4" y="4" width="56" height="56" rx="14" fill="${bg}"/><text x="32" y="39" text-anchor="middle" font-family="system-ui, sans-serif" font-size="24" font-weight="700" fill="${fg}">${text}</text></svg>`);
-}
-
-function makeShardIcon(){
-  return makeDataSvg(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#f97316"/></linearGradient></defs><rect x="6" y="6" width="52" height="52" rx="14" fill="url(#g)"/><path d="M32 14l8 14-8 22-8-22z" fill="rgba(255,255,255,.92)"/></svg>`);
 }
 
 function showToast(msg) { 
@@ -498,7 +1722,6 @@ function showToast(msg) {
 const IMG = "img/";
 const TYPE_ICON = { tank: IMG + "tank.png", air: IMG + "air.png", mis: IMG + "misile.png" };
 const ROLE_ICON = { atk: IMG + "karyoku.png", wall: IMG + "tateyaku.png", sup: IMG + "support.png" };
-const SHARD_ICON_SRC = IMG + "original.webp";
 function uiIcon(src, alt){
   if(!src) return "";
   return `<img class="ui-ico" src="${src}" alt="${alt||''}">`;
@@ -507,10 +1730,33 @@ function typeIcon(t){ return uiIcon(TYPE_ICON[t], t); }
 function roleIcon(r){ return uiIcon(ROLE_ICON[r], r); }
 
 /* 育成ランキング表示用：兵種アイコン - キャラ名 - 役割アイコン */
-function effTitleLine(rank, item){
+function effTitleLine(rank, item, opts){
+  opts = opts || {};
   const t = item.type || item.t;
   const r = item.roleKey || item.r;
-  return `<div class="eff-title-line">${typeIcon(t)}<b>${rank}. ${item.name}</b>${roleIcon(r)}</div>`;
+
+  const avatarWrap = `<span class="eff-avatar-wrap ${opts.avatarHero ? 'eff-avatar-wrap-hero' : ''}">`
+    + `<img class="eff-avatar ${opts.avatarHero ? 'eff-avatar-hero' : ''}" src="${getHeroImagePath(item.id)}" alt="${item.name}" onerror="this.style.display='none'; this.parentNode.classList.add('is-fallback');">`
+    + `<span class="eff-avatar-fallback">${typeIcon(t)}</span>`
+    + `</span>`;
+
+  if(opts.avatarHero){
+    return `<div class="eff-title-stack eff-title-stack-hero">`
+      + `<div class="eff-avatar-stack">`
+      + `<div class="eff-avatar-chip-row">`
+      + `<span class="eff-avatar-chip-inline eff-avatar-chip-inline-type">${typeIcon(t)}</span>`
+      + `<span class="eff-avatar-chip-inline eff-avatar-chip-inline-role">${roleIcon(r)}</span>`
+      + `</div>`
+      + `<div class="eff-title-hero">${avatarWrap}</div>`
+      + `</div>`
+      + `<div class="eff-title-meta eff-title-meta-hero">`
+      + `<div class="eff-title-main"><b>${rank}. ${item.name}</b></div>`
+      + `</div>`
+      + `</div>`;
+  }
+
+  const avatar = opts.avatar ? avatarWrap : typeIcon(t);
+  return `<div class="eff-title-line ${opts.avatar ? 'eff-title-line-avatar' : ''}">${avatar}<b>${rank}. ${item.name}</b>${roleIcon(r)}</div>`;
 }
 
 // ===============================
@@ -535,6 +1781,39 @@ function effTitleLine(rank, item){
       .gear-cost img{ width:36px; height:36px; flex-shrink:0; }
       .gear-num{ font-size:1.15em; font-weight:900; }
       .gear-cost .sep{ opacity:.65; margin-right:2px; }
+      .eff-card-hero{ padding:12px 10px; }
+      .eff-row-hero{ align-items:center; gap:12px; }
+      .eff-left-hero{ flex:1; min-width:0; }
+      .eff-right-hero{ min-width:86px; }
+      .eff-title-stack-hero{ display:flex; align-items:center; gap:10px; min-width:0; }
+      .eff-avatar-stack{ display:flex; flex-direction:column; align-items:center; gap:4px; width:54px; flex:0 0 54px; }
+      .eff-avatar-chip-row{ display:flex; align-items:center; justify-content:center; gap:4px; width:100%; }
+      .eff-avatar-chip-inline{ width:20px; height:20px; border-radius:999px; background:#fff; border:1px solid #dbeafe; box-shadow:0 1px 3px rgba(0,0,0,.08); display:flex; align-items:center; justify-content:center; }
+      .eff-avatar-chip-inline .ui-ico{ width:14px; height:14px; }
+      .eff-title-hero{ display:flex; justify-content:center; width:100%; }
+      .eff-avatar-wrap-hero{ position:relative; display:inline-flex; width:40px; height:40px; border-radius:12px; overflow:hidden; background:#0f172a; box-shadow:0 6px 14px rgba(0,0,0,.18); align-items:center; justify-content:center; }
+      .eff-avatar-hero{ width:100%; height:100%; object-fit:cover; display:block; }
+      .eff-avatar-fallback{ display:none; }
+      .eff-avatar-wrap.is-fallback .eff-avatar-fallback{ display:flex; width:100%; height:100%; align-items:center; justify-content:center; }
+      .eff-avatar-wrap.is-fallback .eff-avatar{ display:none !important; }
+      .eff-title-meta-hero{ min-width:0; display:flex; flex-direction:column; justify-content:center; gap:2px; }
+      .eff-title-main{ min-width:0; color:#334155; font-weight:900; }
+      .eff-title-main b{ display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .eff-left-hero .eff-lv{ display:block; margin-top:3px; font-size:.82rem; line-height:1.2; color:#64748b; font-weight:900; }
+      @media (max-width:640px){
+        .eff-card-hero{ padding:10px 8px; }
+        .eff-row-hero{ align-items:flex-start; gap:8px; }
+        .eff-title-stack-hero{ align-items:flex-start; gap:8px; }
+        .eff-avatar-stack{ width:76px; flex:0 0 76px; gap:5px; }
+        .eff-avatar-chip-inline{ width:20px; height:20px; }
+        .eff-avatar-chip-inline .ui-ico{ width:14px; height:14px; }
+        .eff-avatar-wrap-hero{ width:44px; height:44px; border-radius:12px; }
+        .eff-title-stack-hero{ flex-direction:row; }
+        .eff-title-meta-hero{ width:76px; align-items:center; text-align:center; }
+        .eff-title-main b{ white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.18; font-size:.78rem; }
+        .eff-left-hero .eff-lv{ font-size:.74rem; text-align:center; }
+        .eff-right-hero{ min-width:80px; }
+      }
     `;
     document.head.appendChild(st);
   }catch(e){}
@@ -564,95 +1843,22 @@ function effCardHtml(rank, item, opts){
     sub = `<div class="eff-sub"><span class="eff-subline">解放時${unlockLv} <span class="eff-plus">+${safeItem.gain}</span></span></div>`;
   }else{
     const costPart = (safeItem.cost !== undefined && safeItem.cost !== null)
-      ? `<span class="gear-cost"><span class="sep">/</span><img src="${SHARD_ICON_SRC}" alt="gear"> <span class="gear-num">${safeItem.cost}</span></span>`
+      ? `<span class="gear-cost"><span class="sep">/</span><img src="img/original.webp" alt="gear"> <span class="gear-num">${safeItem.cost}</span></span>`
       : '';
     sub = `<div class="eff-sub"><span class="eff-subline"><span class="eff-plus">+${safeItem.gain}</span>${costPart ? ' ' + costPart : ''}</span></div>`;
   }
 
   return `
-    <div class="eff-card ${isTop?'eff-card-top':''} ${isBest?'eff-card-best':''}">
-      <div class="eff-row">
-        <div class="eff-left">
-          ${effTitleLine(rank, safeItem)}
+    <div class="eff-card ${isTop?'eff-card-top':''} ${isBest?'eff-card-best':''} ${opts.avatarHero?'eff-card-hero':''}">
+      <div class="eff-row ${opts.avatarHero?'eff-row-hero':''}">
+        <div class="eff-left ${opts.avatarHero?'eff-left-hero':''}">
+          ${effTitleLine(rank, safeItem, { avatar: !!opts.showAvatar, avatarHero: !!opts.avatarHero })}
           ${isBest ? '<span class="eff-best">👑 最優先</span>' : ''}
           ${lvLine}
         </div>
-        <div class="eff-right">
+        <div class="eff-right ${opts.avatarHero?'eff-right-hero':''}">
           ${badge}
           ${sub}
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-
-function reinfCardHtml(rank, item){
-  const safeItem = Object.assign({}, item || {});
-  safeItem.type = safeItem.type || safeItem.t;
-  safeItem.roleKey = safeItem.roleKey || safeItem.r;
-  safeItem.name = safeItem.name || safeItem.n || '';
-  safeItem.id = safeItem.id || safeItem.key || safeItem.heroId || '';
-
-  // 育成ランキングと完全に同じ描画ルートを使う
-  // （画像・名前行・右側メタの構造を揃える）
-  return `<div class="reinf-card">${topRankCardHtml(rank, safeItem, { compact:true })}</div>`;
-}
-
-function topRankCardHtml(rank, item, opts){
-  opts = opts || {};
-  const compact = !!opts.compact;
-  const safeItem = Object.assign({}, item || {});
-  safeItem.type = safeItem.type || safeItem.t;
-  safeItem.roleKey = safeItem.roleKey || safeItem.r;
-  safeItem.name = safeItem.name || safeItem.n || '';
-
-  const lvLine = (safeItem.from !== undefined && safeItem.to !== undefined)
-    ? `<div class="rankhero-lv">(Lv${safeItem.from}→${safeItem.to})</div>`
-    : '';
-
-  const costPart = (safeItem.cost !== undefined && safeItem.cost !== null)
-    ? `<span class="rankhero-cost"><span class="rankhero-cost-sep">/</span><img class="rankhero-cost-icon" src="${SHARD_ICON_SRC}" alt="gear"> <span class="rankhero-cost-num">${safeItem.cost}</span></span>`
-    : '';
-
-  const costTierLabel = safeItem.costTierLabel
-    ? `<span class="rankhero-mini rankhero-mini--cost">${safeItem.costTierLabel}</span>`
-    : '';
-  const safeHintLabel = safeItem.safeHintLabel
-    ? `<span class="rankhero-mini rankhero-mini--safe">${safeItem.safeHintLabel}</span>`
-    : '';
-
-  const badge = safeItem.growthType ? growthBadge(safeItem.growthType) : (opts.rightBadge || '');
-  const cardClass = compact ? 'rankhero-card rankhero-card--compact' : `rankhero-card ${rank>1?'rankhero-card--split':''}`;
-  const rowClass = compact ? 'rankhero-row rankhero-row--compact' : 'rankhero-row';
-
-  return `
-    <div class="${cardClass}">
-      <div class="${rowClass}">
-        <div class="rankhero-visual">
-          <div class="rankhero-chip-row">
-            <span class="rankhero-chip">${typeIcon(safeItem.type)}</span>
-            <span class="rankhero-chip">${roleIcon(safeItem.roleKey)}</span>
-          </div>
-          <span class="rankhero-avatar-wrap">
-            <img class="rankhero-avatar-img" src="${getHeroImagePath(safeItem.id || safeItem.key || safeItem.heroId || '')}" alt="${safeItem.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            <span class="rankhero-avatar-fallback" style="display:none;">${typeIcon(safeItem.type)}</span>
-          </span>
-          <div class="rankhero-name">${rank}. ${safeItem.name}</div>
-        </div>
-
-        <div class="rankhero-body">
-          <div class="rankhero-topline">
-            ${lvLine}
-            <div class="rankhero-topbadge">${badge}</div>
-          </div>
-          <div class="rankhero-bottomline">
-            <div class="rankhero-leftline">
-              <div class="rankhero-gain">+${safeItem.gain}</div>
-              ${safeHintLabel}${costTierLabel}
-            </div>
-            <div class="rankhero-costwrap">${costPart}</div>
-          </div>
         </div>
       </div>
     </div>
@@ -765,9 +1971,9 @@ function updateSquad(s) {
             card.style.backgroundImage = 'none';
             if(imgEl){ imgEl.style.display = 'block'; imgEl.style.backgroundImage = `url(${getHeroImagePath(hid)})`; }
             
-            // 💡 兵種/役割アイコン（埋め込みSVG）
-            fIcon.innerHTML = uiIcon(TYPE_ICON[h.t] || TYPE_ICON.tank, h.t || 'type');
-            rIcon.innerHTML = uiIcon(ROLE_ICON[h.r] || ROLE_ICON.sup, h.r || 'role');
+            // 💡 アイコン画像表示の復元
+            fIcon.innerHTML = `<img src="${h.t==='tank'?IMG+'tank.png':h.t==='air'?IMG+'air.png':IMG+'misile.png'}" style="width:100%;height:100%;object-fit:contain;border-radius:50%;">`;
+            rIcon.innerHTML = `<img src="${h.r==='wall'?IMG+'tateyaku.png':h.r==='atk'?IMG+'karyoku.png':IMG+'support.png'}" style="width:100%;height:100%;object-fit:contain;border-radius:50%;">`;
             
             if (v >= 30) {
                 $id(`syn-${s}-${p}`).innerHTML = `<div class="awaken-badge">👑 覚醒</div>`;
@@ -776,7 +1982,7 @@ function updateSquad(s) {
                 actPool.push({ p:p, h:h, wp:v });
             } else if (v > 0) { 
                 let ms = getNextMilestone(v);
-                let iconHtml = `<img src="${SHARD_ICON_SRC}" class="shard-icon">`;
+                let iconHtml = `<img src="${SHARD_ICON}" class="shard-icon">`;
                 $id(`syn-${s}-${p}`).innerHTML = ms ? `<div class="shard-info"><span style="font-size:0.7rem; margin-right:1px;">Lv${ms.target}迄</span>${iconHtml}<span style="font-size:0.95rem;">${ms.cost}</span></div>` : ''; 
                 actPool.push({ p:p, h:h, wp:v }); 
             }
@@ -1124,387 +2330,283 @@ function detectArmyWeaknessFromDetail(detail){
     return "balance";
 }
 
-
-function __aiGetProfile(heroId){
-  return (typeof HERO_ROLE_PROFILE === 'object' && HERO_ROLE_PROFILE[heroId])
-    ? HERO_ROLE_PROFILE[heroId]
-    : { role:'other', lane:'back', core:false };
-}
-function __aiGetLongterm(heroId){
-  return (typeof HERO_LONGTERM_VALUE === 'object' && Number.isFinite(HERO_LONGTERM_VALUE[heroId]))
-    ? HERO_LONGTERM_VALUE[heroId]
-    : 0.55;
-}
-function __aiCounterMap(type){
-  return (typeof TYPE_COUNTER_WEIGHT === 'object' && TYPE_COUNTER_WEIGHT[type])
-    ? TYPE_COUNTER_WEIGHT[type]
-    : { tank:0.5, air:0.5, mis:0.5 };
-}
-function __aiTopByType(roster, type, n=5){
-  return roster.filter(h=>h.t===type).slice().sort((a,b)=>(b.wp-a.wp)||((HEROES[b.id]?.pr||0)-(HEROES[a.id]?.pr||0))).slice(0,n);
-}
-function __aiAvgWp(arr){ return arr.length ? arr.reduce((s,x)=>s+x.wp,0)/arr.length : 0; }
-function __aiHasAny(arr, ids){ return arr.some(x=>ids.includes(x.id)); }
-function __aiCostTierLabel(from, to){
-  if(to >= 30) return '高コスト';
-  if(to >= 20) return '中コスト';
-  return '低コスト';
-}
-function __aiSafeHint(hero, to, context){
-  const p = __aiGetProfile(hero.id);
-  if(to === 20 && (p.role === 'front_tank' || p.role === 'support')) return '安全';
-  if(to === 20 && hero.t === context.currentCombatType) return '安全';
-  return '';
-}
-function __aiBuildContext(roster, base){
-  const topTank = __aiTopByType(roster, 'tank');
-  const topAir = __aiTopByType(roster, 'air');
-  const topMis = __aiTopByType(roster, 'mis');
-  const progress = {
-    tank:{ top:topTank, avgWp:__aiAvgWp(topTank), count10:topTank.filter(x=>x.wp>=10).length, count20:topTank.filter(x=>x.wp>=20).length, count30:topTank.filter(x=>x.wp>=30).length, coreCount:topTank.filter(x=>['kimberly','murphy','williams','marshall','stetmann'].includes(x.id)).length },
-    air:{ top:topAir, avgWp:__aiAvgWp(topAir), count10:topAir.filter(x=>x.wp>=10).length, count20:topAir.filter(x=>x.wp>=20).length, count30:topAir.filter(x=>x.wp>=30).length, coreCount:topAir.filter(x=>['dva','lucius','morrison','schuyler','carlie'].includes(x.id)).length },
-    mis:{ top:topMis, avgWp:__aiAvgWp(topMis), count10:topMis.filter(x=>x.wp>=10).length, count20:topMis.filter(x=>x.wp>=20).length, count30:topMis.filter(x=>x.wp>=30).length, coreCount:topMis.filter(x=>['fiona','tesla','mcgregor','swift','adam'].includes(x.id)).length }
-  };
-  const typeScore = {
-    tank: progress.tank.avgWp + progress.tank.count20*2 + progress.tank.count10 + progress.tank.count30*3 + progress.tank.coreCount*1.2,
-    air: progress.air.avgWp + progress.air.count20*2 + progress.air.count10 + progress.air.count30*3 + progress.air.coreCount*1.2,
-    mis: progress.mis.avgWp + progress.mis.count20*2 + progress.mis.count10 + progress.mis.count30*3 + progress.mis.coreCount*1.2,
-  };
-  const currentCombatType = Object.entries(typeScore).sort((a,b)=>b[1]-a[1])[0]?.[0] || 'tank';
-  const tankStable = progress.tank.avgWp >= 16 || progress.tank.count20 >= 3 || progress.tank.count30 >= 1;
-  const airSeed = __aiHasAny(topAir, ['dva','lucius']);
-  const airCoreReady = __aiHasAny(topAir, ['dva']) && __aiHasAny(topAir, ['lucius','schuyler','morrison']);
-  const airEntryReady = topAir.length >= 4 && __aiAvgWp(topAir.slice(0,3)) >= 10;
-  let investmentType = currentCombatType;
-  let transitionState = `stay_${currentCombatType}`;
-  if(currentCombatType === 'tank' && tankStable && (airCoreReady || airSeed)){
-    investmentType = 'air';
-    transitionState = airEntryReady ? 'shift_to_air' : 'seed_air';
-  } else if(currentCombatType === 'air') {
-    transitionState = 'stay_air';
-  }
-  const main = progress[currentCombatType];
-  const mainTeamMaturity = (main.avgWp >= 20 || main.count20 >= 4 || main.count30 >= 1) ? 'high' : ((main.avgWp >= 12 || main.count10 >= 3) ? 'mid' : 'low');
-  const mainArmyIds = new Set((base.assignment.army1||[]).map(h=>h.id));
-  return { progress, currentCombatType, investmentType, transitionState, mainTeamMaturity, mainArmyIds };
-}
-function __aiTypePolicyMult(type, context, route='overall'){
-  let mult = ((typeof META_SHIFT==='object' && META_SHIFT.weightBase && META_SHIFT.weightBase[type]) || 1.0);
-  const current = context.currentCombatType;
-  const invest = context.investmentType || current;
-  if(route === 'cost'){
-    if(type === current) mult *= 1.06; else mult *= 0.96;
-    if(context.mainTeamMaturity === 'low' && type !== current) mult *= 0.95;
-  } else if(route === 'coverage'){
-    const cm = __aiCounterMap(current);
-    mult *= (0.9 + (cm[type] || 0.5) * 0.2);
-    if(type === invest) mult *= 1.03;
-  } else if(route === 'future'){
-    if(type === invest) mult *= 1.08; else mult *= 0.95;
-    if(context.transitionState === 'seed_air' && type === 'air') mult *= 1.05;
-    if(context.transitionState === 'shift_to_air' && type === 'air') mult *= 1.08;
-    if(context.mainTeamMaturity === 'low' && type !== current) mult *= 0.92;
-  }
-  return Math.max(0.85, Math.min(1.20, mult));
-}
-function __aiHeroBias(heroId, route='overall', context=null){
-  const p = __aiGetProfile(heroId);
-  let mult = 1.0;
-  if(p.role === 'main_dps') mult *= 1.10;
-  else if(p.role === 'sub_dps') mult *= 1.04;
-  else if(p.role === 'front_tank') mult *= 1.02;
-  else if(p.role === 'control') mult *= 1.03;
-  else if(p.role === 'support') mult *= 0.98;
-  const meta = META_TIER[heroId] || {};
-  if(meta.ew === 'SSS') mult *= 1.10;
-  else if(meta.ew === 'SS') mult *= 1.06;
-  else if(meta.ew === 'S') mult *= 1.03;
-  if(route === 'future') mult *= __aiGetLongterm(heroId);
-  if(context && context.investmentType === 'air' && heroId === 'dva') mult *= 1.02;
-  if(context && context.investmentType === 'air' && heroId === 'lucius'){
-    mult *= 1.12;
-    if(route === 'cost') mult *= 1.08;
-    else if(route === 'coverage') mult *= 1.05;
-    else if(route === 'future') mult *= 1.03;
-  }
-  return mult;
-}
-function __aiMilestoneBias(heroId, targetLv, route='overall'){
-  const p = __aiGetProfile(heroId);
-  if(targetLv === 10) return route === 'cost' ? 1.05 : 1.00;
-  if(targetLv === 20) return route === 'cost' ? 1.15 : 1.11;
-  if(targetLv === 30){
-    if(p.role === 'main_dps') return route === 'future' ? 1.10 : 1.02;
-    if(p.role === 'front_tank') return route === 'cost' ? 0.94 : 1.00;
-    if(p.role === 'support') return 0.90;
-  }
-  return 1.0;
-}
-function __aiSynergyBias(hero, roster, targetLv){
-  const table = (typeof HERO_SYNERGY === 'object' && HERO_SYNERGY[hero.id]) ? HERO_SYNERGY[hero.id] : null;
-  if(!table) return 1.0;
-
-  const rosterMap = {};
-  roster.forEach(x => {
-    if(!x || !x.id) return;
-    const lv = Number.isFinite(parseInt(x.wp, 10)) ? parseInt(x.wp, 10) : 0;
-    rosterMap[x.id] = Math.max(rosterMap[x.id] || 0, lv);
-  });
-
-  let mult = 1.0;
-  for(const [partnerId, bonus] of Object.entries(table)){
-    const partnerLv = rosterMap[partnerId] || 0;
-    if(partnerLv <= 0) continue;
-
-    let pairMult = bonus.base || 1.0;
-    if(partnerLv >= 30 && bonus.lv30) pairMult = bonus.lv30;
-    else if(partnerLv >= 20 && bonus.lv20) pairMult = bonus.lv20;
-    else if(partnerLv >= 10 && bonus.lv10) pairMult = bonus.lv10;
-
-    // 無微課金寄り：20→30 のときはシナジー加点を少し弱める
-    if(targetLv === 30){
-      pairMult = 1 + (pairMult - 1) * 0.5;
-    }
-
-    mult *= pairMult;
-  }
-
-  return Math.min(mult, 1.10);
-}
-
-
-function __aiTankBranchBias(hero, targetLv, context){
-  if(!hero || hero.t !== 'tank') return 1.0;
-  const weaknesses = [context && context.weakness1, context && context.weakness2, context && context.weakness3].filter(Boolean);
-  const defenseNeed = weaknesses.filter(x => x === 'defense').length;
-  const attackNeed = weaknesses.filter(x => x === 'attack').length;
-  const id = hero.id;
-  let mult = 1.0;
-
-  if(id === 'lucius'){
-    mult *= 1.10;
-    if(hero.wp < 10 && targetLv === 10) mult *= 1.24;
-    if(targetLv === 20) mult *= 1.06;
-    if(targetLv === 30) mult *= 0.96;
-    if(defenseNeed > attackNeed) mult *= 1.05;
-    if(attackNeed === defenseNeed && targetLv === 10) mult *= 1.03;
-  }
-
-  if(id === 'dva'){
-    if(targetLv === 10) mult *= 0.98;
-    if(targetLv === 20) mult *= 1.03;
-    if(targetLv === 30) mult *= 1.06;
-    if(attackNeed >= defenseNeed) mult *= 1.03;
-  }
-
-  if(id === 'williams'){
-    if(defenseNeed > attackNeed) mult *= 1.10;
-    else if(attackNeed > defenseNeed) mult *= 0.94;
-    else mult *= 1.01;
-  }
-
-  if(id === 'murphy'){
-    if(attackNeed > defenseNeed) mult *= 1.10;
-    else if(defenseNeed > attackNeed) mult *= 0.95;
-    else mult *= 1.01;
-  }
-
-  if(id === 'stetmann'){
-    if(attackNeed > defenseNeed) mult *= 1.08;
-    else if(defenseNeed > attackNeed) mult *= 0.97;
-    else mult *= 1.01;
-  }
-
-  return Math.max(0.90, Math.min(mult, 1.20));
-}
-
-function __aiMatchesWeakness(roleKey, weaknesses){
-  if(!Array.isArray(weaknesses) || !weaknesses.length) return false;
-  const needDefense = weaknesses.includes('defense');
-  const needAttack = weaknesses.includes('attack');
-  if(needDefense && roleKey === 'wall') return true;
-  if(needAttack && roleKey === 'atk') return true;
-  return false;
-}
-
-function __aiReasonBadgeFromScores(meta){
-  const { hero, ms, roleKey, context, weaknesses, scoreCost, scoreCoverage, scoreFuture } = meta || {};
-  const entries = [
-    { key:'cost', value:Number(scoreCost)||0 },
-    { key:'coverage', value:Number(scoreCoverage)||0 },
-    { key:'future', value:Number(scoreFuture)||0 }
-  ].sort((a,b)=>b.value-a.value);
-
-  const top = entries[0] || { key:'cost', value:0 };
-  const second = entries[1] || { key:'coverage', value:0 };
-  const close = top.value <= 0 ? false : second.value >= top.value * 0.965;
-  const weaknessMatch = __aiMatchesWeakness(roleKey, weaknesses || []);
-  const longterm = __aiGetLongterm(hero && hero.id);
-  const sameInvest = !!(hero && context && hero.t === context.investmentType);
-  const sameMain = !!(hero && context && hero.t === context.currentCombatType);
-  const inMainArmy = !!(hero && context && context.mainArmyIds && context.mainArmyIds.has(hero.id));
-  const safeQualified = !!(hero && ms && ms.target <= 20 && (sameMain || inMainArmy || hero.r === 'wall' || hero.r === 'sup'));
-
-  let label = '安全';
-  let axis = 'bal';
-  let strong = false;
-
-  if(top.key === 'coverage'){
-    if(weaknessMatch && top.value >= second.value * 1.02){
-      label = '弱点補強';
-      axis = (weaknesses || []).includes('attack') ? 'atk' : 'wall';
-      strong = true;
-    }else if(weaknessMatch && !close){
-      label = '弱点補強';
-      axis = (weaknesses || []).includes('attack') ? 'atk' : 'wall';
-    }
-  } else if(top.key === 'future'){
-    const futureQualified = (ms && ms.target >= 30) || sameInvest || longterm >= 0.72;
-    if(futureQualified && top.value >= second.value * 1.03){
-      label = '将来性';
-      axis = 'atk';
-      strong = !!(ms && ms.target >= 30);
-    }else if(futureQualified && !close && (ms && ms.target >= 20)){
-      label = '将来性';
-      axis = 'atk';
-    }
-  } else if(top.key === 'cost'){
-    if(top.value >= second.value * 1.05){
-      label = 'コスパ';
-    }else if(safeQualified || close){
-      label = '安全';
-    }else if(top.value >= second.value * 1.02){
-      label = 'コスパ';
-    }
-  }
-
-  const level = (ms && ms.target>=30) ? 4 : ((ms && ms.target>=20) ? 3 : 2);
-  return { level, axis, label, strong };
-}
-
-function __aiDisplaySafeLabel(hero, ms, context, reasonBadge, scoreCost, scoreCoverage, scoreFuture){
-  if(!hero || !ms || !context || !reasonBadge) return '';
-  if(reasonBadge.label !== 'コスパ') return '';
-  if(ms.target > 20) return '';
-  const sameMain = hero.t === context.currentCombatType;
-  const inMainArmy = context.mainArmyIds && context.mainArmyIds.has(hero.id);
-  const top = Math.max(Number(scoreCost)||0, Number(scoreCoverage)||0, Number(scoreFuture)||0, 0);
-  if(top <= 0) return '';
-  if((Number(scoreCost)||0) < top * 0.97) return '';
-  if(hero.t === context.currentCombatType) return '安全';
-  if((inMainArmy || hero.r === 'wall' || hero.r === 'sup') && ms.target === 20) return '安全';
-  return '';
-}
-
 function calculateUpgradeEfficiencyFull(roster){
-    if(roster.length < 10) return {normal:[], unlock:[], weakness1:"balance", weakness2:"balance", weakness3:"balance", reinforceList:[]};
+  // 評価軸一本化：gain は evaluateSquadRealCombat() ベースの軍スコア差分を使う
+  // ⭐ 相対型：兵種ごとの育成進行度（wp平均）を先に算出
+  //   - ROIだけで未育成兵種が上位に来すぎるのを抑制
+  //   - 主力兵種平均との差でペナルティ（汎用）
+  let __avgWpByType = null;
+  let __mainAvgWp = 0;
+  let __countByType = null;
+  try{
+    const acc = { tank:{s:0,n:0}, air:{s:0,n:0}, mis:{s:0,n:0} };
+    for(const h of (roster || [])){
+      const t = (typeof HEROES === 'object' && HEROES[h.id]) ? HEROES[h.id].t : (h.t || h.type);
+      if(!t || !acc[t]) continue;
+      acc[t].s += (h.wp ?? 0);
+      acc[t].n += 1;
+    }
+    __avgWpByType = {
+      tank: acc.tank.n ? (acc.tank.s/acc.tank.n) : 0,
+      air:  acc.air.n  ? (acc.air.s/acc.air.n)   : 0,
+      mis:  acc.mis.n  ? (acc.mis.s/acc.mis.n)   : 0
+    };
+    __countByType = { tank:acc.tank.n, air:acc.air.n, mis:acc.mis.n };
+    __mainAvgWp = Math.max(__avgWpByType.tank, __avgWpByType.air, __avgWpByType.mis);
+  }catch(e){}
+
+    if(roster.length < 10) return {normal:[], unlock:[], weakness1: "balance", weakness2: "balance", weakness3: "balance", reinforceList: []};
 
     let base = optimizeMultiArmy(roster,5);
     let baseScore = calcMultiArmyTotalScore(base.assignment);
-    if(baseScore === 0) return {normal:[], unlock:[], weakness1:"balance", weakness2:"balance", weakness3:"balance", reinforceList:[]};
+    if(baseScore === 0) return {normal:[], unlock:[], weakness1: "balance", weakness2: "balance", weakness3: "balance", reinforceList: []};
 
     let weakness1 = detectArmyWeaknessFromDetail(base.armyDetails.army1);
     let weakness2 = detectArmyWeaknessFromDetail(base.armyDetails.army2);
     let weakness3 = detectArmyWeaknessFromDetail(base.armyDetails.army3);
+// === 環境適応型AI：メタ×育成段階による価値補正 ===
+const currentMeta = ($id && $id('current-meta')) ? $id('current-meta').value : 'tank';
+const wpNums = roster.filter(h=>!h.ur).map(h=>Math.max(0, parseInt(h.wp)||0));
+const avgWp = wpNums.reduce((a,b)=>a+b,0) / Math.max(1, wpNums.length);
+// 初期帯: 航空寄り / 中盤帯: 航空やや優勢 / 成熟帯: ロケラン解禁（ロケラン寄り）
+const powers = getUserPowers();
+const stPref = determineStageAndPreference(avgWp, powers);
+const stage = stPref.stage;
+const stagePref = stPref.pref;
+const stageScale = stPref.scale;
 
-    const context = __aiBuildContext(roster, base);
-    const weights = (typeof ROUTE_WEIGHT_PRESET === 'object' && ROUTE_WEIGHT_PRESET.safe) ? ROUTE_WEIGHT_PRESET.safe : { cost:0.55, coverage:0.25, future:0.20 };
+function metaTypeWeight(type, roleKey){
+    let mult = 1.0;
+
+    // 現在の環境（サーバーメタ）に適応
+    if(type === currentMeta) mult *= 1.05;
+
+    // 育成段階（移行先）を後押し：初期〜中盤は航空、成熟帯はロケラン
+    if(type === stagePref) mult *= stageScale;
+
+    // 役割価値（ざっくり）
+    if(currentMeta === 'mis'){
+        if(roleKey === 'wall') mult *= 1.03;
+        else if(roleKey === 'atk') mult *= 1.01;
+    } else if(currentMeta === 'air'){
+        if(roleKey === 'atk') mult *= 1.03;
+    } else if(currentMeta === 'tank'){
+        if(roleKey === 'wall') mult *= 1.02;
+    }
+
+    // どちらにも当たらない場合は微減（過剰な分散を抑える）
+    if(type !== currentMeta && type !== stagePref) mult *= 0.98;
+
+    // 上限/下限のガード
+    mult = Math.max(0.85, Math.min(1.20, mult));
+    return mult;
+}
+
+
+function getEwWeight(heroId){
+    const table = {
+        fiona: 1.40,
+        dva: 1.30,
+        lucius: 1.30,
+        marshall: 1.25,
+        mcgregor: 1.10
+    };
+    return table[heroId] || 1.0;
+}
+
+    let army1Ratio = (base.weightedScores.army1 / baseScore) * 100;
+    let army1Ids = base.assignment.army1.map(h => h.id);
+    let army2Ids = base.assignment.army2.map(h => h.id);
 
     let normalResults = [];
     let unlockResults = [];
 
     roster.forEach((hero,index)=>{
         if(hero.ur) return;
-        const profile = __aiGetProfile(hero.id);
-        const roleKey = hero.r || (profile.role === 'front_tank' ? 'wall' : (profile.role === 'support' ? 'sup' : 'atk'));
-        const roleBadge = getRoleBadge(roleKey);
-        const simulated = roster.map(h => ({...h}));
+
+        let roleKey = hero.r; let roleBadge = getRoleBadge(roleKey);
+        let simulated = roster.map(h => ({...h}));
 
         if(hero.wp === 0){
-            const ewTarget = (META_TIER[hero.id] && META_TIER[hero.id].ewTarget) ? META_TIER[hero.id].ewTarget : 10;
+            const ewTarget =
+                (typeof META_TIER === 'object' && META_TIER[hero.id] && META_TIER[hero.id].ewTarget)
+                    ? META_TIER[hero.id].ewTarget
+                    : 10;
+
             simulated[index].wp = ewTarget;
-            const newResult = optimizeMultiArmy(simulated, 5);
-            let gain = calcMultiArmyTotalScore(newResult.assignment) - baseScore;
-            if(gain <= 0) gain = Math.max(1, Math.round(__aiGetLongterm(hero.id) * 18 - 6));
-            gain = Math.round(gain * __aiTypePolicyMult(hero.t, context, 'future') * __aiHeroBias(hero.id, 'future', context) * __aiSynergyBias(hero, roster, ewTarget));
-            if(gain > 0){
-              unlockResults.push({ id:hero.id, name:hero.name, type:hero.t, gain, roleKey, roleBadge, from:0, to:ewTarget, growthType:{ level:2, axis:'atk', label:'将来性', strong:false }, costTierLabel:__aiCostTierLabel(0, ewTarget), safeHintLabel:'' });
-            }
+            let newResult = optimizeMultiArmy(simulated, 5);
+            let newScore = calcMultiArmyTotalScore(newResult.assignment);
+            let gain = newScore - baseScore;
+
+            // 環境適応型AI：タイプ/段階補正
+            gain = gain * metaTypeWeight(hero.t, roleKey);
+
+            // 専用武装の長期価値補正
+            gain = gain * getEwWeight(hero.id);
+
+            gain = Math.round(gain);
+
+            // フィオナのような長期投資枠はゼロ落ちしにくくする
+            if(gain <= 0 && hero.id === 'fiona') gain = 1;
+            if(gain <= 0) return;
+
+            unlockResults.push({
+                id: hero.id,
+                name: hero.name,
+                type: hero.t,
+                gain: gain,
+                roleKey: roleKey,
+                roleBadge: roleBadge,
+                from: 0,
+                to: ewTarget
+            });
             return;
         }
 
-        const ms = getNextMilestone(hero.wp);
+        let ms = getNextMilestone(hero.wp);
         if(!ms) return;
+
         simulated[index].wp = ms.target;
-        const newResult = optimizeMultiArmy(simulated, 5);
-        let gain = Math.round(calcMultiArmyTotalScore(newResult.assignment) - baseScore);
-        if(gain <= 0){
-            const delta = Math.max(1, Math.round((wpToPts(ms.target) - wpToPts(hero.wp)) * (((META_TIER[hero.id]||{}).ew === 'SSS') ? 1.15 : 1.0)));
-            gain = delta;
-        }
+        let newResult = optimizeMultiArmy(simulated, 5);
+        let gain = newResult.totalScore - baseScore;
+        // 環境適応型AI：タイプ/段階補正（表示gainもこれに合わせる）
+        gain = Math.round(gain * metaTypeWeight(hero.t, roleKey));
+
         if(gain <= 0) return;
+        let efficiency = (gain / ms.cost);
 
-        const cost = ms.cost;
-        const basePerCost = gain / Math.max(1, Math.pow(cost || 1, 0.52));
-        const sameMain = hero.t === context.currentCombatType;
-        const sameInvest = hero.t === context.investmentType;
-        const inMainArmy = context.mainArmyIds.has(hero.id);
-        const synergy = __aiSynergyBias(hero, roster, ms.target);
-        const tankBranchBias = __aiTankBranchBias(hero, ms.target, { weakness1, weakness2, weakness3, currentCombatType: context.currentCombatType, investmentType: context.investmentType });
+        // ✅ 軍別の重要度（B:3軍総合寄り）＋進行度の底上げ
+        let armyOfHero = 'bench';
+        try {
+            const armyWeightMap = { army1:1.0, army2:1.15, army3:1.05, bench:0.60 };
+            armyOfHero = (base && base.assignment) ? (
+                (base.assignment.army2||[]).some(x=>x.id===hero.id) ? 'army2' :
+                (base.assignment.army1||[]).some(x=>x.id===hero.id) ? 'army1' :
+                (base.assignment.army3||[]).some(x=>x.id===hero.id) ? 'army3' : 'bench'
+            ) : 'bench';
+            efficiency *= (armyWeightMap[armyOfHero] || 1);
 
-        const scoreCost = basePerCost * __aiTypePolicyMult(hero.t, context, 'cost') * __aiHeroBias(hero.id, 'cost', context) * __aiMilestoneBias(hero.id, ms.target, 'cost') * synergy * tankBranchBias * (sameMain ? 1.08 : 0.96) * (inMainArmy ? 1.06 : 1.00);
-        const scoreCoverage = basePerCost * __aiTypePolicyMult(hero.t, context, 'coverage') * __aiHeroBias(hero.id, 'coverage', context) * __aiMilestoneBias(hero.id, ms.target, 'coverage') * synergy * tankBranchBias * (sameMain ? 0.96 : 1.06) * (sameInvest ? 1.04 : 1.00);
-        const scoreFuture = basePerCost * __aiTypePolicyMult(hero.t, context, 'future') * __aiHeroBias(hero.id, 'future', context) * __aiMilestoneBias(hero.id, ms.target, 'future') * synergy * tankBranchBias * (sameInvest ? 1.10 : 0.96);
-        const efficiency = (scoreCost * weights.cost) + (scoreCoverage * weights.coverage) + (scoreFuture * weights.future);
+            // 進行度（相対）で遅れている軍を底上げ
+            const s1 = (base.weightedScores && base.weightedScores.army1) ? base.weightedScores.army1 : 0;
+            const s2 = (base.weightedScores && base.weightedScores.army2) ? base.weightedScores.army2 : 0;
+            const s3 = (base.weightedScores && base.weightedScores.army3) ? base.weightedScores.army3 : 0;
+            const maxS = Math.max(s1, s2, s3, 1);
+            const pMap = {
+                army1: Math.round((s1 / maxS) * 100),
+                army2: Math.round((s2 / maxS) * 100),
+                army3: Math.round((s3 / maxS) * 100)
+            };
+            const minP = Math.min(pMap.army1, pMap.army2, pMap.army3);
+            // ✅ 進行度ゲート（p1/p2/p3）で「未育成兵種のROI暴れ」を抑える（汎用）
+            // - 2軍（航空）が育つまで 3軍（ロケラン）は上位に上がりにくくする
+            // - 3軍そのものが低いほど、同軍候補は軽く抑える（未育成暴れ防止）
+            // - 1軍が成熟してきたら、次兵種（航空）を少し後押し
+            try{
+                const p1 = pMap.army1 || 0;
+                const p2 = pMap.army2 || 0;
+                const p3 = pMap.army3 || 0;
 
-        const weaknesses = [weakness1, weakness2, weakness3].filter(Boolean);
-        const growthType = __aiReasonBadgeFromScores({
-            hero, ms, roleKey, context, weaknesses,
-            scoreCost, scoreCoverage, scoreFuture
-        });
-        const safeHintLabel = __aiDisplaySafeLabel(hero, ms, context, growthType, scoreCost, scoreCoverage, scoreFuture);
+                // 2軍が60%未満の間は、ロケラン候補を段階的に抑制（0.85〜1.00）
+                if(hero.t === 'mis'){
+                    const gateStart = 60;
+                    const gateMin = 0.85;
+                    if(p2 < gateStart){
+                        const k = Math.max(0, Math.min(1, p2 / gateStart));
+                        const gate = gateMin + (1 - gateMin) * k;
+                        efficiency *= gate;
+                    }
+                    // 3軍進行度が低いほど抑える（0.90〜1.00）
+                    const p3Penalty = 0.90 + 0.10 * (Math.max(0, Math.min(100, p3)) / 100);
+                    efficiency *= p3Penalty;
+                }
 
-        const reinforceMain = 30 * (sameMain ? 1 : 0) + 20 * (inMainArmy ? 1 : 0.4) + 20 * (((weakness1 === 'defense' || weakness2 === 'defense') && roleKey === 'wall') || ((weakness1 === 'attack' || weakness2 === 'attack') && roleKey === 'atk') ? 1 : 0.45) + 15 * (ms.target === 20 ? 1 : (ms.target === 10 ? 0.8 : 0.55)) + 10 * ((sameMain && context.mainTeamMaturity !== 'high') ? 1 : 0.5) + 5 * (sameMain ? 1 : 0.2);
-        const reinforceCoverage = 30 * ((__aiCounterMap(context.currentCombatType)[hero.t]) || 0.5) + 25 * (profile.core ? 1 : 0.25) + 20 * Math.min(1.1, synergy) + 15 * (!sameMain ? 1 : 0.45) + 10 * (ms.target <= 20 ? 1 : 0.55);
-        const reinforceFuture = 30 * (sameInvest ? 1 : 0.2) + 25 * (profile.core ? 1 : 0.3) + 20 * __aiGetLongterm(hero.id) + 15 * (context.mainTeamMaturity === 'high' ? 1 : (context.mainTeamMaturity === 'mid' ? 0.7 : 0.35)) + 10 * (ms.target === 30 ? 1 : (ms.target === 20 ? 0.8 : 0.5));
+                // 1軍が成熟しているほど、航空候補を少し後押し（最大+6%）
+                if(p1 >= 85 && hero.t === 'air'){
+                    const k = Math.max(0, Math.min(1, (p1 - 85) / 15)); // 85→0, 100→1
+                    efficiency *= (1.02 + 0.04 * k); // 1.02〜1.06
+                }
 
-        normalResults.push({
-            id: hero.id, name: hero.name, type: hero.t,
-            from: hero.wp, to: ms.target,
-            gain, cost, efficiency,
-            roleKey, roleBadge,
-            strength: (ms.target>=30 ? 'mega' : (ms.target>=20 ? 'high' : 'mid')),
-            growthType,
-            costTierLabel: __aiCostTierLabel(hero.wp, ms.target),
-            safeHintLabel,
-            scoreCost, scoreCoverage, scoreFuture,
-            reinforceMain, reinforceCoverage, reinforceFuture
+                // 1軍が成熟しているほど、戦車候補はごく軽く抑える（最大-2%）
+                if(p1 >= 85 && hero.t === 'tank'){
+                    const k = Math.max(0, Math.min(1, (p1 - 85) / 15));
+                    efficiency *= (1.00 - 0.02 * k); // 1.00〜0.98
+                }
+            }catch(e){}
+
+            const getArmyBoost = (p) => {
+                if(p === minP) return 1.12;  // 最低軍：強めに底上げ
+                if(p < 80) return 1.06;      // 育成途上：少し底上げ
+                return 1.0;
+            };
+            if(armyOfHero !== 'bench'){
+                efficiency *= getArmyBoost(pMap[armyOfHero] || 0);
+            }
+        } catch(e) {}
+
+        // ✅ 「不足補強」：弱点と一致する伸びを優先（加点ではなく倍率）
+        let newDetail1 = newResult.armyDetails.army1;
+        let newDetail2 = newResult.armyDetails.army2;
+        if(newDetail1 && newDetail2){
+            let atkGain1 = newDetail1.attack - base.armyDetails.army1.attack;
+            let defGain1 = newDetail1.defense - base.armyDetails.army1.defense;
+
+            let atkGain2 = newDetail2.attack - base.armyDetails.army2.attack;
+            let defGain2 = newDetail2.defense - base.armyDetails.army2.defense;
+
+            let weakMult = 1.0;
+            // 1軍弱点
+            if(weakness1 === "attack" && atkGain1 > defGain1) weakMult *= 1.05;
+            if(weakness1 === "defense" && defGain1 > atkGain1) weakMult *= 1.05;
+            // 2軍弱点（少し強め）
+            if(weakness2 === "attack" && atkGain2 > defGain2) weakMult *= 1.07;
+            if(weakness2 === "defense" && defGain2 > atkGain2) weakMult *= 1.07;
+            efficiency *= weakMult;
+        }
+
+        // 1軍偏重の抑制（同盟/総合寄りでは弱めに）
+        if(army1Ratio > 55 && army1Ids.includes(hero.id)){
+            efficiency *= 0.9;
+        }
+
+        // 成長タイプは「1〜3軍の総和」で判定（同盟/総合寄り）
+        let newDetail3 = newResult.armyDetails.army3;
+        let baseD3 = base.armyDetails.army3;
+        let strength = (ms && ms.target>=30) ? 'mega' : (ms && ms.target>=20) ? 'high' : 'mid';
+        let growthType = getGrowthType(
+            (newDetail1.attack + newDetail2.attack + (newDetail3?newDetail3.attack:0)) - (base.armyDetails.army1.attack + base.armyDetails.army2.attack + (baseD3?baseD3.attack:0)),
+            (newDetail1.defense + newDetail2.defense + (newDetail3?newDetail3.defense:0)) - (base.armyDetails.army1.defense + base.armyDetails.army2.defense + (baseD3?baseD3.defense:0)),
+            (ms ? ms.target : 10)
+        );
+
+        normalResults.push({ id: hero.id, name: hero.name, type: hero.t,
+            from: hero.wp,
+            to: ms.target,
+            gain: gain,
+            cost: ms.cost,
+            efficiency: efficiency,
+            roleKey: roleKey, roleBadge: roleBadge,
+            strength: strength,
+            growthType: growthType
         });
     });
 
-    normalResults.sort((a,b)=> (b.efficiency-a.efficiency) || (b.gain-a.gain));
-    unlockResults.sort((a,b)=> b.gain-a.gain);
+    normalResults.sort((a,b)=>b.efficiency - a.efficiency);
+    unlockResults.sort((a,b)=>b.gain - a.gain);
 
-    const used = new Set();
-    const pickTop = (key, label, axis='bal') => {
-      const arr = [...normalResults].sort((a,b)=> (b[key]-a[key]) || (b.efficiency-a.efficiency));
-      for(const item of arr){
-        if(!used.has(item.id)){
-          used.add(item.id);
-          return { ...item, growthType:{ level:2, axis, label, strong:false } };
-        }
-      }
-      return null;
-    };
-    const reinforceList = [];
-    const mainPick = pickTop('reinforceMain', '1軍補強', 'bal');
-    const coveragePick = pickTop('reinforceCoverage', '弱点補完', 'wall');
-    const futurePick = pickTop('reinforceFuture', '将来投資', 'atk');
-    if(mainPick) reinforceList.push(mainPick);
-    if(coveragePick) reinforceList.push(coveragePick);
-    if(futurePick) reinforceList.push(futurePick);
+    let reinforceList = [];
+    normalResults.forEach(r => {
+        let isNeeded = false;
+        if(weakness1 === "defense" && r.roleKey === "wall") isNeeded = true;
+        if(weakness1 === "attack" && r.roleKey === "atk") isNeeded = true;
+        if(weakness2 === "defense" && r.roleKey === "wall") isNeeded = true;
+        if(weakness2 === "attack" && r.roleKey === "atk") isNeeded = true;
+        
+        if (isNeeded) reinforceList.push(r);
+    });
 
-    return { normal: normalResults, unlock: unlockResults, weakness1, weakness2, weakness3, reinforceList };
+    reinforceList = reinforceList.sort((a,b)=>b.efficiency - a.efficiency).slice(0,3);
+
+    return { normal: normalResults, unlock: unlockResults, weakness1: weakness1, weakness2: weakness2, weakness3: weakness3, reinforceList: reinforceList };
 }
 
 
@@ -1590,32 +2692,32 @@ function getColor(percent, base){
 function renderProgress(percent, baseColor){
     const color = getColor(percent, baseColor);
     return `
-    <div class="progress-wrap">
-        <div class="progress-bar">
-            <div class="progress-fill" style="width:${percent}%; background:${color};"></div>
+    <div style="margin-top:8px;">
+        <div style="background:#e5e7eb; height:8px; border-radius:6px; overflow:hidden;">
+            <div style="width:${percent}%; height:100%; background:${color};"></div>
         </div>
-        <div class="progress-label">
-            進行度 <span class="progress-label-value" style="color:${color};">${percent}%</span>
+        <div style="font-size:0.75rem; color:#64748b; margin-top:4px; text-align:right;">
+            進行度 <span style="font-weight:900; color:${color};">${percent}%</span>
         </div>
     </div>`;
 }
 
 function armyCard(title, content, baseColor, roleTag, progressPercent, minPercent, buffCount) {
     let buffText = "";
-    if (buffCount === 5) buffText = `<span class="buff-pill buff-pill-5">🏆20%バフ</span>`;
-    else if (buffCount === 4) buffText = `<span class="buff-pill buff-pill-4">🚜15%バフ</span>`;
-    else if (buffCount === 3) buffText = `<span class="buff-pill buff-pill-3">⚠️5%バフ</span>`;
+    if (buffCount === 5) buffText = `<span style="font-size:0.65rem; color:#15803d; background:#f0fdf4; padding:2px 6px; border-radius:4px; border:1px solid #bbf7d0; margin-left:6px; vertical-align:middle;">🏆20%バフ</span>`;
+    else if (buffCount === 4) buffText = `<span style="font-size:0.65rem; color:#d97706; background:#fffbeb; padding:2px 6px; border-radius:4px; border:1px solid #fde68a; margin-left:6px; vertical-align:middle;">🚜15%バフ</span>`;
+    else if (buffCount === 3) buffText = `<span style="font-size:0.65rem; color:#b91c1c; background:#fef2f2; padding:2px 6px; border-radius:4px; border:1px solid #fecaca; margin-left:6px; vertical-align:middle;">⚠️5%バフ</span>`;
 
     return `
-    <div class="army-card" style="border-left-color:${baseColor};">
-        <div class="army-card-title">
+    <div style="background:#f8fafc; padding:12px; border-radius:10px; margin-bottom:12px; border:1px solid #e2e8f0; border-left:5px solid ${baseColor}; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+        <div style="font-weight:900; color:#1e293b; display:flex; align-items:center;">
             ${title} ${buffText} ${getPriorityLabel(progressPercent, minPercent)}
         </div>
         ${renderProgress(progressPercent, baseColor)}
-        <div class="army-card-role">
+        <div style="font-size:0.75rem; color:#475569; font-weight:bold; margin-top:6px;">
             ${roleTag}
         </div>
-        <div class="army-card-body">
+        <div style="margin-top:8px;">
             ${content}
         </div>
     </div>`;
@@ -1772,7 +2874,7 @@ if(effData.normal.length > 0){
 
         // Top3（おすすめ）
         effData.normal.slice(0, TOP_N).forEach((item,i)=>{
-            effOut += topRankCardHtml(i+1, item, { isBest:(i===0) });
+            effOut += effCardHtml(i+1, item, { mode:'normal', isTop:true, isBest:(i===0) });
         });
 
         // もっと見る（任意）
@@ -1780,7 +2882,7 @@ if(effData.normal.length > 0){
             let moreList = "";
             effData.normal.slice(TOP_N, Math.min(effData.normal.length, MORE_MAX)).forEach((item,idx)=>{
                 let rank = TOP_N + idx + 1;
-                moreList += topRankCardHtml(rank, item, { compact:true });
+                moreList += effCardHtml(rank, item, { mode:'normal' });
             });
 
             effOut += `
@@ -1803,7 +2905,7 @@ if(effData.normal.length > 0){
             </div>`;
 
         effData.reinforceList.forEach((r,i)=>{
-            effOut += reinfCardHtml(i+1, r);
+            effOut += effCardHtml(i+1, r, { mode:'normal', rightBadge: '', showAvatar:true, avatarHero:true });
         });
         effOut += `</div>`;
     }
@@ -2353,13 +3455,13 @@ function renderGearCompareResult(a, b, g1, g2, role){
     const metaLine = `<div class="gcmp-meta">係数：${top.marginal.toFixed(1)}×${top.imp.toFixed(2)}×${(1+(top.wp/30)).toFixed(2)} ÷重み</div>`;
 
     const html = `
-      <div class="gcmp-panel">
-        <div class="gcmp-panel-head">
-          <div class="gcmp-panel-title">✅ 次に★+1</div>
+      <div style="margin-top:10px; padding:10px 10px; border:1px solid #e2e8f0; border-radius:14px; background:rgba(255,255,255,0.72);">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <div style="font-weight:900; color:#0f172a;">✅ 次に★+1</div>
           ${badgeHtml(mode)}
         </div>
 
-        <div class="gcmp-reco gcmp-reco-block">
+        <div class="gcmp-reco" style="margin-top:8px;">
           <div class="gcmp-line0">
             <span class="gcmp-name">${top.heroName}</span><span class="no-wrap">/</span><span class="gcmp-gear">${gearLabel}</span>
             <span class="gcmp-arrow no-wrap">→★${top.targetStar}</span>
@@ -2369,7 +3471,7 @@ function renderGearCompareResult(a, b, g1, g2, role){
 
         ${warnHtml}
 
-        <div class="gcmp-desc">
+        <div class="gcmp-desc" style="margin-top:8px;">
           <div><b>${top.heroName}</b>：<b>${gearLabel}</b> → <span class="no-wrap"><b>★${top.targetStar}</b></span>（<span class="no-wrap"><b>${costTxt}</b></span>）</div>
           ${metaLine}
         </div>
@@ -2464,72 +3566,33 @@ function ensureGearPriorityToolDOM(){
       const st = document.createElement("style");
       st.id = "gear-mobile-style";
       st.textContent = `
-        /* Gear tab mobile layout */
-        .gear-tool-card{ background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:12px; }
-        .gear-tool-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; flex-wrap:wrap; }
-        .gear-tool-title{ font-weight:900; color:#0f172a; }
-        .gear-tool-note{ font-size:0.74rem; color:#64748b; font-weight:800; }
-        .gear-tool-tabs{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px; margin-top:10px; }
-        .gear-tool-tab{ min-width:0; padding:10px 0; font-size:0.92rem; }
-        .gear-tool-sub{ margin-top:10px; font-size:0.80rem; line-height:1.5; color:#475569; font-weight:800; }
-        .gear-tool-list{ margin-top:8px; }
-        .gear-list-empty{ font-size:0.82rem; color:#64748b; font-weight:800; padding:8px 2px; }
-        .gear-list-card{ cursor:pointer; background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:10px; display:grid; grid-template-columns:42px minmax(0,1fr) auto; gap:10px; align-items:center; margin-bottom:8px; }
-        .gear-list-avatar-wrap{ width:42px; height:42px; flex-shrink:0; position:relative; }
-        .gear-list-avatar-img{ width:42px; height:42px; border-radius:10px; object-fit:cover; background:#0b1220; display:block; }
-        .gear-list-avatar-fb{ width:42px; height:42px; border-radius:10px; background:#0b1220; color:#fff; align-items:center; justify-content:center; font-weight:900; }
-        .gear-list-main{ min-width:0; }
-        .gear-list-title-row{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
-        .gear-list-name{ min-width:0; max-width:100%; font-weight:900; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .gear-status{ font-size:0.68rem; font-weight:900; padding:2px 6px; border-radius:999px; white-space:nowrap; }
-        .gear-status-done{ color:#15803d; background:#f0fdf4; border:1px solid #bbf7d0; }
-        .gear-status-pending{ color:#475569; background:#fff; border:1px solid #e2e8f0; }
-        .gear-list-edit{ flex-shrink:0; font-size:0.72rem; color:#64748b; font-weight:900; }
-        .gear-list-wp{ margin-top:4px; font-size:0.80rem; color:#475569; font-weight:800; }
-        .gear-list-gears{ margin-top:4px; display:flex; flex-direction:column; gap:5px; }
-        .gear-list-gear{ font-size:0.82rem; color:#475569; font-weight:800; min-width:0; display:flex; align-items:center; justify-content:space-between; gap:10px; }
-        .gear-list-label{ color:#475569; flex:1 1 auto; min-width:0; }
-        .gear-list-stars{ color:#334155; white-space:nowrap; flex:0 0 7.2em; min-width:7.2em; text-align:right; font-size:0.92rem; letter-spacing:0.02em; }
-
         /* Compare UI: prevent awkward wraps on mobile */
-        .gear-compare-box{ margin-top:12px; }
-        .gear-compare-title{ font-weight:900; color:#0f172a; margin-bottom:8px; }
         .gear-compare-row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
-        .gear-compare-row select{ flex:1 1 220px; min-width:0; width:100%; padding:10px 12px; border-radius:12px; border:1px solid #e2e8f0; font-weight:800; font-size:16px; background:#fff; }
-        .gear-compare-result{ margin-top:10px; }
-        .gear-compare-footnote, .gear-tool-footnote{ margin-top:10px; font-size:0.72rem; line-height:1.55; color:#64748b; font-weight:800; }
+        .gear-compare-row select{ flex:1; min-width:0; padding:8px 10px; border-radius:12px; border:1px solid #e2e8f0; font-weight:800; }
+        @media (max-width: 380px){ .gear-compare-row{ flex-direction:column; } }
 
         .no-wrap{ white-space:nowrap; }
+
         .gcmp-reco{ margin-top:6px; font-weight:900; color:#a21caf; background:#fdf4ff; border:1px solid #fbcfe8; padding:10px 10px; border-radius:12px; }
         .gcmp-line1{ display:flex; gap:6px; align-items:baseline; min-width:0; }
         .gcmp-line1 .gcmp-name{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .gcmp-line1 .gcmp-gear{ white-space:nowrap; }
         .gcmp-line2{ margin-top:6px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
         .gcmp-cost{ font-size:0.80rem; font-weight:900; color:#475569; background:#fff; border:1px solid #e2e8f0; padding:2px 8px; border-radius:999px; }
+
         .gcmp-desc{ margin-top:8px; font-size:0.74rem; color:#475569; font-weight:800; line-height:1.55; }
         .gcmp-desc .gcmp-meta{ color:#64748b; }
+
         .gcmp-alt{ margin-top:8px; }
         .gcmp-alt .alt-line{ font-size:0.72rem; color:#64748b; font-weight:800; line-height:1.5; }
         .recipe-line{ font-size:12px; white-space:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+
+        /* One-line recommendation (portrait): keep in one row with ellipsis */
         .gcmp-line0{ display:flex; gap:6px; align-items:baseline; min-width:0; flex-wrap:nowrap; overflow:hidden; font-size:0.86rem; }
         .gcmp-line0 .gcmp-name{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .gcmp-line0 .gcmp-gear, .gcmp-line0 .gcmp-arrow, .gcmp-line0 .gcmp-cost{ flex:0 0 auto; white-space:nowrap; }
-
-        @media (max-width: 480px){
-          .gear-tool-card{ padding:10px; }
-          .gear-tool-tabs{ gap:5px; }
-          .gear-tool-tab{ font-size:0.86rem; padding:9px 0; }
-          .gear-list-card{ grid-template-columns:42px minmax(0,1fr); align-items:flex-start; }
-          .gear-list-edit{ grid-column:2; justify-self:end; margin-top:4px; font-size:0.80rem; }
-          .gear-list-title-row{ align-items:flex-start; }
-          .gear-list-name{ white-space:normal; line-height:1.25; font-size:1.02rem; }
-          .gear-list-wp{ font-size:0.86rem; }
-          .gear-list-gears{ gap:6px; }
-          .gear-list-gear{ font-size:0.88rem; gap:12px; }
-          .gear-list-stars{ flex-basis:7.8em; min-width:7.8em; font-size:1.00rem; }
-          .gear-compare-row{ flex-direction:column; }
-          .gear-compare-row select{ flex:1 1 auto; }
-        }
+        .gcmp-line0 .gcmp-gear{ flex:0 0 auto; white-space:nowrap; }
+        .gcmp-line0 .gcmp-arrow{ flex:0 0 auto; }
+        .gcmp-line0 .gcmp-cost{ flex:0 0 auto; }
         @media (max-width: 360px){ .gcmp-line0{ font-size:0.82rem; } .gcmp-reco{ padding:9px 10px; } }
 
       `;
@@ -2545,36 +3608,36 @@ function ensureGearPriorityToolDOM(){
   wrap.style.marginTop = "14px";
 
   wrap.innerHTML = `
-    <div class="gear-tool-card">
-      <div class="gear-tool-head">
-        <div class="gear-tool-title"></div>
-        <div class="gear-tool-note">※編成の評価には反映しません</div>
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <div style="font-weight:900; color:#0f172a;"></div>
+        <div style="font-size:0.72rem; color:#64748b; font-weight:900; white-space:nowrap;">※編成の評価には反映しません</div>
       </div>
 
-      <div class="gear-tool-tabs">
-        <button class="tab-btn gear-tool-tab" id="gear-prio-btn-atk" onclick="setGearPrioRole('atk')">火力役</button>
-        <button class="tab-btn gear-tool-tab" id="gear-prio-btn-wall" onclick="setGearPrioRole('wall')">盾役</button>
-        <button class="tab-btn gear-tool-tab" id="gear-prio-btn-sup" onclick="setGearPrioRole('sup')">支援役</button>
+      <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="tab-btn" id="gear-prio-btn-atk" onclick="setGearPrioRole('atk')" style="padding:8px 10px; border-radius:10px;">火力役</button>
+        <button class="tab-btn" id="gear-prio-btn-wall" onclick="setGearPrioRole('wall')" style="padding:8px 10px; border-radius:10px;">盾役</button>
+        <button class="tab-btn" id="gear-prio-btn-sup" onclick="setGearPrioRole('sup')" style="padding:8px 10px; border-radius:10px;">支援役</button>
       </div>
 
-      <div id="gear-prio-sub" class="gear-tool-sub"></div>
-      <div id="gear-prio-list" class="gear-tool-list"></div>
+      <div id="gear-prio-sub" style="margin-top:8px; font-size:0.78rem; color:#475569; font-weight:800;"></div>
+      <div id="gear-prio-list" style="margin-top:10px;"></div>
 
       <!-- ★上げ判定（2キャラ比較） -->
-      <div id="gear-compare-box" class="gear-compare-box">
-        <div class="gear-compare-title">🔍 ★上げ判定（2キャラ比較）</div>
+      <div id="gear-compare-box" style="margin-top:12px; padding:10px 12px; border:1px solid #e2e8f0; border-radius:14px; background:#fff;">
+        <div style="font-weight:900; color:#0f172a;">🔍 ★上げ判定（2キャラ比較）</div>
         <div class="gear-compare-row">
           <select id="gear-compare-a" onchange="setGearCompare('a', this.value)"></select>
           <select id="gear-compare-b" onchange="setGearCompare('b', this.value)"></select>
         </div>
-        <div id="gear-compare-result" class="gear-compare-result"></div>
-        <div class="gear-compare-footnote">
+        <div id="gear-compare-result" style="margin-top:10px;"></div>
+        <div style="margin-top:8px; font-size:0.70rem; color:#94a3b8; font-weight:800; line-height:1.45;">
           ※この判定は「(次の★+1の伸び) ÷ (UR/MR入手難易度の重み) × (武装Lv補正)」の簡易モデルです。<br>
           ※役割ボタン（火力/盾/支援）で対象装備が変わります。
         </div>
       </div>
 
-      <div class="gear-tool-footnote">
+      <div style="margin-top:10px; font-size:0.72rem; color:#94a3b8; font-weight:800; line-height:1.45;">
         ・役割ごとに「見る装備」を2つに固定（例：火力＝レールガン&チップ）。<br>
         ・★入力はこのタブだけで管理（UR/MRレシピの誤爆防止用）。<br>
         ・優先度は「未完成★の多さ」×「武装Lv（育成済みほど優先）」で並び替え。
@@ -2649,6 +3712,8 @@ function updateGearPriorityUI(){
     return;
   }
 
+  const topId = rows[0].id;
+
   // --- 2キャラ比較UI（次に★+1するならどれが良い？） ---
   const selA = document.getElementById("gear-compare-a");
   const selB = document.getElementById("gear-compare-b");
@@ -2678,7 +3743,7 @@ function updateGearPriorityUI(){
 
     resEl.innerHTML = (heroA && heroB) ? renderGearCompareResult(heroA, heroB, g1, g2, __gearPrioRole) : "";
   }
-  listEl.innerHTML = rows.map((r, idx)=>{
+    listEl.innerHTML = rows.map((r, idx)=>{
     const nextHint = (r.need<=0)
       ? `<span class="gear-status gear-status-done">完成</span>`
       : `<span class="gear-status gear-status-pending">未完成★ ${r.need}</span>`;
@@ -2693,20 +3758,20 @@ function updateGearPriorityUI(){
           <div class="gear-list-title-row">
             <div class="gear-list-name">${idx+1}. ${r.name}</div>
             ${nextHint}
+            <div class="gear-list-edit">編集</div>
           </div>
-          <div class="gear-list-wp">武装Lv<b>${r.wp}</b></div>
+          <div class="gear-list-wp">武装Lv${r.wp}</div>
           <div class="gear-list-gears">
             <div class="gear-list-gear">
               <span class="gear-list-label">${gearName(r.g1)}：</span>
-              <span class="gear-list-stars"><b>${renderStars(r.s1)}</b></span>
+              <span class="gear-list-stars">${renderStars(r.s1)}</span>
             </div>
             <div class="gear-list-gear">
               <span class="gear-list-label">${gearName(r.g2)}：</span>
-              <span class="gear-list-stars"><b>${renderStars(r.s2)}</b></span>
+              <span class="gear-list-stars">${renderStars(r.s2)}</span>
             </div>
           </div>
         </div>
-        <div class="gear-list-edit">編集</div>
       </div>
     `;
   }).join("");
@@ -2998,3 +4063,46 @@ function toggleTransitionPanel(){
 try{ window.toggleTransitionPanel = toggleTransitionPanel; }catch(e){}
 
 try{ window.getArmyTypeCounts = getArmyTypeCounts; window.getArmyBuffInfo = getArmyBuffInfo; }catch(e){}
+
+</script>
+
+<div id="slot-modal" class="modal-backdrop" onclick="if(event.target===this) closeSlotModal()">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="t">スロット編集</div>
+      <button class="modal-close" onclick="closeSlotModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-row">
+        <label>キャラ</label>
+        <select id="slot-modal-hero" class="modal-select"></select>
+      </div>
+      <div class="modal-row">
+        <label>武装Lv</label>
+        <div class="modal-step">
+          <button onclick="slotModalStep(-1)">−</button>
+          <div id="slot-modal-lv" class="val">0</div>
+          <button onclick="slotModalStep(1)">＋</button>
+        </div>
+      </div>
+      <div class="modal-quick">
+        <button onclick="slotModalSet(0)">0</button>
+        <button onclick="slotModalSet(1)">1</button>
+        <button onclick="slotModalSet(10)">10</button>
+        <button onclick="slotModalSet(20)">20</button>
+        <button onclick="slotModalSet(30)">30</button>
+      </div>
+      <div style="margin-top:10px; font-size:0.8rem; color:#64748b; font-weight:bold; background:#f8fafc; border:1px solid #e2e8f0; padding:10px; border-radius:12px; line-height:1.5;">
+        武装Lvは 0〜30。10→20は現実的、20→30は効果大ですがコスト重めです。
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-danger" onclick="slotModalClear()">未設定にする</button>
+      <button class="btn-primary" onclick="slotModalApply()">反映</button>
+    </div>
+  </div>
+</div>
+</body>
+
+</html>
+<!-- penalty not auto inserted -->

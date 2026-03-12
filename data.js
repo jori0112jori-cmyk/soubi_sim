@@ -6,7 +6,7 @@ const HEROES = {
 };
 const GEAR_TYPES = ['Gun', 'Data', 'Armor', 'Radar'];
 const GEAR_NAMES = { 'Gun':'🔫レールガン', 'Data':'💾チップ', 'Armor':'🛡️装甲', 'Radar':'📡レーダー' };
-const SHARD_ICON = 'original.webp';
+const SHARD_ICON = 'img/original.webp';
 
 
 // ===============================
@@ -55,4 +55,89 @@ const META_SHIFT = {
     minMult: 0.92,     // wp=0
     maxMult: 1.08      // wp=max
   }
+};
+
+
+// ===============================
+// ⭐ 汎用化ロジック用マスタ
+// ===============================
+const HERO_ROLE_PROFILE = {
+  kimberly:{ role:'main_dps', lane:'back', core:true },
+  murphy:{ role:'front_tank', lane:'front', core:true },
+  williams:{ role:'front_tank', lane:'front', core:false },
+  marshall:{ role:'support', lane:'back', core:true },
+  stetmann:{ role:'sub_dps', lane:'back', core:true },
+
+  dva:{ role:'main_dps', lane:'back', core:true },
+  lucius:{ role:'front_tank', lane:'front', core:true },
+  carlie:{ role:'front_tank', lane:'front', core:false },
+  schuyler:{ role:'control', lane:'back', core:true },
+  morrison:{ role:'sub_dps', lane:'back', core:true },
+
+  fiona:{ role:'main_dps', lane:'back', core:true },
+  tesla:{ role:'sub_dps', lane:'back', core:true },
+  mcgregor:{ role:'front_tank', lane:'front', core:true },
+  swift:{ role:'sub_dps', lane:'back', core:true },
+  adam:{ role:'support', lane:'back', core:false }
+};
+
+const HERO_LONGTERM_VALUE = {
+  kimberly:1.00, dva:1.00, fiona:0.96,
+  lucius:0.90, murphy:0.88, stetmann:0.86,
+  morrison:0.84, schuyler:0.82, tesla:0.82, mcgregor:0.80,
+  marshall:0.72, swift:0.70, williams:0.62, carlie:0.58, adam:0.56
+};
+
+const HERO_SYNERGY = {
+  // Air
+  dva: {
+    lucius:   { base: 1.03, lv10: 1.04, lv20: 1.06, lv30: 1.07 },
+    morrison: { base: 1.02, lv10: 1.03, lv20: 1.04, lv30: 1.05 }
+  },
+  lucius: {
+    dva:      { base: 1.04, lv10: 1.05, lv20: 1.07, lv30: 1.08 }
+  },
+  morrison: {
+    dva:      { base: 1.02, lv10: 1.03, lv20: 1.04, lv30: 1.05 }
+  },
+
+  // Tank
+  kimberly: {
+    stetmann: { base: 1.03, lv10: 1.04, lv20: 1.05, lv30: 1.06 },
+    williams: { base: 1.02, lv10: 1.03, lv20: 1.04, lv30: 1.04 }
+  },
+  stetmann: {
+    kimberly: { base: 1.04, lv10: 1.05, lv20: 1.06, lv30: 1.07 }
+  },
+  murphy: {
+    williams: { base: 1.03, lv10: 1.04, lv20: 1.05, lv30: 1.05 }
+  },
+  williams: {
+    murphy:   { base: 1.03, lv10: 1.04, lv20: 1.05, lv30: 1.05 },
+    kimberly: { base: 1.02, lv10: 1.03, lv20: 1.04, lv30: 1.04 }
+  },
+
+  // Missile
+  fiona: {
+    tesla:    { base: 1.02, lv10: 1.03, lv20: 1.04, lv30: 1.05 },
+    mcgregor: { base: 1.02, lv10: 1.03, lv20: 1.04, lv30: 1.05 }
+  },
+  tesla: {
+    fiona:    { base: 1.02, lv10: 1.03, lv20: 1.04, lv30: 1.05 }
+  },
+  mcgregor: {
+    fiona:    { base: 1.02, lv10: 1.03, lv20: 1.04, lv30: 1.05 }
+  }
+};
+
+const TYPE_COUNTER_WEIGHT = {
+  tank:{ tank:0.30, air:1.00, mis:0.50 },
+  air:{ tank:0.50, air:0.30, mis:1.00 },
+  mis:{ tank:1.00, air:0.50, mis:0.30 },
+  none:{ tank:0.50, air:0.50, mis:0.50 }
+};
+
+const ROUTE_WEIGHT_PRESET = {
+  overall:{ cost:0.45, coverage:0.30, future:0.25 },
+  safe:{ cost:0.60, coverage:0.25, future:0.15 }
 };
