@@ -232,6 +232,56 @@ function scheduleAi() {
   }, 60);
 }
 
+const HOLD_PIN_STORAGE_KEY = 'lw_hold_pins_v1';
+function loadHoldPins(){
+  try{
+    const raw = localStorage.getItem(HOLD_PIN_STORAGE_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(arr) ? arr : []);
+  }catch(e){
+    return new Set();
+  }
+}
+function saveHoldPins(setObj){
+  try{ localStorage.setItem(HOLD_PIN_STORAGE_KEY, JSON.stringify(Array.from(setObj || []))); }catch(e){}
+}
+function getHoldPinKey(item){
+  const id = item && (item.id || item.heroId || item.key || '');
+  const from = item && item.from != null ? item.from : '';
+  const to = item && item.to != null ? item.to : '';
+  return `${id}__${from}__${to}`;
+}
+function isHoldPinned(item){
+  return loadHoldPins().has(getHoldPinKey(item));
+}
+function toggleHoldPinByKey(pinKey){
+  const pins = loadHoldPins();
+  if(pins.has(pinKey)) pins.delete(pinKey);
+  else pins.add(pinKey);
+  saveHoldPins(pins);
+  try{ generateAiSuggestion(); }catch(e){}
+}
+function getHoldPinnedItems(items){
+  const pins = loadHoldPins();
+  return (items || []).filter(item => pins.has(getHoldPinKey(item)));
+}
+function holdPinChipHtml(item){
+  const pinKey = getHoldPinKey(item);
+  const pinned = isHoldPinned(item);
+  const label = pinned ? '保留解除' : '保留';
+  const cls = pinned ? ' is-active' : '';
+  return `<button type="button" class="rankhero-pinbtn${cls}" onclick="toggleHoldPinByKey('${pinKey}')" aria-label="${label}" title="${label}">📌</button>`;
+}
+function holdPinnedSummaryHtml(items){
+  const list = getHoldPinnedItems(items).slice(0, 4);
+  if(!list.length) return '';
+  const chips = list.map(item => {
+    const pinKey = getHoldPinKey(item);
+    return `<button type="button" class="hold-pin-chip" onclick="toggleHoldPinByKey('${pinKey}')">📌 ${item.name} Lv${item.from}→${item.to}</button>`;
+  }).join('');
+  return `<div class="hold-pin-summary"><div class="hold-pin-title">保留中の候補</div><div class="hold-pin-list">${chips}</div></div>`;
+}
+
 
 // === 戦力入力（任意）をAI判定に使う ===
 function getUserPowers(){
@@ -535,6 +585,13 @@ function effTitleLine(rank, item){
       .gear-cost img{ width:36px; height:36px; flex-shrink:0; }
       .gear-num{ font-size:1.15em; font-weight:900; }
       .gear-cost .sep{ opacity:.65; margin-right:2px; }
+      .rankhero-topbadge{ display:flex; align-items:flex-start; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+      .rankhero-pinbtn{ appearance:none; border:1px solid #d1d5db; background:#fff; color:#94a3b8; border-radius:999px; width:24px; height:24px; min-width:24px; padding:0; display:inline-flex; align-items:center; justify-content:center; font-size:.85rem; font-weight:900; line-height:1; cursor:pointer; transform:translateY(-3px); }
+      .rankhero-pinbtn.is-active{ background:#fff7ed; border-color:#fdba74; color:#c2410c; border-radius:10px; width:auto; min-width:34px; padding:0 8px; }
+      .hold-pin-summary{ margin:0 0 10px; padding:10px; border:1px dashed #fbcfe8; border-radius:10px; background:#fff; }
+      .hold-pin-title{ font-size:.82rem; font-weight:900; color:#a21caf; margin-bottom:6px; }
+      .hold-pin-list{ display:flex; flex-wrap:wrap; gap:6px; }
+      .hold-pin-chip{ appearance:none; border:1px solid #fdba74; background:#fff7ed; color:#c2410c; border-radius:999px; padding:5px 10px; font-size:.74rem; font-weight:900; cursor:pointer; }
     `;
     document.head.appendChild(st);
   }catch(e){}
@@ -596,7 +653,7 @@ function reinfCardHtml(rank, item){
 
   // 育成ランキングと完全に同じ描画ルートを使う
   // （画像・名前行・右側メタの構造を揃える）
-  return `<div class="reinf-card">${topRankCardHtml(rank, safeItem, { compact:true })}</div>`;
+  return `<div class="reinf-card">${topRankCardHtml(rank, safeItem, { compact:true, showPin:false })}</div>`;
 }
 
 function topRankCardHtml(rank, item, opts){
@@ -623,6 +680,7 @@ function topRankCardHtml(rank, item, opts){
     : '';
 
   const badge = safeItem.growthType ? growthBadge(safeItem.growthType) : (opts.rightBadge || '');
+  const pinBtn = (opts.showPin === false) ? '' : holdPinChipHtml(safeItem);
   const cardClass = compact ? 'rankhero-card rankhero-card--compact' : `rankhero-card ${rank>1?'rankhero-card--split':''}`;
   const rowClass = compact ? 'rankhero-row rankhero-row--compact' : 'rankhero-row';
 
@@ -644,7 +702,7 @@ function topRankCardHtml(rank, item, opts){
         <div class="rankhero-body">
           <div class="rankhero-topline">
             ${lvLine}
-            <div class="rankhero-topbadge">${badge}</div>
+            <div class="rankhero-topbadge">${badge}${pinBtn}</div>
           </div>
           <div class="rankhero-bottomline">
             <div class="rankhero-leftline">
@@ -1369,14 +1427,12 @@ function __aiReasonBadgeFromScores(meta){
       axis = 'atk';
     }
   } else if(top.key === 'cost'){
-    const heavyHighCost = !!(ms && ms.target >= 30);
-    const costLabel = heavyHighCost ? '育成効果:大' : '育成効率';
     if(top.value >= second.value * 1.05){
-      label = costLabel;
+      label = '育成効率';
     }else if(safeQualified || close){
-      label = '安定';
+      label = '安全';
     }else if(top.value >= second.value * 1.02){
-      label = costLabel;
+      label = '育成効率';
     }
   }
 
@@ -1770,7 +1826,8 @@ if(effData.normal.length > 0){
 
         effOut += `
         <div style="background:#fdf4ff; border:1px solid #fbcfe8; padding:12px; border-radius:10px;">
-            <div style="font-weight:900; color:#a21caf; margin-bottom:8px; font-size:0.95rem;"></div>`;
+            <div style="font-weight:900; color:#a21caf; margin-bottom:8px; font-size:0.95rem;"></div>
+            ${holdPinnedSummaryHtml(effData.normal)}`;
 
         // Top3（おすすめ）
         effData.normal.slice(0, TOP_N).forEach((item,i)=>{
@@ -2053,128 +2110,15 @@ function buildSlotHeroOptions(){
     sel.innerHTML = opts;
 }
 
-
-function __slotAllConfigs(){
-    return [
+function renderSlots(){
+    // 1〜3軍は5枠、控えは10枠
+    const configs = [
         {s:1, n:5, el:'slot-tiles-1'},
         {s:2, n:5, el:'slot-tiles-2'},
         {s:3, n:5, el:'slot-tiles-3'},
         {s:4, n:10, el:'slot-tiles-4'}
     ];
-}
-
-function __slotCollectAssignments(){
-    const rows = [];
-    __slotAllConfigs().forEach(cfg=>{
-        for(let p=1; p<=cfg.n; p++){
-            const hEl = document.getElementById(`h-${cfg.s}-${p}`);
-            const wEl = document.getElementById(`w-${cfg.s}-${p}`);
-            if(!hEl || !wEl) continue;
-            const id = hEl.value || 'empty';
-            const lvRaw = wEl.value;
-            const lv = (typeof lvRaw === 'string' && (lvRaw.includes('未') || lvRaw === '-')) ? 0 : (parseInt(lvRaw)||0);
-            rows.push({ s:cfg.s, p, id, lv });
-        }
-    });
-    return rows;
-}
-
-function __slotDuplicateMap(){
-    const map = {};
-    __slotCollectAssignments().forEach(row=>{
-        if(!row.id || row.id === 'empty') return;
-        if(!map[row.id]) map[row.id] = [];
-        map[row.id].push({ s:row.s, p:row.p, lv:row.lv });
-    });
-    return map;
-}
-
-function __slotLabel(s,p){
-    return s === 4 ? `控え${p}枠` : `${s}軍${p}枠`;
-}
-
-function __ensureSlotDuplicatePanel(){
-    const modalBody = document.querySelector('#slot-modal .modal-body');
-    if(!modalBody) return null;
-    let panel = document.getElementById('slot-dup-panel');
-    if(panel) return panel;
-    panel = document.createElement('div');
-    panel.id = 'slot-dup-panel';
-    panel.style.display = 'none';
-    panel.style.marginTop = '12px';
-    panel.style.padding = '12px';
-    panel.style.borderRadius = '14px';
-    panel.style.border = '1px solid #f6c453';
-    panel.style.background = '#fff7db';
-    panel.innerHTML = '<div id="slot-dup-panel-inner"></div>';
-    modalBody.appendChild(panel);
-
-    const heroSel = document.getElementById('slot-modal-hero');
-    if(heroSel && !heroSel.dataset.dupBound){
-        heroSel.addEventListener('change', function(){
-            try{ __slotRenderDuplicatePanel(); }catch(e){}
-        });
-        heroSel.dataset.dupBound = '1';
-    }
-    return panel;
-}
-
-function __slotRenderDuplicatePanel(){
-    const panel = __ensureSlotDuplicatePanel();
-    const inner = document.getElementById('slot-dup-panel-inner');
-    if(!panel || !inner) return;
-    const s = __slotModalState.s, p = __slotModalState.p;
-    const heroSel = document.getElementById('slot-modal-hero');
-    const heroId = heroSel ? heroSel.value : 'empty';
-    if(!heroId || heroId === 'empty'){
-        panel.style.display = 'none';
-        inner.innerHTML = '';
-        return;
-    }
-    const dupMap = __slotDuplicateMap();
-    const others = (dupMap[heroId] || []).filter(x => !(x.s === s && x.p === p));
-    if(!others.length){
-        panel.style.display = 'none';
-        inner.innerHTML = '';
-        return;
-    }
-    const h = HEROES[heroId] || { n: heroId };
-    const buttons = others.map(x => {
-        return `<button type="button" onclick="slotModalSwapWith(${x.s},${x.p})" style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px; border:1px solid #f59e0b; background:#fff; color:#92400e; border-radius:12px; padding:10px 12px; font-weight:900; margin-top:8px;">` +
-               `<span>${__slotLabel(x.s,x.p)}</span><span>Lv.${x.lv} と入替</span></button>`;
-    }).join('');
-    inner.innerHTML = `
-      <div style="font-size:1rem; font-weight:900; color:#92400e;">${h.n} が他枠でも配置中</div>
-      <div style="margin-top:6px; font-size:0.84rem; color:#b45309; font-weight:700; line-height:1.5;">同じキャラが別枠にいます。入替で整理できます。</div>
-      ${buttons}
-    `;
-    panel.style.display = 'block';
-}
-
-function slotModalSwapWith(s2,p2){
-    const s1 = __slotModalState.s, p1 = __slotModalState.p;
-    const h1 = document.getElementById(`h-${s1}-${p1}`);
-    const w1 = document.getElementById(`w-${s1}-${p1}`);
-    const h2 = document.getElementById(`h-${s2}-${p2}`);
-    const w2 = document.getElementById(`w-${s2}-${p2}`);
-    if(!h1 || !w1 || !h2 || !w2) return;
-
-    const id1 = h1.value || 'empty';
-    const lv1 = (typeof w1.value === 'string' && (w1.value.includes('未') || w1.value === '-')) ? 0 : (parseInt(w1.value)||0);
-    const id2 = h2.value || 'empty';
-    const lv2 = (typeof w2.value === 'string' && (w2.value.includes('未') || w2.value === '-')) ? 0 : (parseInt(w2.value)||0);
-
-    h1.value = id2; w1.value = (id2 === 'empty') ? 0 : lv2;
-    h2.value = id1; w2.value = (id1 === 'empty') ? 0 : lv1;
-
-    try { updateAllSquads(); } catch(e) {}
-    try { renderSlots(); } catch(e) {}
-    closeSlotModal();
-}
-
-function renderSlots(){
-    const dupMap = __slotDuplicateMap();
-    __slotAllConfigs().forEach(cfg=>{
+    configs.forEach(cfg=>{
         const wrap = document.getElementById(cfg.el);
         if(!wrap) return;
         let html = '';
@@ -2202,11 +2146,8 @@ function renderSlots(){
                     <div class="slot-name">追加</div>
                 </div>`;
             } else {
-                const isDup = (dupMap[id] && dupMap[id].length > 1);
-                const dupBadge = isDup ? `<div style="position:absolute; top:6px; right:6px; z-index:2; background:#fff7ed; color:#c2410c; border:1px solid #fdba74; border-radius:999px; padding:2px 7px; font-size:0.68rem; font-weight:900; line-height:1;">重複</div>` : '';
                 html += `
-                <div class="slot-tile" onclick="openSlotModal(${cfg.s},${p});" style="position:relative;">
-                    ${dupBadge}
+                <div class="slot-tile" onclick="openSlotModal(${cfg.s},${p});">
                     <div class="slot-avatar">
                         <img src="${getHeroImagePath(id)}" alt="${h.n}" onerror="this.style.display='none'; this.parentNode.querySelector('.slot-fallback').style.display='flex';">
                         <div class="slot-fallback" style="display:none;">${shortName}</div>
@@ -2237,15 +2178,10 @@ function openSlotModal(s,p){
     document.getElementById('slot-modal-lv').innerText = lv;
 
     document.getElementById('slot-modal').classList.add('open');
-    try { __slotRenderDuplicatePanel(); } catch(e) {}
 }
 
 function closeSlotModal(){
     document.getElementById('slot-modal').classList.remove('open');
-    const panel = document.getElementById('slot-dup-panel');
-    const inner = document.getElementById('slot-dup-panel-inner');
-    if(panel) panel.style.display = 'none';
-    if(inner) inner.innerHTML = '';
 }
 
 function slotModalStep(d){
@@ -2270,7 +2206,8 @@ function slotModalApply(){
     if(hEl) hEl.value = id;
     if(wEl) wEl.value = (id==='empty') ? 0 : lv;
 
-    try { updateAllSquads(); } catch(e) {}
+    // 再評価
+    try { updateSquad(s); } catch(e) {}
     try { renderSlots(); } catch(e) {}
     closeSlotModal();
 }
