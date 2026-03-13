@@ -42,7 +42,7 @@ function toggleTransitionPanel(){
   const isOpen = window.getComputedStyle(body).display !== 'none';
   body.style.display = isOpen ? 'none' : 'block';
   btn.textContent = isOpen ? '▼' : '▲';
-  btn.setAttribute('aria-label', isOpen ? '兵種シフト目安を展開' : '兵種シフト目安を折りたたむ');
+  btn.setAttribute('aria-label', isOpen ? '兵種の育成目安を展開' : '兵種の育成目安を折りたたむ');
   if(!isOpen){
     try{ updateTransitionRecommendationUI(); }catch(e){}
   }
@@ -1152,8 +1152,8 @@ function __aiCostTierLabel(from, to){
 }
 function __aiSafeHint(hero, to, context){
   const p = __aiGetProfile(hero.id);
-  if(to === 20 && (p.role === 'front_tank' || p.role === 'support')) return '安全';
-  if(to === 20 && hero.t === context.currentCombatType) return '安全';
+  if(to === 20 && (p.role === 'front_tank' || p.role === 'support')) return '安定';
+  if(to === 20 && hero.t === context.currentCombatType) return '安定';
   return '';
 }
 function __aiBuildContext(roster, base){
@@ -1345,7 +1345,7 @@ function __aiReasonBadgeFromScores(meta){
   const inMainArmy = !!(hero && context && context.mainArmyIds && context.mainArmyIds.has(hero.id));
   const safeQualified = !!(hero && ms && ms.target <= 20 && (sameMain || inMainArmy || hero.r === 'wall' || hero.r === 'sup'));
 
-  let label = '安全';
+  let label = '安定';
   let axis = 'bal';
   let strong = false;
 
@@ -1369,12 +1369,14 @@ function __aiReasonBadgeFromScores(meta){
       axis = 'atk';
     }
   } else if(top.key === 'cost'){
+    const heavyHighCost = !!(ms && ms.target >= 30);
+    const costLabel = heavyHighCost ? '育成効果:大' : '育成効率';
     if(top.value >= second.value * 1.05){
-      label = 'コスパ';
+      label = costLabel;
     }else if(safeQualified || close){
-      label = '安全';
+      label = '安定';
     }else if(top.value >= second.value * 1.02){
-      label = 'コスパ';
+      label = costLabel;
     }
   }
 
@@ -1384,15 +1386,15 @@ function __aiReasonBadgeFromScores(meta){
 
 function __aiDisplaySafeLabel(hero, ms, context, reasonBadge, scoreCost, scoreCoverage, scoreFuture){
   if(!hero || !ms || !context || !reasonBadge) return '';
-  if(reasonBadge.label !== 'コスパ') return '';
+  if(reasonBadge.label !== '育成効率') return '';
   if(ms.target > 20) return '';
   const sameMain = hero.t === context.currentCombatType;
   const inMainArmy = context.mainArmyIds && context.mainArmyIds.has(hero.id);
   const top = Math.max(Number(scoreCost)||0, Number(scoreCoverage)||0, Number(scoreFuture)||0, 0);
   if(top <= 0) return '';
   if((Number(scoreCost)||0) < top * 0.97) return '';
-  if(hero.t === context.currentCombatType) return '安全';
-  if((inMainArmy || hero.r === 'wall' || hero.r === 'sup') && ms.target === 20) return '安全';
+  if(hero.t === context.currentCombatType) return '安定';
+  if((inMainArmy || hero.r === 'wall' || hero.r === 'sup') && ms.target === 20) return '安定';
   return '';
 }
 
@@ -1497,9 +1499,9 @@ function calculateUpgradeEfficiencyFull(roster){
       return null;
     };
     const reinforceList = [];
-    const mainPick = pickTop('reinforceMain', '1軍補強', 'bal');
-    const coveragePick = pickTop('reinforceCoverage', '弱点補完', 'wall');
-    const futurePick = pickTop('reinforceFuture', '将来投資', 'atk');
+    const mainPick = pickTop('reinforceMain', '主力強化', 'bal');
+    const coveragePick = pickTop('reinforceCoverage', '弱点補強', 'wall');
+    const futurePick = pickTop('reinforceFuture', '将来性', 'atk');
     if(mainPick) reinforceList.push(mainPick);
     if(coveragePick) reinforceList.push(coveragePick);
     if(futurePick) reinforceList.push(futurePick);
@@ -1799,7 +1801,7 @@ if(effData.normal.length > 0){
         effOut += `
         <div style="margin-top:12px; background:#fff7ed; border:1px solid #fdba74; padding:12px; border-radius:10px;">
             <div style="font-weight:900; color:#ea580c; margin-bottom:8px; font-size:0.9rem;">
-                🛡️ 編成補強おすすめ
+                🛡️ 補強候補ランキング
             </div>`;
 
         effData.reinforceList.forEach((r,i)=>{
