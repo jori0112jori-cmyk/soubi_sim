@@ -669,7 +669,7 @@ function topRankCardHtml(rank, item, opts){
     : '';
 
   const costPart = (safeItem.cost !== undefined && safeItem.cost !== null)
-    ? `<span class="rankhero-cost"><span class="rankhero-cost-sep">/</span><img class="rankhero-cost-icon" src="${SHARD_ICON_SRC}" alt="gear"> <span class="rankhero-cost-num">${safeItem.cost}</span></span>`
+    ? `<span class="rankhero-cost"><span class="rankhero-cost-sep">あと</span><img class="rankhero-cost-icon" src="${SHARD_ICON_SRC}" alt="gear"> <span class="rankhero-cost-num">${safeItem.cost}</span></span>`
     : '';
 
   const costTierLabel = safeItem.costTierLabel
