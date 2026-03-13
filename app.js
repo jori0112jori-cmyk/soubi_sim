@@ -2053,15 +2053,128 @@ function buildSlotHeroOptions(){
     sel.innerHTML = opts;
 }
 
-function renderSlots(){
-    // 1〜3軍は5枠、控えは10枠
-    const configs = [
+
+function __slotAllConfigs(){
+    return [
         {s:1, n:5, el:'slot-tiles-1'},
         {s:2, n:5, el:'slot-tiles-2'},
         {s:3, n:5, el:'slot-tiles-3'},
         {s:4, n:10, el:'slot-tiles-4'}
     ];
-    configs.forEach(cfg=>{
+}
+
+function __slotCollectAssignments(){
+    const rows = [];
+    __slotAllConfigs().forEach(cfg=>{
+        for(let p=1; p<=cfg.n; p++){
+            const hEl = document.getElementById(`h-${cfg.s}-${p}`);
+            const wEl = document.getElementById(`w-${cfg.s}-${p}`);
+            if(!hEl || !wEl) continue;
+            const id = hEl.value || 'empty';
+            const lvRaw = wEl.value;
+            const lv = (typeof lvRaw === 'string' && (lvRaw.includes('未') || lvRaw === '-')) ? 0 : (parseInt(lvRaw)||0);
+            rows.push({ s:cfg.s, p, id, lv });
+        }
+    });
+    return rows;
+}
+
+function __slotDuplicateMap(){
+    const map = {};
+    __slotCollectAssignments().forEach(row=>{
+        if(!row.id || row.id === 'empty') return;
+        if(!map[row.id]) map[row.id] = [];
+        map[row.id].push({ s:row.s, p:row.p, lv:row.lv });
+    });
+    return map;
+}
+
+function __slotLabel(s,p){
+    return s === 4 ? `控え${p}枠` : `${s}軍${p}枠`;
+}
+
+function __ensureSlotDuplicatePanel(){
+    const modalBody = document.querySelector('#slot-modal .modal-body');
+    if(!modalBody) return null;
+    let panel = document.getElementById('slot-dup-panel');
+    if(panel) return panel;
+    panel = document.createElement('div');
+    panel.id = 'slot-dup-panel';
+    panel.style.display = 'none';
+    panel.style.marginTop = '12px';
+    panel.style.padding = '12px';
+    panel.style.borderRadius = '14px';
+    panel.style.border = '1px solid #f6c453';
+    panel.style.background = '#fff7db';
+    panel.innerHTML = '<div id="slot-dup-panel-inner"></div>';
+    modalBody.appendChild(panel);
+
+    const heroSel = document.getElementById('slot-modal-hero');
+    if(heroSel && !heroSel.dataset.dupBound){
+        heroSel.addEventListener('change', function(){
+            try{ __slotRenderDuplicatePanel(); }catch(e){}
+        });
+        heroSel.dataset.dupBound = '1';
+    }
+    return panel;
+}
+
+function __slotRenderDuplicatePanel(){
+    const panel = __ensureSlotDuplicatePanel();
+    const inner = document.getElementById('slot-dup-panel-inner');
+    if(!panel || !inner) return;
+    const s = __slotModalState.s, p = __slotModalState.p;
+    const heroSel = document.getElementById('slot-modal-hero');
+    const heroId = heroSel ? heroSel.value : 'empty';
+    if(!heroId || heroId === 'empty'){
+        panel.style.display = 'none';
+        inner.innerHTML = '';
+        return;
+    }
+    const dupMap = __slotDuplicateMap();
+    const others = (dupMap[heroId] || []).filter(x => !(x.s === s && x.p === p));
+    if(!others.length){
+        panel.style.display = 'none';
+        inner.innerHTML = '';
+        return;
+    }
+    const h = HEROES[heroId] || { n: heroId };
+    const buttons = others.map(x => {
+        return `<button type="button" onclick="slotModalSwapWith(${x.s},${x.p})" style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px; border:1px solid #f59e0b; background:#fff; color:#92400e; border-radius:12px; padding:10px 12px; font-weight:900; margin-top:8px;">` +
+               `<span>${__slotLabel(x.s,x.p)}</span><span>Lv.${x.lv} と入替</span></button>`;
+    }).join('');
+    inner.innerHTML = `
+      <div style="font-size:1rem; font-weight:900; color:#92400e;">${h.n} が他枠でも配置中</div>
+      <div style="margin-top:6px; font-size:0.84rem; color:#b45309; font-weight:700; line-height:1.5;">同じキャラが別枠にいます。入替で整理できます。</div>
+      ${buttons}
+    `;
+    panel.style.display = 'block';
+}
+
+function slotModalSwapWith(s2,p2){
+    const s1 = __slotModalState.s, p1 = __slotModalState.p;
+    const h1 = document.getElementById(`h-${s1}-${p1}`);
+    const w1 = document.getElementById(`w-${s1}-${p1}`);
+    const h2 = document.getElementById(`h-${s2}-${p2}`);
+    const w2 = document.getElementById(`w-${s2}-${p2}`);
+    if(!h1 || !w1 || !h2 || !w2) return;
+
+    const id1 = h1.value || 'empty';
+    const lv1 = (typeof w1.value === 'string' && (w1.value.includes('未') || w1.value === '-')) ? 0 : (parseInt(w1.value)||0);
+    const id2 = h2.value || 'empty';
+    const lv2 = (typeof w2.value === 'string' && (w2.value.includes('未') || w2.value === '-')) ? 0 : (parseInt(w2.value)||0);
+
+    h1.value = id2; w1.value = (id2 === 'empty') ? 0 : lv2;
+    h2.value = id1; w2.value = (id1 === 'empty') ? 0 : lv1;
+
+    try { updateAllSquads(); } catch(e) {}
+    try { renderSlots(); } catch(e) {}
+    closeSlotModal();
+}
+
+function renderSlots(){
+    const dupMap = __slotDuplicateMap();
+    __slotAllConfigs().forEach(cfg=>{
         const wrap = document.getElementById(cfg.el);
         if(!wrap) return;
         let html = '';
@@ -2089,8 +2202,11 @@ function renderSlots(){
                     <div class="slot-name">追加</div>
                 </div>`;
             } else {
+                const isDup = (dupMap[id] && dupMap[id].length > 1);
+                const dupBadge = isDup ? `<div style="position:absolute; top:6px; right:6px; z-index:2; background:#fff7ed; color:#c2410c; border:1px solid #fdba74; border-radius:999px; padding:2px 7px; font-size:0.68rem; font-weight:900; line-height:1;">重複</div>` : '';
                 html += `
-                <div class="slot-tile" onclick="openSlotModal(${cfg.s},${p});">
+                <div class="slot-tile" onclick="openSlotModal(${cfg.s},${p});" style="position:relative;">
+                    ${dupBadge}
                     <div class="slot-avatar">
                         <img src="${getHeroImagePath(id)}" alt="${h.n}" onerror="this.style.display='none'; this.parentNode.querySelector('.slot-fallback').style.display='flex';">
                         <div class="slot-fallback" style="display:none;">${shortName}</div>
@@ -2121,10 +2237,15 @@ function openSlotModal(s,p){
     document.getElementById('slot-modal-lv').innerText = lv;
 
     document.getElementById('slot-modal').classList.add('open');
+    try { __slotRenderDuplicatePanel(); } catch(e) {}
 }
 
 function closeSlotModal(){
     document.getElementById('slot-modal').classList.remove('open');
+    const panel = document.getElementById('slot-dup-panel');
+    const inner = document.getElementById('slot-dup-panel-inner');
+    if(panel) panel.style.display = 'none';
+    if(inner) inner.innerHTML = '';
 }
 
 function slotModalStep(d){
@@ -2149,8 +2270,7 @@ function slotModalApply(){
     if(hEl) hEl.value = id;
     if(wEl) wEl.value = (id==='empty') ? 0 : lv;
 
-    // 再評価
-    try { updateSquad(s); } catch(e) {}
+    try { updateAllSquads(); } catch(e) {}
     try { renderSlots(); } catch(e) {}
     closeSlotModal();
 }
