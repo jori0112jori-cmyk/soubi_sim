@@ -141,3 +141,27 @@ const ROUTE_WEIGHT_PRESET = {
   overall:{ cost:0.45, coverage:0.30, future:0.25 },
   safe:{ cost:0.60, coverage:0.25, future:0.15 }
 };
+
+
+// ===============================
+// ⭐ 専用武装タグ（簡易判定用）
+// ===============================
+const HERO_WEAPON_TAGS = {
+  murphy: ['shield_like_protect','frontline_protect','low_hp_protect','team_guard','damage_mitigation'],
+  kimberly: ['single_burst','energy_damage','stack_scaling','skill_multi_hit','aoe_bonus_30'],
+  marshall: ['atk_buff','crit_buff','focus_fire_support','target_mark','cooldown_reset_30'],
+  williams: ['interrupt','frontline_control','backline_control','team_def_buff','energy_vuln'],
+  stetmann: ['anti_shield','backline_hit','energy_bonus_hit','charge_scaling','cc_guard_30'],
+
+  dva: ['opening_burst','attack_speed','air_synergy','instant_opening_30','tempo_accel'],
+  carlie: ['anti_energy','enemy_atk_down','enemy_energy_down','frontline_stability','death_effect_30'],
+  schuyler: ['cc_stun','disrupt','backline_hit','anti_backline','guaranteed_cc_30'],
+  lucius: ['shield','energy_resist','low_hp_protect','team_barrier','atk_speed_on_break_30'],
+  morrison: ['hp_percent_damage','anti_tank','high_hp_target','def_down','finisher'],
+
+  tesla: ['dot','energy_dot','stack_dot','backline_pressure_30','dot_scaling'],
+  mcgregor: ['taunt','dot_amp','enemy_atk_down','frontline_stability','iron_wall_30'],
+  adam: ['counter','team_counter','frontline_protect','counter_amp','armor_break_counter_30'],
+  fiona: ['dot','physical_dot','aoe','dispel','anti_buff'],
+  swift: ['burn_dot','physical_dot','dot_synergy','sustained_damage']
+};

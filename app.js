@@ -268,9 +268,9 @@ function getHoldPinnedItems(items){
 function holdPinChipHtml(item){
   const pinKey = getHoldPinKey(item);
   const pinned = isHoldPinned(item);
-  const label = pinned ? '保留解除' : '保留';
   const cls = pinned ? ' is-active' : '';
-  return `<button type="button" class="rankhero-pinbtn${cls}" onclick="toggleHoldPinByKey('${pinKey}')" aria-label="${label}" title="${label}">📌</button>`;
+  const label = pinned ? '保留解除' : '保留';
+  return `<button type="button" class="rankhero-pinbtn${cls}" onclick="toggleHoldPinByKey('${pinKey}')" title="${label}" aria-label="${label}">📌</button>`;
 }
 function holdPinnedSummaryHtml(items){
   const list = getHoldPinnedItems(items).slice(0, 4);
@@ -621,7 +621,7 @@ function effCardHtml(rank, item, opts){
     sub = `<div class="eff-sub"><span class="eff-subline">解放時${unlockLv} <span class="eff-plus">+${safeItem.gain}</span></span></div>`;
   }else{
     const costPart = (safeItem.cost !== undefined && safeItem.cost !== null)
-      ? `<span class="gear-cost"><span class="sep">/</span><img src="${SHARD_ICON_SRC}" alt="gear"> <span class="gear-num">${safeItem.cost}</span></span>`
+      ? `<span class="gear-cost"><span class="sep">あと</span><img src="${SHARD_ICON_SRC}" alt="gear"> <span class="gear-num">${safeItem.cost}</span></span>`
       : '';
     sub = `<div class="eff-sub"><span class="eff-subline"><span class="eff-plus">+${safeItem.gain}</span>${costPart ? ' ' + costPart : ''}</span></div>`;
   }
@@ -1427,12 +1427,13 @@ function __aiReasonBadgeFromScores(meta){
       axis = 'atk';
     }
   } else if(top.key === 'cost'){
+    const effectLabel = (ms && ms.target >= 30) ? '育成効果:大' : '育成効果:中';
     if(top.value >= second.value * 1.05){
-      label = '育成効率';
+      label = effectLabel;
     }else if(safeQualified || close){
       label = '安全';
     }else if(top.value >= second.value * 1.02){
-      label = '育成効率';
+      label = effectLabel;
     }
   }
 
@@ -1442,7 +1443,7 @@ function __aiReasonBadgeFromScores(meta){
 
 function __aiDisplaySafeLabel(hero, ms, context, reasonBadge, scoreCost, scoreCoverage, scoreFuture){
   if(!hero || !ms || !context || !reasonBadge) return '';
-  if(reasonBadge.label !== '育成効率') return '';
+  if(reasonBadge.label !== '育成効率' && reasonBadge.label !== '育成効果:中') return '';
   if(ms.target > 20) return '';
   const sameMain = hero.t === context.currentCombatType;
   const inMainArmy = context.mainArmyIds && context.mainArmyIds.has(hero.id);
@@ -1510,9 +1511,34 @@ function calculateUpgradeEfficiencyFull(roster){
         const synergy = __aiSynergyBias(hero, roster, ms.target);
         const tankBranchBias = __aiTankBranchBias(hero, ms.target, { weakness1, weakness2, weakness3, currentCombatType: context.currentCombatType, investmentType: context.investmentType });
 
-        const scoreCost = basePerCost * __aiTypePolicyMult(hero.t, context, 'cost') * __aiHeroBias(hero.id, 'cost', context) * __aiMilestoneBias(hero.id, ms.target, 'cost') * synergy * tankBranchBias * (sameMain ? 1.08 : 0.96) * (inMainArmy ? 1.06 : 1.00);
-        const scoreCoverage = basePerCost * __aiTypePolicyMult(hero.t, context, 'coverage') * __aiHeroBias(hero.id, 'coverage', context) * __aiMilestoneBias(hero.id, ms.target, 'coverage') * synergy * tankBranchBias * (sameMain ? 0.96 : 1.06) * (sameInvest ? 1.04 : 1.00);
-        const scoreFuture = basePerCost * __aiTypePolicyMult(hero.t, context, 'future') * __aiHeroBias(hero.id, 'future', context) * __aiMilestoneBias(hero.id, ms.target, 'future') * synergy * tankBranchBias * (sameInvest ? 1.10 : 0.96);
+        const attackWeak = (weakness1 === 'attack' || weakness2 === 'attack' || weakness3 === 'attack');
+        const defenseWeak = (weakness1 === 'defense' || weakness2 === 'defense' || weakness3 === 'defense');
+        const isWeaknessCoverage = (attackWeak && roleKey === 'atk') || (defenseWeak && roleKey === 'wall');
+        const isMainGrowthCandidate = sameMain && inMainArmy && !isWeaknessCoverage;
+        let mainMaturityPenalty = 1.0;
+        if(isMainGrowthCandidate){
+          if(context.mainTeamMaturity === 'mid') mainMaturityPenalty = 0.97;
+          else if(context.mainTeamMaturity === 'high') mainMaturityPenalty = 0.92;
+          if(ms.target === 30) mainMaturityPenalty = Math.max(mainMaturityPenalty, 0.97);
+        }
+
+        const isBudgetShiftCandidate = !sameMain && sameInvest && ms.target <= 20;
+        let budgetShiftBoost = 1.0;
+        if(isBudgetShiftCandidate){
+          if(cost <= 250) budgetShiftBoost *= 1.12;
+          else if(cost <= 500) budgetShiftBoost *= 1.09;
+          else if(cost <= 900) budgetShiftBoost *= 1.05;
+          else budgetShiftBoost *= 1.02;
+          if(context.investmentType === 'air' && hero.t === 'air') budgetShiftBoost *= 1.04;
+          if((context.transitionState === 'seed_air' || context.transitionState === 'shift_to_air') && hero.t === 'air') budgetShiftBoost *= 1.04;
+          if(isWeaknessCoverage) budgetShiftBoost *= 1.03;
+        }
+        const budgetShiftCoverageBoost = budgetShiftBoost;
+        const budgetShiftFutureBoost = isBudgetShiftCandidate ? Math.min(1.08, 1 + ((budgetShiftBoost - 1) * 0.45)) : 1.0;
+
+        const scoreCost = basePerCost * __aiTypePolicyMult(hero.t, context, 'cost') * __aiHeroBias(hero.id, 'cost', context) * __aiMilestoneBias(hero.id, ms.target, 'cost') * synergy * tankBranchBias * (sameMain ? 1.08 : 0.96) * (inMainArmy ? 1.06 : 1.00) * mainMaturityPenalty;
+        const scoreCoverage = basePerCost * __aiTypePolicyMult(hero.t, context, 'coverage') * __aiHeroBias(hero.id, 'coverage', context) * __aiMilestoneBias(hero.id, ms.target, 'coverage') * synergy * tankBranchBias * (sameMain ? 0.96 : 1.06) * (sameInvest ? 1.04 : 1.00) * mainMaturityPenalty * budgetShiftCoverageBoost;
+        const scoreFuture = basePerCost * __aiTypePolicyMult(hero.t, context, 'future') * __aiHeroBias(hero.id, 'future', context) * __aiMilestoneBias(hero.id, ms.target, 'future') * synergy * tankBranchBias * (sameInvest ? 1.10 : 0.96) * budgetShiftFutureBoost;
         const efficiency = (scoreCost * weights.cost) + (scoreCoverage * weights.coverage) + (scoreFuture * weights.future);
 
         const weaknesses = [weakness1, weakness2, weakness3].filter(Boolean);
