@@ -88,29 +88,29 @@ const HERO_LONGTERM_VALUE = {
   marshall:0.72, swift:0.70, williams:0.62, carlie:0.58, adam:0.56
 };
 
-
 const HERO_EVAL_META = {
   // tank
-  kimberly: { budgetFit:0.95, weaknessFit:0.95, shiftFit:0.92, milestone20Fit:1.06, milestone30Fit:1.10 },
-  marshall: { budgetFit:0.98, weaknessFit:1.00, shiftFit:0.94, milestone20Fit:1.05, milestone30Fit:1.08 },
-  murphy:   { budgetFit:1.03, weaknessFit:1.08, shiftFit:0.92, milestone20Fit:1.06, milestone30Fit:1.04 },
-  williams: { budgetFit:1.00, weaknessFit:1.05, shiftFit:0.92, milestone20Fit:1.04, milestone30Fit:1.02 },
-  stetmann: { budgetFit:0.97, weaknessFit:0.98, shiftFit:0.90, milestone20Fit:1.01, milestone30Fit:1.00 },
+  kimberly:{ milestone10Fit:1.03 },
+  marshall:{ milestone10Fit:1.05 },
+  murphy:{ milestone10Fit:1.06 },
+  williams:{ milestone10Fit:1.06 },
+  stetmann:{ milestone10Fit:1.01 },
 
   // air
-  dva:      { budgetFit:1.02, weaknessFit:0.98, shiftFit:1.10, milestone20Fit:1.10, milestone30Fit:1.08 },
-  lucius:   { budgetFit:1.01, weaknessFit:1.12, shiftFit:1.08, milestone20Fit:1.04, milestone30Fit:1.00 },
-  morrison: { budgetFit:1.06, weaknessFit:1.05, shiftFit:1.07, milestone20Fit:1.05, milestone30Fit:0.99 },
-  schuyler: { budgetFit:1.09, weaknessFit:1.00, shiftFit:1.05, milestone20Fit:1.05, milestone30Fit:0.96 },
-  carlie:   { budgetFit:1.08, weaknessFit:1.00, shiftFit:1.06, milestone20Fit:1.06, milestone30Fit:0.98 },
+  dva:{ milestone10Fit:1.03 },
+  lucius:{ milestone10Fit:1.07 },
+  morrison:{ milestone10Fit:1.01 },
+  schuyler:{ milestone10Fit:1.06 },
+  carlie:{ milestone10Fit:1.02 },
 
   // missile
-  tesla:    { budgetFit:0.98, weaknessFit:0.96, shiftFit:1.08, milestone20Fit:1.08, milestone30Fit:1.08 },
-  fiona:    { budgetFit:1.00, weaknessFit:1.05, shiftFit:1.06, milestone20Fit:1.05, milestone30Fit:1.05 },
-  mcgregor: { budgetFit:0.99, weaknessFit:1.06, shiftFit:1.02, milestone20Fit:1.03, milestone30Fit:1.01 },
-  adam:     { budgetFit:1.00, weaknessFit:1.07, shiftFit:1.03, milestone20Fit:1.03, milestone30Fit:1.01 },
-  swift:    { budgetFit:0.97, weaknessFit:0.98, shiftFit:1.00, milestone20Fit:1.02, milestone30Fit:1.00 }
+  tesla:{ milestone10Fit:1.05 },
+  fiona:{ milestone10Fit:1.05 },
+  mcgregor:{ milestone10Fit:1.05 },
+  adam:{ milestone10Fit:1.01 },
+  swift:{ milestone10Fit:1.03 }
 };
+
 
 const HERO_SYNERGY = {
   // Air

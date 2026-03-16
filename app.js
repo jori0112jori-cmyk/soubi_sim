@@ -1156,14 +1156,17 @@ function growthBadge(g){
     // g: {level, axis, label, strong}
     if(!g || !g.label) g = { level: 1, axis: "bal", label: "バランス", strong:false };
 
-    const axis = g.axis || "bal";
+    let axis = g.axis || "bal";
     const strong = !!g.strong;
+
+    // 弱点補強の派生ラベルも既存の impact-badge 系へ寄せて統一表示する
+    if(g.label === '攻撃補強') axis = 'atk';
+    else if(g.label === '耐久補強') axis = 'wall';
 
     let cls = "bal";
     if(axis === "atk") cls = "atk" + (strong ? " strong" : "");
     else if(axis === "wall") cls = "wall" + (strong ? " strong" : "");
 
-    // バッジは「impact-badge」スタイルを流用（既存CSSを活かす）
     const icoCls = (axis === "atk") ? "atk" : (axis === "wall") ? "wall" : "bal";
     return `<span class="impact-badge ${cls}"><span class="impact-ico ${icoCls}"></span>${g.label}</span>`;
 }
@@ -1194,8 +1197,9 @@ function __aiGetLongterm(heroId){
     : 0.55;
 }
 function __aiGetEvalMeta(heroId){
-  const meta = (typeof HERO_EVAL_META === 'object' && HERO_EVAL_META[heroId]) ? HERO_EVAL_META[heroId] : null;
-  return meta || { budgetFit:1.0, weaknessFit:1.0, shiftFit:1.0, milestone20Fit:1.0, milestone30Fit:1.0 };
+  return (typeof HERO_EVAL_META === 'object' && HERO_EVAL_META[heroId])
+    ? HERO_EVAL_META[heroId]
+    : { milestone10Fit:1.0 };
 }
 function __aiCounterMap(type){
   return (typeof TYPE_COUNTER_WEIGHT === 'object' && TYPE_COUNTER_WEIGHT[type])
@@ -1407,18 +1411,24 @@ function __aiReasonBadgeFromScores(meta){
   const inMainArmy = !!(hero && context && context.mainArmyIds && context.mainArmyIds.has(hero.id));
   const safeQualified = !!(hero && ms && ms.target <= 20 && (sameMain || inMainArmy || hero.r === 'wall' || hero.r === 'sup'));
 
+  function weaknessLabelFor(axisKey, role){
+    if(axisKey === 'wall' || role === 'wall') return '耐久補強';
+    if(axisKey === 'atk' || role === 'atk') return '攻撃補強';
+    return '弱点補強';
+  }
+
   let label = '安定';
   let axis = 'bal';
   let strong = false;
 
   if(top.key === 'coverage'){
     if(weaknessMatch && top.value >= second.value * 1.02){
-      label = '弱点補強';
       axis = (weaknesses || []).includes('attack') ? 'atk' : 'wall';
+      label = weaknessLabelFor(axis, roleKey);
       strong = true;
     }else if(weaknessMatch && !close){
-      label = '弱点補強';
       axis = (weaknesses || []).includes('attack') ? 'atk' : 'wall';
+      label = weaknessLabelFor(axis, roleKey);
     }
   } else if(top.key === 'future'){
     const futureQualified = (ms && ms.target >= 30) || sameInvest || longterm >= 0.72;
@@ -1514,33 +1524,12 @@ function calculateUpgradeEfficiencyFull(roster){
         const inMainArmy = context.mainArmyIds.has(hero.id);
         const synergy = __aiSynergyBias(hero, roster, ms.target);
         const tankBranchBias = __aiTankBranchBias(hero, ms.target, { weakness1, weakness2, weakness3, currentCombatType: context.currentCombatType, investmentType: context.investmentType });
-        const isWeaknessCoverage = (!sameMain && (hero.r === 'front_tank' || hero.r === 'control' || hero.r === 'support'));
-        const isMainGrowthCandidate = (sameMain && inMainArmy && !isWeaknessCoverage);
+        const evalMeta = __aiGetEvalMeta(hero.id);
+        const milestone10EvalFit = (ms.target === 10) ? (evalMeta.milestone10Fit || 1.0) : 1.0;
 
-        let mainMaturityPenalty = 1.0;
-        if(isMainGrowthCandidate){
-          if(context.mainTeamMaturity === 'mid') mainMaturityPenalty = 0.97;
-          else if(context.mainTeamMaturity === 'high') mainMaturityPenalty = 0.92;
-          if(ms.target === 30) mainMaturityPenalty = Math.max(mainMaturityPenalty, 0.97);
-        }
-
-        const isBudgetShiftCandidate = (!sameMain && sameInvest && ms.target <= 20);
-        let budgetShiftBoost = 1.0;
-        if(isBudgetShiftCandidate){
-          if(cost <= 250) budgetShiftBoost *= 1.12;
-          else if(cost <= 500) budgetShiftBoost *= 1.09;
-          else if(cost <= 900) budgetShiftBoost *= 1.05;
-          else budgetShiftBoost *= 1.02;
-          if(context.investmentType === 'air' && hero.t === 'air') budgetShiftBoost *= 1.04;
-          if((context.transitionState === 'seed_air' || context.transitionState === 'shift_to_air') && hero.t === 'air') budgetShiftBoost *= 1.04;
-          if(isWeaknessCoverage) budgetShiftBoost *= 1.03;
-        }
-        const budgetShiftCoverageBoost = budgetShiftBoost;
-        const budgetShiftFutureBoost = isBudgetShiftCandidate ? Math.min(1.08, 1 + ((budgetShiftBoost - 1) * 0.45)) : 1.0;
-
-        const scoreCost = basePerCost * __aiTypePolicyMult(hero.t, context, 'cost') * __aiHeroBias(hero.id, 'cost', context) * __aiMilestoneBias(hero.id, ms.target, 'cost') * synergy * tankBranchBias * (sameMain ? 1.08 : 0.96) * (inMainArmy ? 1.06 : 1.00) * mainMaturityPenalty;
-        const scoreCoverage = basePerCost * __aiTypePolicyMult(hero.t, context, 'coverage') * __aiHeroBias(hero.id, 'coverage', context) * __aiMilestoneBias(hero.id, ms.target, 'coverage') * synergy * tankBranchBias * (sameMain ? 0.96 : 1.06) * (sameInvest ? 1.04 : 1.00) * mainMaturityPenalty * budgetShiftCoverageBoost;
-        const scoreFuture = basePerCost * __aiTypePolicyMult(hero.t, context, 'future') * __aiHeroBias(hero.id, 'future', context) * __aiMilestoneBias(hero.id, ms.target, 'future') * synergy * tankBranchBias * (sameInvest ? 1.10 : 0.96) * budgetShiftFutureBoost;
+        const scoreCost = basePerCost * __aiTypePolicyMult(hero.t, context, 'cost') * __aiHeroBias(hero.id, 'cost', context) * __aiMilestoneBias(hero.id, ms.target, 'cost') * synergy * tankBranchBias * (sameMain ? 1.08 : 0.96) * (inMainArmy ? 1.06 : 1.00) * milestone10EvalFit;
+        const scoreCoverage = basePerCost * __aiTypePolicyMult(hero.t, context, 'coverage') * __aiHeroBias(hero.id, 'coverage', context) * __aiMilestoneBias(hero.id, ms.target, 'coverage') * synergy * tankBranchBias * (sameMain ? 0.96 : 1.06) * (sameInvest ? 1.04 : 1.00) * milestone10EvalFit;
+        const scoreFuture = basePerCost * __aiTypePolicyMult(hero.t, context, 'future') * __aiHeroBias(hero.id, 'future', context) * __aiMilestoneBias(hero.id, ms.target, 'future') * synergy * tankBranchBias * (sameInvest ? 1.10 : 0.96) * milestone10EvalFit;
         const efficiency = (scoreCost * weights.cost) + (scoreCoverage * weights.coverage) + (scoreFuture * weights.future);
 
         const weaknesses = [weakness1, weakness2, weakness3].filter(Boolean);
