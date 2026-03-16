@@ -1193,6 +1193,10 @@ function __aiGetLongterm(heroId){
     ? HERO_LONGTERM_VALUE[heroId]
     : 0.55;
 }
+function __aiGetEvalMeta(heroId){
+  const meta = (typeof HERO_EVAL_META === 'object' && HERO_EVAL_META[heroId]) ? HERO_EVAL_META[heroId] : null;
+  return meta || { budgetFit:1.0, weaknessFit:1.0, shiftFit:1.0, milestone20Fit:1.0, milestone30Fit:1.0 };
+}
 function __aiCounterMap(type){
   return (typeof TYPE_COUNTER_WEIGHT === 'object' && TYPE_COUNTER_WEIGHT[type])
     ? TYPE_COUNTER_WEIGHT[type]
@@ -1510,11 +1514,9 @@ function calculateUpgradeEfficiencyFull(roster){
         const inMainArmy = context.mainArmyIds.has(hero.id);
         const synergy = __aiSynergyBias(hero, roster, ms.target);
         const tankBranchBias = __aiTankBranchBias(hero, ms.target, { weakness1, weakness2, weakness3, currentCombatType: context.currentCombatType, investmentType: context.investmentType });
+        const isWeaknessCoverage = (!sameMain && (hero.r === 'front_tank' || hero.r === 'control' || hero.r === 'support'));
+        const isMainGrowthCandidate = (sameMain && inMainArmy && !isWeaknessCoverage);
 
-        const attackWeak = (weakness1 === 'attack' || weakness2 === 'attack' || weakness3 === 'attack');
-        const defenseWeak = (weakness1 === 'defense' || weakness2 === 'defense' || weakness3 === 'defense');
-        const isWeaknessCoverage = (attackWeak && roleKey === 'atk') || (defenseWeak && roleKey === 'wall');
-        const isMainGrowthCandidate = sameMain && inMainArmy && !isWeaknessCoverage;
         let mainMaturityPenalty = 1.0;
         if(isMainGrowthCandidate){
           if(context.mainTeamMaturity === 'mid') mainMaturityPenalty = 0.97;
@@ -1522,7 +1524,7 @@ function calculateUpgradeEfficiencyFull(roster){
           if(ms.target === 30) mainMaturityPenalty = Math.max(mainMaturityPenalty, 0.97);
         }
 
-        const isBudgetShiftCandidate = !sameMain && sameInvest && ms.target <= 20;
+        const isBudgetShiftCandidate = (!sameMain && sameInvest && ms.target <= 20);
         let budgetShiftBoost = 1.0;
         if(isBudgetShiftCandidate){
           if(cost <= 250) budgetShiftBoost *= 1.12;
