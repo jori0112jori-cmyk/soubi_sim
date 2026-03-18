@@ -724,8 +724,10 @@ body.keep-eval-collapse .slot-army.slot-collapsed .slot-eval{ display:block !imp
 
 
 /* === 編成補強おすすめ（専用） === */
-#eff-result .reinf-card{padding:10px 0;}
-#eff-result .reinf-card--split{border-top:1px dashed #fbcfe8;margin-top:8px;}
+#eff-result .reinf-card{padding:12px 0;}
+#eff-result .reinf-card + .reinf-card{position:relative;margin-top:10px;padding-top:14px;}
+#eff-result .reinf-card + .reinf-card::before{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg, rgba(244,114,182,0), rgba(244,114,182,.55) 18%, rgba(244,114,182,.55) 82%, rgba(244,114,182,0));}
+#eff-result .reinf-card--split{border-top:none;margin-top:0;}
 #eff-result .reinf-row{display:grid;grid-template-columns:84px minmax(0,1fr) auto;align-items:start;gap:10px;}
 #eff-result .reinf-visual{width:84px;text-align:center;}
 #eff-result .reinf-chip-row{display:flex;align-items:center;justify-content:center;gap:4px;margin-bottom:4px;}
@@ -756,8 +758,13 @@ body.keep-eval-collapse .slot-army.slot-collapsed .slot-eval{ display:block !imp
 
 
 /* === 育成優先ランキング / 編成補強おすすめ 2段レイアウト === */
-#eff-result .rankhero-card{padding:10px 0;}
-#eff-result .rankhero-card--split{border-top:1px dashed #fbcfe8;margin-top:8px;}
+#eff-result .rankhero-card{padding:12px 0;}
+#eff-result .rankhero-card + .rankhero-card{position:relative;margin-top:10px;padding-top:14px;}
+#eff-result .rankhero-card + .rankhero-card::before{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg, rgba(244,114,182,0), rgba(244,114,182,.55) 18%, rgba(244,114,182,.55) 82%, rgba(244,114,182,0));}
+#eff-result .rankhero-card--split{border-top:none;margin-top:0;}
+#eff-result #eff-more-list[data-open="1"]{position:relative;margin-top:14px !important;padding-top:16px;}
+#eff-result #eff-more-list[data-open="1"]::before{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg, rgba(244,114,182,0), rgba(244,114,182,.55) 18%, rgba(244,114,182,.55) 82%, rgba(244,114,182,0));}
+
 #eff-result .rankhero-card--best{background:#fff7ed;border:1px solid #fdba74;box-shadow:0 2px 8px rgba(0,0,0,.06);border-radius:12px;padding:10px 8px;}
 #eff-result .rankhero-row{display:grid;grid-template-columns:96px minmax(0,1fr);align-items:center;gap:12px;}
 #eff-result .rankhero-visual{width:96px;text-align:center;}
@@ -800,3 +807,54 @@ body.keep-eval-collapse .slot-army.slot-collapsed .slot-eval{ display:block !imp
   #eff-result .rankhero-cost-num{min-width:40px;font-size:1.1em;}
 }
 
+
+
+/* === 後回し候補：サブ枠として少し控えめに === */
+.hold-pin-box{
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+
+.hold-pin-title{
+  font-size: 12px;
+  font-weight: 700;
+  color: #a8557a;
+  letter-spacing: 0.01em;
+  margin-bottom: 6px;
+}
+
+.hold-pin-list{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.hold-pin-chip{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.hold-pin-chip .pin-icon{
+  font-size: 11px;
+}
+
+.hold-pin-chip .hold-lv{
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+/* === ランキング1行要約：補足情報として少し控えめに === */
+.rankhero-summary{
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: #6b7280;
+}

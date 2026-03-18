@@ -1,3 +1,13 @@
+
+function escapeHtml(str){
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // Auto-split from single-file build (v1.4)
 // App logic
 // --- マスタデータ ---
@@ -114,6 +124,17 @@ function collectArmyMembersForProgress(armyNo){
 
 
 
+function getIdealMembersForType(type){
+  const idealType = ['tank','air','mis'].includes(type) ? type : 'tank';
+  return [
+    { id:`${idealType}-i1`, wp:30, t:idealType, r:'wall' },
+    { id:`${idealType}-i2`, wp:30, t:idealType, r:'wall' },
+    { id:`${idealType}-i3`, wp:30, t:idealType, r:'atk'  },
+    { id:`${idealType}-i4`, wp:30, t:idealType, r:'atk'  },
+    { id:`${idealType}-i5`, wp:30, t:idealType, r:'sup'  },
+  ];
+}
+
 function computeDisplayedArmyProgress(armyNo){
   const members = collectArmyMembersForProgress(armyNo);
   if(!members.length){
@@ -121,14 +142,7 @@ function computeDisplayedArmyProgress(armyNo){
   }
 
   const res = evaluateSquadRealCombat(members);
-
-  const idealMembers = [
-    { id:'i1', wp:30, t:'tank', r:'wall' },
-    { id:'i2', wp:30, t:'tank', r:'wall' },
-    { id:'i3', wp:30, t:'tank', r:'atk'  },
-    { id:'i4', wp:30, t:'tank', r:'atk'  },
-    { id:'i5', wp:30, t:'tank', r:'sup'  },
-  ];
+  const idealMembers = getIdealMembersForType(res.mainType || members[0]?.t || 'tank');
   const ideal = evaluateSquadRealCombat(idealMembers).score;
 
   const pct = Math.max(0, Math.min(100, Math.round((res.score / Math.max(ideal,1)) * 100)));
@@ -279,7 +293,7 @@ function holdPinnedSummaryHtml(items){
     const pinKey = getHoldPinKey(item);
     return `<button type="button" class="hold-pin-chip" onclick="toggleHoldPinByKey('${pinKey}')">📌 ${item.name} Lv${item.from}→${item.to}</button>`;
   }).join('');
-  return `<div class="hold-pin-summary"><div class="hold-pin-title">保留中の候補</div><div class="hold-pin-list">${chips}</div></div>`;
+  return `<div class="hold-pin-summary"><div class="hold-pin-title">後回し候補</div><div class="hold-pin-list">${chips}</div></div>`;
 }
 
 
@@ -573,7 +587,7 @@ function effTitleLine(rank, item){
     st.id = '__eff_rank_css';
     st.textContent = `
       .eff-card{ padding:10px 10px; border-radius:12px; }
-      .eff-card + .eff-card{ border-top:1px dashed #fbcfe8; margin-top:8px; padding-top:12px; }
+      .eff-card + .eff-card{ border-top:1px solid #f3c4dd; margin-top:10px; padding-top:14px; }
       .eff-card-best{ background:#fff7ed; border:1px solid #fdba74; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
       .eff-row{ display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
       .eff-left{ line-height:1.4; min-width:0; }
@@ -592,6 +606,21 @@ function effTitleLine(rank, item){
       .hold-pin-title{ font-size:.82rem; font-weight:900; color:#a21caf; margin-bottom:6px; }
       .hold-pin-list{ display:flex; flex-wrap:wrap; gap:6px; }
       .hold-pin-chip{ appearance:none; border:1px solid #fdba74; background:#fff7ed; color:#c2410c; border-radius:999px; padding:5px 10px; font-size:.74rem; font-weight:900; cursor:pointer; }
+      .rankhero-reasons{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+      .rankhero-card--split,
+      .reinf-card + .reinf-card{ position:relative; margin-top:14px; padding-top:16px; }
+      .rankhero-card--split::before,
+      .reinf-card + .reinf-card::before{ content:''; position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg, rgba(244,114,182,0), rgba(244,114,182,.42) 12%, rgba(244,114,182,.42) 88%, rgba(244,114,182,0)); }
+      .reason-badge{ display:inline-flex; align-items:center; border-radius:999px; padding:3px 8px; font-size:.70rem; font-weight:900; line-height:1.2; border:1px solid transparent; white-space:nowrap; }
+      .reason-badge--neutral{ background:#f1f5f9; color:#475569; border-color:#cbd5e1; }
+      .reason-badge--accent{ background:#eef2ff; color:#4338ca; border-color:#c7d2fe; }
+      .reason-badge--good{ background:#ecfdf5; color:#047857; border-color:#a7f3d0; }
+      .reason-badge--warn{ background:#fff7ed; color:#c2410c; border-color:#fdba74; }
+      .reason-badge--attack{ background:#fef2f2; color:#b91c1c; border-color:#fecaca; }
+      .reason-badge--defense{ background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+      .reason-badge--support{ background:#faf5ff; color:#7e22ce; border-color:#e9d5ff; }
+      .reason-badge--future{ background:#f5f3ff; color:#6d28d9; border-color:#ddd6fe; }
+      .rankhero-summary{ margin-top:6px; font-size:12px; line-height:1.45; color:#6b7280; }
     `;
     document.head.appendChild(st);
   }catch(e){}
@@ -672,14 +701,9 @@ function topRankCardHtml(rank, item, opts){
     ? `<span class="rankhero-cost"><span class="rankhero-cost-sep">あと</span><img class="rankhero-cost-icon" src="${SHARD_ICON_SRC}" alt="gear"> <span class="rankhero-cost-num">${safeItem.cost}</span></span>`
     : '';
 
-  const costTierLabel = safeItem.costTierLabel
-    ? `<span class="rankhero-mini rankhero-mini--cost">${safeItem.costTierLabel}</span>`
-    : '';
-  const safeHintLabel = safeItem.safeHintLabel
-    ? `<span class="rankhero-mini rankhero-mini--safe">${safeItem.safeHintLabel}</span>`
-    : '';
-
   const badge = safeItem.growthType ? growthBadge(safeItem.growthType) : (opts.rightBadge || '');
+  const reasonBadges = Array.isArray(safeItem.reasonCodes) ? __aiSelectReasonCodes(safeItem.reasonCodes, 2).map(reasonCodeBadge).join('') : '';
+  const summaryText = __buildRecommendationSummary(safeItem);
   const pinBtn = (opts.showPin === false) ? '' : holdPinChipHtml(safeItem);
   const cardClass = compact ? 'rankhero-card rankhero-card--compact' : `rankhero-card ${rank>1?'rankhero-card--split':''}`;
   const rowClass = compact ? 'rankhero-row rankhero-row--compact' : 'rankhero-row';
@@ -704,10 +728,11 @@ function topRankCardHtml(rank, item, opts){
             ${lvLine}
             <div class="rankhero-topbadge">${badge}${pinBtn}</div>
           </div>
+          ${reasonBadges ? `<div class="rankhero-reasons">${reasonBadges}</div>` : ''}
+          ${summaryText ? `<div class="rankhero-summary">${escapeHtml(summaryText)}</div>` : ''}
           <div class="rankhero-bottomline">
             <div class="rankhero-leftline">
               <div class="rankhero-gain">+${safeItem.gain}</div>
-              ${safeHintLabel}${costTierLabel}
             </div>
             <div class="rankhero-costwrap">${costPart}</div>
           </div>
@@ -925,6 +950,22 @@ function combinations(arr, k) {
 }
 
 
+function getCombatBasePts(member){
+    if(!member) return 0;
+    let pts = wpToPts(member.wp);
+    if(member.ur){
+        const profile = __aiGetProfile(member.id);
+        const evalMeta = __aiGetEvalMeta(member.id);
+        let penalty = 20;
+        if(profile.promotedUr){
+            penalty = 14;
+            if((evalMeta.promotedUrImmediateFit || 1) >= 1.08) penalty = 12;
+        }
+        pts -= penalty;
+    }
+    return Math.max(0, pts);
+}
+
 function evaluateSquadRealCombat(squadMembers) {
     if(squadMembers.length === 0) return {
         score: 0, maxCount: 0, buffRate: 0, mainType: null,
@@ -932,9 +973,7 @@ function evaluateSquadRealCombat(squadMembers) {
     };
 
     squadMembers.forEach(m => {
-        let pts = wpToPts(m.wp);
-        if (m.ur) pts -= 20;
-        m.basePts = Math.max(0, pts);
+        m.basePts = getCombatBasePts(m);
     });
 
     const buffInfo = getArmyBuffInfo(squadMembers);
@@ -1001,10 +1040,7 @@ function evaluateSquadRealCombat(squadMembers) {
 
 
 function getMemberBasePts(member){
-    if(!member) return 0;
-    let pts = wpToPts(member.wp);
-    if(member.ur) pts -= 20;
-    return Math.max(0, pts);
+    return getCombatBasePts(member);
 }
 
 function calcMultiArmyTotalScore(assignment){
@@ -1172,6 +1208,169 @@ function growthBadge(g){
 }
 
 
+
+function __aiReasonLabel(code){
+  const dict = (typeof REASON_LABELS === 'object' && REASON_LABELS) ? REASON_LABELS : null;
+  if(!dict || !code) return '';
+  for(const groupKey of Object.keys(dict)){
+    const group = dict[groupKey] || {};
+    if(group && Object.prototype.hasOwnProperty.call(group, code)) return group[code];
+  }
+  return '';
+}
+function __aiReasonStyle(code){
+  const dict = (typeof REASON_BADGE_STYLE === 'object' && REASON_BADGE_STYLE) ? REASON_BADGE_STYLE : null;
+  return (dict && dict[code]) ? dict[code] : 'neutral';
+}
+function reasonCodeBadge(code){
+  const label = __aiReasonLabel(code) || code || '';
+  const style = __aiReasonStyle(code);
+  return `<span class="reason-badge reason-badge--${style}">${label}</span>`;
+}
+function __aiReasonPriorityGroups(){
+  const arr = (typeof REASON_BADGE_PRIORITY !== 'undefined' && Array.isArray(REASON_BADGE_PRIORITY)) ? REASON_BADGE_PRIORITY : ['policy','role','efficiency','timing'];
+  return arr;
+}
+function __aiReasonGroupOf(code){
+  const dict = (typeof REASON_LABELS === 'object' && REASON_LABELS) ? REASON_LABELS : null;
+  if(!dict || !code) return '';
+  for(const groupKey of Object.keys(dict)){
+    const group = dict[groupKey] || {};
+    if(group && Object.prototype.hasOwnProperty.call(group, code)) return groupKey;
+  }
+  return '';
+}
+function __aiTypedPolicyCode(baseCode, heroType){
+  if(baseCode === 'seed'){
+    if(heroType === 'air') return 'seed_air';
+    if(heroType === 'mis') return 'seed_mis';
+  }
+  if(baseCode === 'shift'){
+    if(heroType === 'air') return 'shift_air';
+    if(heroType === 'mis') return 'shift_mis';
+  }
+  return baseCode;
+}
+function __aiSelectReasonCodes(codes, limit=2){
+  const uniq = [];
+  (codes || []).forEach(code => { if(code && !uniq.includes(code)) uniq.push(code); });
+  if(!uniq.length) return [];
+
+  const policyCodes = ['build_main','hold','seed_air','seed_mis','seed','shift_air','shift_mis','shift','full_shift'];
+  const policyPriority = ['seed_air','seed_mis','shift_air','shift_mis','full_shift','shift','build_main','hold','seed'];
+  const costCodes = ['lv30','high_cost','low_cost','mid_cost'];
+  const timingCodes = ['future','immediate','promoted_ur'];
+
+  const bestPolicyCode = policyPriority.find(code => uniq.includes(code)) || uniq.find(code => policyCodes.includes(code)) || '';
+  const bestCostCode = costCodes.find(code => uniq.includes(code)) || '';
+  const bestTimingCode = timingCodes.find(code => uniq.includes(code)) || '';
+
+  const normalized = uniq.filter(code => !policyCodes.includes(code) && !costCodes.includes(code) && !timingCodes.includes(code));
+  if(bestPolicyCode) normalized.unshift(bestPolicyCode);
+
+  // policy がある場合は、汎用的すぎる mid_cost を優先しすぎない。
+  if(bestCostCode && !(bestPolicyCode && bestCostCode === 'mid_cost' && bestTimingCode)) normalized.push(bestCostCode);
+  if(bestTimingCode) normalized.push(bestTimingCode);
+
+  const groups = __aiReasonPriorityGroups();
+  const picked = [];
+  groups.forEach(groupKey => {
+    const found = normalized.find(code => __aiReasonGroupOf(code) === groupKey);
+    if(found && !picked.includes(found) && picked.length < limit) picked.push(found);
+  });
+  normalized.forEach(code => { if(!picked.includes(code) && picked.length < limit) picked.push(code); });
+  return picked.slice(0, limit);
+}
+
+function __summaryPolicyBase(reasonCodes = []){
+  if(reasonCodes.includes('full_shift')) return 'full_shift';
+  if(reasonCodes.includes('shift_air') || reasonCodes.includes('shift_mis') || reasonCodes.includes('shift')) return 'shift';
+  if(reasonCodes.includes('seed_air') || reasonCodes.includes('seed_mis') || reasonCodes.includes('seed')) return 'seed';
+  if(reasonCodes.includes('build_main')) return 'build_main';
+  if(reasonCodes.includes('hold')) return 'hold';
+  return '';
+}
+function __summaryImpactKey(item){
+  if(!item) return 'default';
+  const axis = item.growthType && item.growthType.axis;
+  const label = item.growthType && item.growthType.label;
+  const role = item.roleKey || '';
+  if(label === '編成安定') return 'stability';
+  if(label === '支援強化') return 'support';
+  if(label === '後衛火力') return 'subdps';
+  if(label === '爆発力') return 'burst';
+  if(label === '火力強化' || axis === 'atk') return (role === 'sup') ? 'support' : (role === 'atk' ? 'carry' : 'subdps');
+  if(label === '耐久補強' || axis === 'wall') return (role === 'wall') ? 'tankiness' : 'stability';
+  if(role === 'wall') return 'tankiness';
+  if(role === 'sup') return 'support';
+  if(role === 'atk') return 'carry';
+  return 'default';
+}
+function __pickSummaryTemplate(summaryKey, impactKey){
+  const map = (typeof SUMMARY_TEMPLATES !== 'undefined' && SUMMARY_TEMPLATES) ? SUMMARY_TEMPLATES : null;
+  if(!map || !summaryKey || !map[summaryKey]) return '';
+  const bucket = map[summaryKey];
+  return bucket[impactKey] || bucket.default || '';
+}
+function __buildRecommendationSummary(item){
+  const reasonCodes = Array.isArray(item && item.reasonCodes) ? item.reasonCodes : [];
+  const impactKey = __summaryImpactKey(item);
+  const policyKey = __summaryPolicyBase(reasonCodes);
+  let text = __pickSummaryTemplate(policyKey, impactKey);
+  if(text) return text;
+  if(reasonCodes.includes('lv30') || Number(item && (item.to || item.targetLv || 0)) >= 30){
+    text = __pickSummaryTemplate('lv30', impactKey);
+    if(text) return text;
+  }
+  if(reasonCodes.includes('high_cost') || (item && item.costTierLabel === '高コスト')){
+    text = __pickSummaryTemplate('high_cost', impactKey);
+    if(text) return text;
+  }
+  if(reasonCodes.includes('low_cost') || (item && item.costTierLabel === '低コスト')){
+    text = __pickSummaryTemplate('low_cost', impactKey);
+    if(text) return text;
+  }
+  if(reasonCodes.includes('future')){
+    text = __pickSummaryTemplate('future', impactKey);
+    if(text) return text;
+  }
+  if(reasonCodes.includes('immediate')){
+    text = __pickSummaryTemplate('immediate', impactKey);
+    if(text) return text;
+  }
+  return '戦力強化につながりやすい';
+}
+
+function __aiBuildReasonCodes(meta){
+  const { hero, ms, roleKey, context, scoreCost, scoreCoverage, scoreFuture } = meta || {};
+  const codes = [];
+  if(hero && context){
+    const sameMain = hero.t === context.currentCombatType;
+    const sameInvest = hero.t === context.investmentType;
+    const inMainArmy = !!(context.mainArmyIds && context.mainArmyIds.has(hero.id));
+    const stage = context.shiftStage || 'hold';
+    let policyCode = 'hold';
+    if((stage === 'seed' || String(context.transitionState||'').startsWith('seed_')) && sameInvest && !sameMain) policyCode = __aiTypedPolicyCode('seed', hero.t);
+    else if((stage === 'shift' || stage === 'full_shift' || String(context.transitionState||'').startsWith('shift_to_')) && sameInvest && !sameMain) policyCode = (stage === 'full_shift') ? 'full_shift' : __aiTypedPolicyCode('shift', hero.t);
+    else if(sameMain || inMainArmy) policyCode = 'build_main';
+    codes.push(policyCode);
+  }
+
+  if(ms){
+    if(ms.target >= 30) codes.push('lv30');
+    else if(ms.target >= 20) codes.push('mid_cost');
+    else codes.push('low_cost');
+    if(ms.target === 10 || ms.target === 20) codes.push('ew_milestone');
+  }
+  const top = Math.max(Number(scoreCost)||0, Number(scoreCoverage)||0, Number(scoreFuture)||0);
+  if(top > 0){
+    if((Number(scoreFuture)||0) >= top * 0.98) codes.push('future');
+    else if((Number(scoreCost)||0) >= top * 0.98) codes.push('immediate');
+  }
+  if(hero && hero.ur) codes.push('promoted_ur');
+  return __aiSelectReasonCodes(codes, 2);
+}
+
 function detectArmyWeaknessFromDetail(detail){
     if(!detail) return "balance";
     let total = detail.attack + detail.defense;
@@ -1201,6 +1400,21 @@ function __aiGetEvalMeta(heroId){
     ? HERO_EVAL_META[heroId]
     : { milestone10Fit:1.0 };
 }
+function __aiGetAiProfile(heroId){
+  return (typeof HERO_AI_PROFILE === 'object' && HERO_AI_PROFILE[heroId])
+    ? HERO_AI_PROFILE[heroId]
+    : {
+        immediate:1.0,
+        longterm:1.0,
+        cost10:1.0,
+        cost20:1.0,
+        cost30:1.0,
+        coverage:1.0,
+        future:1.0,
+        mainTypeBonus:1.0,
+        promotedUrPenalty:1.0
+      };
+}
 function __aiCounterMap(type){
   return (typeof TYPE_COUNTER_WEIGHT === 'object' && TYPE_COUNTER_WEIGHT[type])
     ? TYPE_COUNTER_WEIGHT[type]
@@ -1222,6 +1436,52 @@ function __aiSafeHint(hero, to, context){
   if(to === 20 && hero.t === context.currentCombatType) return '安定';
   return '';
 }
+function __aiNormalizeShiftType(type){
+  if(type === 'missile') return 'mis';
+  return ['tank','air','mis'].includes(type) ? type : 'tank';
+}
+function __aiShiftCfg(){
+  return (typeof META_SHIFT === 'object' && META_SHIFT) ? META_SHIFT : {};
+}
+function __aiShiftStageCfg(){
+  return (typeof META_SHIFT_STAGE === 'object' && META_SHIFT_STAGE) ? META_SHIFT_STAGE : {};
+}
+function __aiShiftCoreProgress(type, roster){
+  const cfg = __aiShiftCfg();
+  const core = cfg.core || {};
+  const key = (type === 'mis' && core.missile) ? 'missile' : type;
+  const row = core[key];
+  if(!row || !Array.isArray(row.ids) || !row.ids.length) return 0;
+  const targets = Array.isArray(row.targets) ? row.targets : [];
+  const members = Array.isArray(roster) ? roster : [];
+  let sum = 0;
+  let cnt = 0;
+  row.ids.forEach((id, idx) => {
+    const hero = members.find(h => h && h.id === id);
+    const wp = Math.max(0, Number(hero && hero.wp) || 0);
+    const target = Math.max(1, Number(targets[idx]) || Number(cfg.progress && cfg.progress.maxWp) || 30);
+    sum += Math.min(1, wp / target);
+    cnt += 1;
+  });
+  return cnt ? (sum / cnt) : 0;
+}
+function __aiMainArmyType(army){
+  const counts = { tank:0, air:0, mis:0 };
+  (Array.isArray(army) ? army : []).forEach(h => {
+    const t = __aiNormalizeShiftType(h && h.t);
+    if(counts[t] !== undefined) counts[t] += 1;
+  });
+  return Object.entries(counts).sort((a,b)=>b[1]-a[1])[0]?.[0] || 'tank';
+}
+function __aiShiftStageName(mainProgress, nextProgress){
+  const cfg = __aiShiftStageCfg();
+  if(mainProgress < (cfg.weakMain || 0.55)) return 'build_main';
+  if(nextProgress >= (cfg.fullShift || 0.80)) return 'full_shift';
+  if(nextProgress >= (cfg.shiftStart || 0.55)) return 'shift';
+  if(nextProgress >= (cfg.seedStart || 0.30)) return 'seed';
+  if(mainProgress >= (cfg.matureMain || 0.78)) return 'mature_hold';
+  return 'hold';
+}
 function __aiBuildContext(roster, base){
   const topTank = __aiTopByType(roster, 'tank');
   const topAir = __aiTopByType(roster, 'air');
@@ -1237,44 +1497,78 @@ function __aiBuildContext(roster, base){
     mis: progress.mis.avgWp + progress.mis.count20*2 + progress.mis.count10 + progress.mis.count30*3 + progress.mis.coreCount*1.2,
   };
   const currentCombatType = Object.entries(typeScore).sort((a,b)=>b[1]-a[1])[0]?.[0] || 'tank';
-  const tankStable = progress.tank.avgWp >= 16 || progress.tank.count20 >= 3 || progress.tank.count30 >= 1;
-  const airSeed = __aiHasAny(topAir, ['dva','lucius']);
-  const airCoreReady = __aiHasAny(topAir, ['dva']) && __aiHasAny(topAir, ['lucius','schuyler','morrison']);
-  const airEntryReady = topAir.length >= 4 && __aiAvgWp(topAir.slice(0,3)) >= 10;
+  const army1 = ((base && base.assignment && Array.isArray(base.assignment.army1)) ? base.assignment.army1 : []).filter(Boolean);
+  const mainArmyType = army1.length ? __aiMainArmyType(army1) : currentCombatType;
+  const mainCoreProgress = {
+    tank: __aiShiftCoreProgress('tank', roster),
+    air: __aiShiftCoreProgress('air', roster),
+    mis: __aiShiftCoreProgress('mis', roster)
+  };
+  const mainSquadProgress = __aiShiftCoreProgress(mainArmyType, army1.length ? army1 : roster);
+  const candidateTypes = ['tank','air','mis'].filter(t => t !== mainArmyType);
+  const shiftTargetType = candidateTypes.sort((a,b)=>{
+    const pa = mainCoreProgress[a] || 0;
+    const pb = mainCoreProgress[b] || 0;
+    if(pb !== pa) return pb - pa;
+    return (typeScore[b] || 0) - (typeScore[a] || 0);
+  })[0] || currentCombatType;
+  const targetProgress = mainCoreProgress[shiftTargetType] || 0;
+  const shiftStage = __aiShiftStageName(mainSquadProgress, targetProgress);
+
   let investmentType = currentCombatType;
   let transitionState = `stay_${currentCombatType}`;
-  if(currentCombatType === 'tank' && tankStable && (airCoreReady || airSeed)){
-    investmentType = 'air';
-    transitionState = airEntryReady ? 'shift_to_air' : 'seed_air';
-  } else if(currentCombatType === 'air') {
-    transitionState = 'stay_air';
+  if(shiftStage === 'seed'){
+    investmentType = shiftTargetType;
+    transitionState = `seed_${shiftTargetType}`;
+  } else if(shiftStage === 'shift' || shiftStage === 'full_shift'){
+    investmentType = shiftTargetType;
+    transitionState = `shift_to_${shiftTargetType}`;
+  } else if(mainArmyType !== currentCombatType && mainSquadProgress >= 0.60){
+    investmentType = mainArmyType;
+    transitionState = `stay_${mainArmyType}`;
   }
-  const main = progress[currentCombatType];
-  const mainTeamMaturity = (main.avgWp >= 20 || main.count20 >= 4 || main.count30 >= 1) ? 'high' : ((main.avgWp >= 12 || main.count10 >= 3) ? 'mid' : 'low');
-  const mainArmyIds = new Set((base.assignment.army1||[]).map(h=>h.id));
-  return { progress, currentCombatType, investmentType, transitionState, mainTeamMaturity, mainArmyIds };
+
+  const main = progress[mainArmyType] || progress[currentCombatType];
+  const mainTeamMaturity = (mainSquadProgress >= 0.78 || main.avgWp >= 20 || main.count20 >= 4 || main.count30 >= 1) ? 'high' : ((mainSquadProgress >= 0.55 || main.avgWp >= 12 || main.count10 >= 3) ? 'mid' : 'low');
+  const mainArmyIds = new Set(army1.map(h=>h.id));
+  return { progress, currentCombatType, investmentType, transitionState, mainTeamMaturity, mainArmyIds, mainArmyType, mainSquadProgress, shiftTargetType, shiftTargetProgress:targetProgress, shiftStage, coreProgress:mainCoreProgress };
 }
 function __aiTypePolicyMult(type, context, route='overall'){
   let mult = ((typeof META_SHIFT==='object' && META_SHIFT.weightBase && META_SHIFT.weightBase[type]) || 1.0);
   const current = context.currentCombatType;
   const invest = context.investmentType || current;
+  const mainType = context.mainArmyType || current;
+  const shiftStage = context.shiftStage || 'hold';
+  const cfg = __aiShiftStageCfg();
+  const multCfg = (typeof META_SHIFT === 'object' && META_SHIFT.mult) ? META_SHIFT.mult : {};
+
   if(route === 'cost'){
-    if(type === current) mult *= 1.06; else mult *= 0.96;
-    if(context.mainTeamMaturity === 'low' && type !== current) mult *= 0.95;
+    if(type === mainType) mult *= (cfg.keepCurrentCost || 1.06);
+    else mult *= 0.96;
+    if(context.mainTeamMaturity === 'low' && type !== mainType) mult *= (cfg.lowMainOfftypeCost || multCfg.weakOfftypeDamp || 0.94);
+    if(shiftStage === 'seed' && type === invest) mult *= (multCfg.seedBoost || cfg.seedFuture || 1.04);
+    if((shiftStage === 'shift' || shiftStage === 'full_shift') && type === invest) mult *= 1.04;
   } else if(route === 'coverage'){
     const cm = __aiCounterMap(current);
     mult *= (0.9 + (cm[type] || 0.5) * 0.2);
     if(type === invest) mult *= 1.03;
+    if(type === mainType && context.mainTeamMaturity !== 'high') mult *= 1.03;
   } else if(route === 'future'){
-    if(type === invest) mult *= 1.08; else mult *= 0.95;
-    if(context.transitionState === 'seed_air' && type === 'air') mult *= 1.05;
-    if(context.transitionState === 'shift_to_air' && type === 'air') mult *= 1.08;
-    if(context.mainTeamMaturity === 'low' && type !== current) mult *= 0.92;
+    if(type === mainType) mult *= (cfg.keepCurrentFuture || 1.03);
+    else mult *= 0.95;
+    if(type === invest) mult *= (shiftStage === 'seed' ? (cfg.seedFuture || multCfg.seedBoost || 1.04) : ((shiftStage === 'shift' || shiftStage === 'full_shift') ? (cfg.shiftFuture || multCfg.shiftBoost || 1.10) : 1.08));
+    if(context.transitionState === 'seed_air' && type === 'air') mult *= 1.03;
+    if(context.transitionState === 'shift_to_air' && type === 'air') mult *= 1.06;
+    if(context.transitionState === 'seed_mis' && type === 'mis') mult *= 1.03;
+    if(context.transitionState === 'shift_to_mis' && type === 'mis') mult *= 1.06;
+    if(context.mainTeamMaturity === 'low' && type !== mainType) mult *= (cfg.lowMainOfftypeFuture || 0.92);
   }
   return Math.max(0.85, Math.min(1.20, mult));
 }
 function __aiHeroBias(heroId, route='overall', context=null){
   const p = __aiGetProfile(heroId);
+  const evalMeta = __aiGetEvalMeta(heroId);
+  const ai = __aiGetAiProfile(heroId);
   let mult = 1.0;
   if(p.role === 'main_dps') mult *= 1.10;
   else if(p.role === 'sub_dps') mult *= 1.04;
@@ -1285,6 +1579,21 @@ function __aiHeroBias(heroId, route='overall', context=null){
   if(meta.ew === 'SSS') mult *= 1.10;
   else if(meta.ew === 'SS') mult *= 1.06;
   else if(meta.ew === 'S') mult *= 1.03;
+
+  if(route === 'cost') mult *= (ai.immediate || 1.0);
+  else if(route === 'coverage') mult *= (ai.coverage || 1.0);
+  else if(route === 'future') mult *= (ai.future || 1.0) * (ai.longterm || 1.0);
+
+  if(p.promotedUr || meta.ew === 'P'){
+    const immediateFit = Math.max(0.88, Math.min(1.18, evalMeta.promotedUrImmediateFit || 1.0));
+    const promotedPenalty = Math.max(0.72, Math.min(1.0, ai.promotedUrPenalty || 0.84));
+    if(route === 'future') mult *= (__aiGetLongterm(heroId) * 0.84) * promotedPenalty;
+    else if(route === 'cost') mult *= immediateFit;
+    else if(route === 'coverage') mult *= (0.96 + Math.max(0, immediateFit - 1) * 0.70);
+    else mult *= 0.94;
+    return mult;
+  }
+
   if(route === 'future') mult *= __aiGetLongterm(heroId);
   if(context && context.investmentType === 'air' && heroId === 'dva') mult *= 1.02;
   if(context && context.investmentType === 'air' && heroId === 'lucius'){
@@ -1297,17 +1606,30 @@ function __aiHeroBias(heroId, route='overall', context=null){
 }
 function __aiMilestoneBias(heroId, targetLv, route='overall'){
   const p = __aiGetProfile(heroId);
-  if(targetLv === 10) return route === 'cost' ? 1.05 : 1.00;
-  if(targetLv === 20) return route === 'cost' ? 1.15 : 1.11;
-  if(targetLv === 30){
-    if(p.role === 'main_dps') return route === 'future' ? 1.10 : 1.02;
-    if(p.role === 'front_tank') return route === 'cost' ? 0.94 : 1.00;
-    if(p.role === 'support') return 0.90;
+  const evalMeta = __aiGetEvalMeta(heroId);
+  const ai = __aiGetAiProfile(heroId);
+  const aiCost = targetLv === 30 ? (ai.cost30 || 1.0) : (targetLv === 20 ? (ai.cost20 || 1.0) : (ai.cost10 || 1.0));
+  if(p.promotedUr){
+    const immediateFit = Math.max(0.92, Math.min(1.12, evalMeta.promotedUrImmediateFit || 1.0));
+    if(targetLv === 10) return (route === 'cost' ? (1.03 * immediateFit * aiCost) : 1.00);
+    if(targetLv === 20) return route === 'cost' ? (0.92 * aiCost) : (route === 'future' ? 0.84 : 0.88);
+    if(targetLv === 30) return route === 'cost' ? (0.72 * aiCost) : (route === 'future' ? 0.58 : 0.66);
   }
-  return 1.0;
+  if(targetLv === 10) return route === 'cost' ? (1.05 * aiCost) : 1.00;
+  if(targetLv === 20) return route === 'cost' ? (1.15 * aiCost) : 1.11;
+  if(targetLv === 30){
+    if(p.role === 'main_dps') return route === 'future' ? 1.10 : (1.02 * aiCost);
+    if(p.role === 'front_tank') return route === 'cost' ? (0.94 * aiCost) : 1.00;
+    if(p.role === 'support') return route === 'cost' ? (0.90 * aiCost) : 0.90;
+    return route === 'cost' ? aiCost : 1.0;
+  }
+  return route === 'cost' ? aiCost : 1.0;
 }
 function __aiSynergyBias(hero, roster, targetLv){
-  const table = (typeof HERO_SYNERGY === 'object' && HERO_SYNERGY[hero.id]) ? HERO_SYNERGY[hero.id] : null;
+  const source = (typeof HERO_PAIR_SYNERGY === 'object' && HERO_PAIR_SYNERGY[hero.id])
+    ? HERO_PAIR_SYNERGY
+    : ((typeof HERO_SYNERGY === 'object') ? HERO_SYNERGY : null);
+  const table = source && source[hero.id] ? source[hero.id] : null;
   if(!table) return 1.0;
 
   const rosterMap = {};
@@ -1322,12 +1644,13 @@ function __aiSynergyBias(hero, roster, targetLv){
     const partnerLv = rosterMap[partnerId] || 0;
     if(partnerLv <= 0) continue;
 
-    let pairMult = bonus.base || 1.0;
-    if(partnerLv >= 30 && bonus.lv30) pairMult = bonus.lv30;
-    else if(partnerLv >= 20 && bonus.lv20) pairMult = bonus.lv20;
-    else if(partnerLv >= 10 && bonus.lv10) pairMult = bonus.lv10;
+    let pairMult = (typeof bonus === 'number') ? bonus : (bonus.base || 1.0);
+    if(typeof bonus === 'object'){
+      if(partnerLv >= 30 && bonus.lv30) pairMult = bonus.lv30;
+      else if(partnerLv >= 20 && bonus.lv20) pairMult = bonus.lv20;
+      else if(partnerLv >= 10 && bonus.lv10) pairMult = bonus.lv10;
+    }
 
-    // 無微課金寄り：20→30 のときはシナジー加点を少し弱める
     if(targetLv === 30){
       pairMult = 1 + (pairMult - 1) * 0.5;
     }
@@ -1335,9 +1658,58 @@ function __aiSynergyBias(hero, roster, targetLv){
     mult *= pairMult;
   }
 
-  return Math.min(mult, 1.10);
+  return Math.min(mult, 1.12);
 }
 
+function __aiFormationSynergyBias(hero, roster, targetLv, context){
+  const table = (typeof FORMATION_SYNERGY === 'object' && FORMATION_SYNERGY) ? FORMATION_SYNERGY : null;
+  if(!table || !hero) return 1.0;
+  const sameType = roster.filter(x => x && x.t === hero.t);
+  const sameTypeCount = sameType.length;
+  const frontCount = roster.filter(x => x && x.r === 'wall').length;
+  const hasMainDps = roster.some(x => {
+    const p = __aiGetProfile(x.id);
+    return p.role === 'main_dps';
+  });
+  const hasSubDps = roster.some(x => {
+    const p = __aiGetProfile(x.id);
+    return p.role === 'sub_dps' || x.r === 'atk';
+  });
+  const hasSupport = roster.some(x => {
+    const p = __aiGetProfile(x.id);
+    return p.role === 'support' || x.r === 'sup';
+  });
+  let mult = 1.0;
+  if(frontCount >= 2 && table.front2) mult *= table.front2;
+  if(sameTypeCount >= 5 && table.monoType5) mult *= table.monoType5;
+  else if(sameTypeCount >= 4 && table.monoType4plus1) mult *= table.monoType4plus1;
+  if(hero.t === 'tank' && hasSupport && frontCount >= 2 && table.tankCarryCore) mult *= table.tankCarryCore;
+  if(hero.t === 'air' && __aiHasAny(roster, ['lucius','dva','morrison']) && table.airBurstCore) mult *= table.airBurstCore;
+  if(hero.t === 'air' && __aiHasAny(roster, ['lucius','schuyler']) && table.airControlCore) mult *= table.airControlCore;
+  if(hero.t === 'mis' && __aiHasAny(roster, ['adam']) && (__aiHasAny(roster, ['tesla','fiona','mcgregor','swift','venom'])) && table.missileCore) mult *= table.missileCore;
+  if((__aiGetProfile(hero.id).promotedUr) && table.promotedUrBridge) mult *= table.promotedUrBridge;
+  if(hasMainDps && hasSubDps && table.carryPlusSubDps) mult *= table.carryPlusSubDps;
+  if(hasMainDps && hasSupport && table.carryPlusSupport) mult *= table.carryPlusSupport;
+  if(context && hero.t === context.currentCombatType){
+    mult *= (__aiGetAiProfile(hero.id).mainTypeBonus || 1.0);
+  }
+  if(targetLv === 30) mult = 1 + (mult - 1) * 0.65;
+  return Math.min(mult, 1.16);
+}
+
+function __aiMatchupBias(hero, roster, context){
+  const table = (typeof MATCHUP_MODIFIER === 'object' && MATCHUP_MODIFIER) ? MATCHUP_MODIFIER : null;
+  if(!table || !hero) return 1.0;
+  let mult = 1.0;
+  if(table[hero.id] && table[hero.id].vsEnemy && context && context.currentCombatType){
+    const mods = table[hero.id].vsEnemy;
+    if(mods[context.currentCombatType]) mult *= mods[context.currentCombatType];
+  }
+  if(hero.id === 'lucius' && table.lucius && table.lucius.withEW30 && hero.wp >= 30){
+    mult *= table.lucius.withEW30;
+  }
+  return Math.max(0.90, Math.min(mult, 1.12));
+}
 
 function __aiTankBranchBias(hero, targetLv, context){
   if(!hero || hero.t !== 'tank') return 1.0;
@@ -1501,7 +1873,7 @@ function calculateUpgradeEfficiencyFull(roster){
             if(gain <= 0) gain = Math.max(1, Math.round(__aiGetLongterm(hero.id) * 18 - 6));
             gain = Math.round(gain * __aiTypePolicyMult(hero.t, context, 'future') * __aiHeroBias(hero.id, 'future', context) * __aiSynergyBias(hero, roster, ewTarget));
             if(gain > 0){
-              unlockResults.push({ id:hero.id, name:hero.name, type:hero.t, gain, roleKey, roleBadge, from:0, to:ewTarget, growthType:{ level:2, axis:'atk', label:'将来性', strong:false }, costTierLabel:__aiCostTierLabel(0, ewTarget), safeHintLabel:'' });
+              unlockResults.push({ id:hero.id, name:hero.name, type:hero.t, gain, roleKey, roleBadge, from:0, to:ewTarget, growthType:{ level:2, axis:'atk', label:'将来性', strong:false }, reasonCodes: __aiSelectReasonCodes(['future', hero.ur ? 'promoted_ur' : '', ewTarget>=30 ? 'lv30' : 'mid_cost', (context && context.investmentType===hero.t && context.shiftStage==='seed') ? __aiTypedPolicyCode('seed', hero.t) : ((context && context.investmentType===hero.t && (context.shiftStage==='shift'||context.shiftStage==='full_shift')) ? __aiTypedPolicyCode('shift', hero.t) : 'hold')], 2), costTierLabel:__aiCostTierLabel(0, ewTarget), safeHintLabel:'' });
             }
             return;
         }
@@ -1523,13 +1895,18 @@ function calculateUpgradeEfficiencyFull(roster){
         const sameInvest = hero.t === context.investmentType;
         const inMainArmy = context.mainArmyIds.has(hero.id);
         const synergy = __aiSynergyBias(hero, roster, ms.target);
+        const formationSynergy = __aiFormationSynergyBias(hero, roster, ms.target, context);
+        const matchupBias = __aiMatchupBias(hero, roster, context);
         const tankBranchBias = __aiTankBranchBias(hero, ms.target, { weakness1, weakness2, weakness3, currentCombatType: context.currentCombatType, investmentType: context.investmentType });
         const evalMeta = __aiGetEvalMeta(hero.id);
+        const aiProfile = __aiGetAiProfile(hero.id);
         const milestone10EvalFit = (ms.target === 10) ? (evalMeta.milestone10Fit || 1.0) : 1.0;
+        const mainTypeBonus = (sameMain ? (aiProfile.mainTypeBonus || 1.0) : 1.0);
+        const sharedSynergy = synergy * formationSynergy * matchupBias * tankBranchBias * milestone10EvalFit;
 
-        const scoreCost = basePerCost * __aiTypePolicyMult(hero.t, context, 'cost') * __aiHeroBias(hero.id, 'cost', context) * __aiMilestoneBias(hero.id, ms.target, 'cost') * synergy * tankBranchBias * (sameMain ? 1.08 : 0.96) * (inMainArmy ? 1.06 : 1.00) * milestone10EvalFit;
-        const scoreCoverage = basePerCost * __aiTypePolicyMult(hero.t, context, 'coverage') * __aiHeroBias(hero.id, 'coverage', context) * __aiMilestoneBias(hero.id, ms.target, 'coverage') * synergy * tankBranchBias * (sameMain ? 0.96 : 1.06) * (sameInvest ? 1.04 : 1.00) * milestone10EvalFit;
-        const scoreFuture = basePerCost * __aiTypePolicyMult(hero.t, context, 'future') * __aiHeroBias(hero.id, 'future', context) * __aiMilestoneBias(hero.id, ms.target, 'future') * synergy * tankBranchBias * (sameInvest ? 1.10 : 0.96) * milestone10EvalFit;
+        const scoreCost = basePerCost * __aiTypePolicyMult(hero.t, context, 'cost') * __aiHeroBias(hero.id, 'cost', context) * __aiMilestoneBias(hero.id, ms.target, 'cost') * sharedSynergy * (sameMain ? 1.08 : 0.96) * (inMainArmy ? 1.06 : 1.00) * mainTypeBonus;
+        const scoreCoverage = basePerCost * __aiTypePolicyMult(hero.t, context, 'coverage') * __aiHeroBias(hero.id, 'coverage', context) * __aiMilestoneBias(hero.id, ms.target, 'coverage') * sharedSynergy * (sameMain ? 0.96 : 1.06) * (sameInvest ? 1.04 : 1.00) * mainTypeBonus;
+        const scoreFuture = basePerCost * __aiTypePolicyMult(hero.t, context, 'future') * __aiHeroBias(hero.id, 'future', context) * __aiMilestoneBias(hero.id, ms.target, 'future') * sharedSynergy * (sameInvest ? 1.10 : 0.96) * mainTypeBonus;
         const efficiency = (scoreCost * weights.cost) + (scoreCoverage * weights.coverage) + (scoreFuture * weights.future);
 
         const weaknesses = [weakness1, weakness2, weakness3].filter(Boolean);
@@ -1538,9 +1915,10 @@ function calculateUpgradeEfficiencyFull(roster){
             scoreCost, scoreCoverage, scoreFuture
         });
         const safeHintLabel = __aiDisplaySafeLabel(hero, ms, context, growthType, scoreCost, scoreCoverage, scoreFuture);
+        const reasonCodes = __aiBuildReasonCodes({ hero, ms, roleKey, context, scoreCost, scoreCoverage, scoreFuture });
 
         const reinforceMain = 30 * (sameMain ? 1 : 0) + 20 * (inMainArmy ? 1 : 0.4) + 20 * (((weakness1 === 'defense' || weakness2 === 'defense') && roleKey === 'wall') || ((weakness1 === 'attack' || weakness2 === 'attack') && roleKey === 'atk') ? 1 : 0.45) + 15 * (ms.target === 20 ? 1 : (ms.target === 10 ? 0.8 : 0.55)) + 10 * ((sameMain && context.mainTeamMaturity !== 'high') ? 1 : 0.5) + 5 * (sameMain ? 1 : 0.2);
-        const reinforceCoverage = 30 * ((__aiCounterMap(context.currentCombatType)[hero.t]) || 0.5) + 25 * (profile.core ? 1 : 0.25) + 20 * Math.min(1.1, synergy) + 15 * (!sameMain ? 1 : 0.45) + 10 * (ms.target <= 20 ? 1 : 0.55);
+        const reinforceCoverage = 30 * ((__aiCounterMap(context.currentCombatType)[hero.t]) || 0.5) + 25 * (profile.core ? 1 : 0.25) + 20 * Math.min(1.12, synergy * formationSynergy) + 15 * (!sameMain ? 1 : 0.45) + 10 * (ms.target <= 20 ? 1 : 0.55);
         const reinforceFuture = 30 * (sameInvest ? 1 : 0.2) + 25 * (profile.core ? 1 : 0.3) + 20 * __aiGetLongterm(hero.id) + 15 * (context.mainTeamMaturity === 'high' ? 1 : (context.mainTeamMaturity === 'mid' ? 0.7 : 0.35)) + 10 * (ms.target === 30 ? 1 : (ms.target === 20 ? 0.8 : 0.5));
 
         normalResults.push({
@@ -1550,6 +1928,7 @@ function calculateUpgradeEfficiencyFull(roster){
             roleKey, roleBadge,
             strength: (ms.target>=30 ? 'mega' : (ms.target>=20 ? 'high' : 'mid')),
             growthType,
+            reasonCodes,
             costTierLabel: __aiCostTierLabel(hero.wp, ms.target),
             safeHintLabel,
             scoreCost, scoreCoverage, scoreFuture,
@@ -1566,7 +1945,7 @@ function calculateUpgradeEfficiencyFull(roster){
       for(const item of arr){
         if(!used.has(item.id)){
           used.add(item.id);
-          return { ...item, growthType:{ level:2, axis, label, strong:false } };
+          return { ...item, growthType:{ level:2, axis, label, strong:false }, reasonCodes: __aiSelectReasonCodes(item.reasonCodes || [axis==='atk' ? 'future' : 'coverage', item.costTierLabel==='高コスト' ? 'high_cost' : 'low_cost'], 2) };
         }
       }
       return null;
