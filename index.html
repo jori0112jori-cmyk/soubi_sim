@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ラストウォー育成シミュレーター</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=0">
+<link rel="stylesheet" href="styles.css?v=1">
 
 <!-- ▼ 兵種シフト目安：編成の▼ボタンと同じ“右端トグル”見た目に寄せる（差分追加） -->
 <style>
@@ -28,7 +28,7 @@
 <div id="toast"></div>
 
 <div class="container">
-    <h1>育成シミュレーター <span class="version-badge">⭐ 編成診断AI v1.0（安定版）</span></h1>
+    <h1>育成シミュレーター <span class="version-badge">⭐ 編成診断AI v1.1（安定版）</span></h1>
     <div class="tabs">
         <div class="tab-btn active" onclick="showTab('squad', this)">⚔️ 部隊編成</div>
         <div class="tab-btn" onclick="showTab('gear', this)">🛡️ 装備</div>
@@ -246,8 +246,8 @@
     <div style="font-size:0.8rem; color:#4b5563; background:#f8fafc; padding:4px 10px; border-radius:12px; border:1px solid #e2e8f0; font-weight:bold;">必要: <span style="color:#f59e0b;">UR<span id="ft-ur">0</span></span> <span style="color:#b91c1c;">MR<span id="ft-mr">0</span></span></div>
 </div>
 
-<script src="data.js?v=2"></script>
-<script src="app.js?v=6"></script>
+<script src="data.js?v=3"></script>
+<script src="app.js?v=7"></script>
 
 <div id="slot-modal" class="modal-backdrop" onclick="if(event.target===this) closeSlotModal()">
   <div class="modal-card">
